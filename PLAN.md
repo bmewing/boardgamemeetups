@@ -46,7 +46,7 @@ These are folded into the checklist below.
 - [ ] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
 - [ ] Resend (or Postmark) account for transactional email; verify sending domain
 
-### Phase 1 — Project scaffolding
+### Phase 1 — Project scaffolding ✅
 - [x] Monorepo layout: `backend/` (FastAPI) and `frontend/` (Vite + React + TS)
 - [x] Backend: FastAPI, SQLAlchemy 2 (async), Alembic, pydantic-settings, `uv` for deps
 - [x] Frontend: Vite, React Router, TanStack Query, Mantine, API client generated from FastAPI's OpenAPI schema
