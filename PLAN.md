@@ -37,7 +37,8 @@ These are folded into the checklist below.
 ## Checklist
 
 ### Phase 0 — Accounts & setup
-- [ ] Create GitHub repo (`boardgamegroup`), `main` branch protected-ish
+- [x] Create GitHub repo (`bmewing/boardgamemeetups`)
+- [ ] Protect `main` (require CI to pass)
 - [ ] Register app with BGG XML API; store bearer token
 - [ ] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
 - [ ] Neon: create project + database; grab pooled + direct connection strings
@@ -45,14 +46,14 @@ These are folded into the checklist below.
 - [ ] Resend (or Postmark) account for transactional email; verify sending domain
 
 ### Phase 1 — Project scaffolding
-- [ ] Monorepo layout: `backend/` (FastAPI) and `frontend/` (Vite + React + TS)
-- [ ] Backend: FastAPI, SQLAlchemy 2 (async), Alembic, pydantic-settings, `uv` for deps
-- [ ] Frontend: Vite, React Router, TanStack Query, a component lib (e.g. Mantine or shadcn/ui), API client generated from FastAPI's OpenAPI schema
-- [ ] `docker-compose.yml` with local Postgres for dev
-- [ ] Lint/format: ruff + mypy (backend), eslint + prettier (frontend)
-- [ ] Tests: pytest + httpx test client (backend), vitest (frontend)
-- [ ] GitHub Actions CI: lint + test both halves on PR
-- [ ] `.env.example` for both halves; README with local run steps
+- [x] Monorepo layout: `backend/` (FastAPI) and `frontend/` (Vite + React + TS)
+- [x] Backend: FastAPI, SQLAlchemy 2 (async), Alembic, pydantic-settings, `uv` for deps
+- [x] Frontend: Vite, React Router, TanStack Query, Mantine, API client generated from FastAPI's OpenAPI schema
+- [x] `docker-compose.yml` with local Postgres for dev
+- [x] Lint/format: ruff + mypy (backend), oxlint + prettier (frontend)
+- [x] Tests: pytest + httpx test client (backend), vitest (frontend)
+- [x] GitHub Actions CI: lint + test both halves on PR
+- [x] `.env.example` for both halves; README with local run steps
 - **Done when:** `docker compose up` + `uv run fastapi dev` + `npm run dev` gives a hello-world page calling `/api/health`
 
 ### Phase 2 — Auth & users
