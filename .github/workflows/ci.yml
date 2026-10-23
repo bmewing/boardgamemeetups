@@ -29,7 +29,7 @@ jobs:
       DATABASE_URL: postgresql+asyncpg://boardgame:boardgame@localhost:5432/boardgamegroup
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           enable-cache: true
       - run: uv sync --locked
@@ -51,7 +51,7 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           enable-cache: true
       - run: npm ci
