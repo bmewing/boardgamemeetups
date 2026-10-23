@@ -11,15 +11,17 @@ for the roadmap.
 
 - [uv](https://docs.astral.sh/uv/) (installs Python 3.14 for you)
 - Node.js 24+
-- Docker (for the local Postgres)
+- PostgreSQL 16+ running locally
 
 ## Running locally
 
-Start Postgres:
+Create the local role and database once, as the `postgres` superuser:
 
 ```bash
-docker compose up -d
+psql -U postgres -c "CREATE ROLE boardgame LOGIN PASSWORD 'boardgame'" -c "CREATE DATABASE boardgamegroup OWNER boardgame"
 ```
+
+Different credentials work too; just put them in `backend/.env`.
 
 Backend (http://localhost:8000, docs at `/api/docs`):
 
@@ -47,7 +49,7 @@ Backend, from `backend/`:
 uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest
 ```
 
-The tests need the docker-compose Postgres running.
+The tests need the local Postgres database from above.
 
 Frontend, from `frontend/`:
 

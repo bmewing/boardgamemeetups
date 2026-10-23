@@ -6,7 +6,7 @@ A web app for organizing board game meetups. Users log in, import their game col
 
 - **Stack:** FastAPI (Python) backend + React (Vite + TypeScript) SPA
 - **Auth:** Kinde (React SDK in the browser; FastAPI checks Kinde JWTs against Kinde's JWKS)
-- **DB:** Free external Postgres (Neon free tier). SQLAlchemy 2 + Alembic.
+- **DB:** Free external Postgres (Supabase free tier, used as plain Postgres via its session pooler). Local dev uses a locally installed Postgres. SQLAlchemy 2 + Alembic.
 - **Hosting:** DigitalOcean App Platform, personal account. One app with two components:
   - React build as a **static site** (free tier) at `/`
   - FastAPI as a **web service** (~$5/mo basic instance) at `/api`, so they share an origin and there's no CORS to deal with
@@ -27,6 +27,7 @@ These are folded into the checklist below.
 - **Big groups:** with 9 people, the recommendation should be "two tables", not one game. This is v2, but the data model should allow it.
 - **Expansions:** treat them as attached to their base game, not as separate recommendations.
 - **Close the loop:** log what was actually played after a meetup. That feeds "recently played" into future recommendations.
+- **Supabase free tier pauses after a week without activity.** Fine while people use the app; the `/api/health` check queries the database, so DO's health checks should keep it awake, but verify after launch.
 - **Privacy:** the address is shown only to invitees, and users control who can see their collection (friends vs. public).
 - **Time zones and calendar export** (.ics file / "add to calendar").
 - **Mobile-first UI:** most RSVPs and votes will happen on phones.
@@ -41,7 +42,7 @@ These are folded into the checklist below.
 - [ ] Protect `main` (require CI to pass)
 - [ ] Register app with BGG XML API; store bearer token
 - [ ] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
-- [ ] Neon: create project + database; grab pooled + direct connection strings
+- [ ] Supabase: create project; grab the **session pooler** connection string (the direct connection is IPv6-only on the free tier)
 - [ ] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
 - [ ] Resend (or Postmark) account for transactional email; verify sending domain
 
@@ -49,12 +50,12 @@ These are folded into the checklist below.
 - [x] Monorepo layout: `backend/` (FastAPI) and `frontend/` (Vite + React + TS)
 - [x] Backend: FastAPI, SQLAlchemy 2 (async), Alembic, pydantic-settings, `uv` for deps
 - [x] Frontend: Vite, React Router, TanStack Query, Mantine, API client generated from FastAPI's OpenAPI schema
-- [x] `docker-compose.yml` with local Postgres for dev
+- [x] Local Postgres for dev (installed locally, no Docker)
 - [x] Lint/format: ruff + mypy (backend), oxlint + prettier (frontend)
 - [x] Tests: pytest + httpx test client (backend), vitest (frontend)
 - [x] GitHub Actions CI: lint + test both halves on PR
 - [x] `.env.example` for both halves; README with local run steps
-- **Done when:** `docker compose up` + `uv run fastapi dev` + `npm run dev` gives a hello-world page calling `/api/health`
+- **Done when:** local Postgres + `uv run fastapi dev` + `npm run dev` gives a hello-world page calling `/api/health`
 
 ### Phase 2 — Auth & users
 - [ ] Frontend: Kinde React SDK login/logout, protected routes
@@ -147,10 +148,10 @@ These are folded into the checklist below.
 ### Phase 12 — Deploy to DigitalOcean
 - [ ] Dockerfile for backend (uvicorn/gunicorn), health check at `/api/health`
 - [ ] `.do/app.yaml` spec: static site (frontend build) + web service (backend) with route `/api`, plus a pre-deploy job running `alembic upgrade head`
-- [ ] Env vars/secrets in DO: DB URL (Neon, `sslmode=require`), Kinde domain/audience, BGG token, Resend key
+- [ ] Env vars/secrets in DO: DB URL (Supabase session pooler, `sslmode=require`), Kinde domain/audience, BGG token, Resend key
 - [ ] Kinde prod callback URLs; custom domain + TLS (optional)
 - [ ] Auto-deploy from `main`
-- [ ] Neon branch for staging, or just a second Neon DB
+- [ ] Staging database: a second Supabase project (free tier allows two)
 - **Done when:** production URL works end-to-end with a real login
 
 ### Phase 13 — Post-MVP / nice-to-haves

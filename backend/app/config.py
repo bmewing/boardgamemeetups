@@ -14,17 +14,15 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def use_asyncpg_driver(cls, url: str) -> str:
-        """Accept a plain Postgres URL (as Neon hands out) and adapt it for asyncpg."""
+        """Accept a plain Postgres URL (as Supabase hands out) and adapt it for asyncpg."""
         parts = urlsplit(url)
         scheme = (
             "postgresql+asyncpg" if parts.scheme in ("postgres", "postgresql") else parts.scheme
         )
-        query = []
-        for key, value in parse_qsl(parts.query):
-            if key == "sslmode":
-                query.append(("ssl", value))
-            elif key != "channel_binding":  # asyncpg doesn't accept it
-                query.append((key, value))
+        # asyncpg spells libpq's sslmode as ssl.
+        query = [
+            ("ssl" if key == "sslmode" else key, value) for key, value in parse_qsl(parts.query)
+        ]
         return urlunsplit(parts._replace(scheme=scheme, query=urlencode(query)))
 
 

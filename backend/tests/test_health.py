@@ -32,9 +32,12 @@ async def test_health_reports_degraded_when_database_unreachable(client: AsyncCl
     assert response.json() == {"status": "degraded", "database": "unavailable"}
 
 
-def test_neon_style_url_is_adapted_for_asyncpg() -> None:
+def test_supabase_url_is_adapted_for_asyncpg() -> None:
     settings = Settings(
-        database_url="postgresql://u:p@ep-x.neon.tech/db?sslmode=require&channel_binding=require"
+        database_url="postgresql://postgres.ref:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require"
     )
 
-    assert settings.database_url == "postgresql+asyncpg://u:p@ep-x.neon.tech/db?ssl=require"
+    assert settings.database_url == (
+        "postgresql+asyncpg://postgres.ref:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+        "?ssl=require"
+    )
