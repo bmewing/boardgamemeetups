@@ -1,12 +1,15 @@
 """The signed-in user's games: listing, editing, and importing from BGG with a preview."""
 
+from collections.abc import Mapping
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated, Any, Literal, Self
 
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, HTTPException, Path, Query, Request, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import any_, delete, func, literal, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import catalog, collection
 from app.api.games import BggDep, GameSummary
@@ -24,6 +27,19 @@ from app.collection import (
     WishlistPriority,
 )
 from app.db import SessionDep
+from app.file_import import (
+    MAX_ROWS,
+    FileError,
+    FileKind,
+    ImportColumn,
+    WholeFile,
+    bgg_export_entries,
+    bgg_export_rows,
+    inspect_table,
+    parse_rows,
+    read_table,
+)
+from app.matching import MatchStatus, RowMatch, match_rows
 from app.models import (
     Game,
     Mood,
@@ -32,6 +48,7 @@ from app.models import (
     PlaytimeFeel,
     RemovedGame,
     Source,
+    User,
     UserGame,
 )
 
@@ -318,12 +335,26 @@ async def preview_bgg_pull(user: CurrentUser, session: SessionDep, bgg: BggDep) 
     await catalog.upsert_collection_games(session, entries)
     await session.commit()
 
-    rows = await collection.user_rows(session, user.id)
-    diffs = collection.diff_import(
-        rows,
+    return await _build_preview(
+        session,
+        user,
         {entry.id: collection.bgg_values(entry) for entry in entries},
         mirrored=collection.BGG_STATUS_FIELDS,
+        source=Source.BGG,
     )
+
+
+async def _build_preview(
+    session: AsyncSession,
+    user: User,
+    incoming: Mapping[int, Mapping[str, Any]],
+    *,
+    mirrored: frozenset[str],
+    source: Source,
+) -> ImportPreview:
+    """List what importing `incoming` (game id -> values) would change for this user."""
+    rows = await collection.user_rows(session, user.id)
+    diffs = collection.diff_import(rows, incoming, mirrored=mirrored)
     games = {
         game.id: game
         for game in await session.scalars(
@@ -338,8 +369,8 @@ async def preview_bgg_pull(user: CurrentUser, session: SessionDep, bgg: BggDep) 
         change.kind for diff in diffs if diff.game_id not in was_removed for change in diff.changes
     ]
     return ImportPreview(
-        source=Source.BGG,
-        bgg_username=user.bgg_username,
+        source=source,
+        bgg_username=user.bgg_username if source is Source.BGG else None,
         games=[
             GameDiffRead(
                 game=GameBrief.model_validate(games[d.game_id], from_attributes=True),
@@ -354,13 +385,181 @@ async def preview_bgg_pull(user: CurrentUser, session: SessionDep, bgg: BggDep) 
             for d in sorted(diffs, key=lambda d: games[d.game_id].name.lower())
         ],
         counts=ImportCounts(
-            games_on_source=len(entries),
+            games_on_source=len(incoming),
             new_games=sum(d.is_new and d.game_id not in was_removed for d in diffs),
             fills=kinds.count(ChangeKind.FILL),
             overwrites=kinds.count(ChangeKind.OVERWRITE),
             not_on_source=sum(not d.on_source for d in diffs),
             removed_before=len(was_removed),
         ),
+    )
+
+
+# Uploads arrive as the request body; DigitalOcean caps function requests at about 1 MB.
+MAX_UPLOAD_BYTES = 1_000_000
+
+
+class CandidateRead(BaseModel):
+    game: GameBrief
+    score: float
+
+
+class FileRowRead(BaseModel):
+    line: int
+    name: str | None
+    year: int | None
+    bgg_id: int | None
+    values: dict[str, Any]
+    problems: list[str]
+    status: MatchStatus
+    confidence: float
+    match: GameBrief | None
+    candidates: list[CandidateRead]
+
+
+class FileColumnsRead(BaseModel):
+    kind: FileKind
+    has_header: bool
+    headers: list[str]
+    samples: list[list[str]]
+    # A guess at each column's meaning (null: ignore it). Empty for a BGG export.
+    suggested: list[ImportColumn | None]
+    row_count: int
+
+
+class FileImportRead(BaseModel):
+    kind: FileKind
+    filename: str
+    rows: list[FileRowRead]
+
+
+class FileGameIn(BaseModel):
+    game_id: int
+    values: UserGameUpdate
+
+
+class FilePreviewIn(BaseModel):
+    # A BGG export is a whole collection, like a pull, so ownership and wishlist follow it.
+    whole_bgg_collection: bool = False
+    games: Annotated[list[FileGameIn], Field(max_length=MAX_ROWS)]
+
+
+def _brief(game: Game) -> GameBrief:
+    return GameBrief.model_validate(game, from_attributes=True)
+
+
+def _row_read(match: RowMatch) -> FileRowRead:
+    row = match.row
+    return FileRowRead(
+        line=row.line,
+        name=row.name,
+        year=row.year,
+        bgg_id=row.bgg_id,
+        values={k: v.value if isinstance(v, StrEnum) else v for k, v in row.values.items()},
+        problems=row.problems,
+        status=match.status,
+        confidence=match.confidence,
+        match=_brief(match.game) if match.game else None,
+        candidates=[CandidateRead(game=_brief(c.game), score=c.score) for c in match.candidates],
+    )
+
+
+FILE_BODY = {
+    "requestBody": {
+        "required": True,
+        "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}},
+    }
+}
+Filename = Annotated[str, Query(min_length=1, max_length=255)]
+
+
+async def _read_upload(request: Request, filename: str) -> list[list[str]]:
+    data = await request.body()
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, "Files can be up to 1 MB")
+    try:
+        return read_table(data, filename)
+    except FileError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+
+
+@router.post("/me/games/file-import/columns", openapi_extra=FILE_BODY)
+async def read_import_columns(
+    request: Request, filename: Filename, _user: CurrentUser
+) -> FileColumnsRead:
+    """Show an uploaded file's columns, with samples and a guess at what each holds.
+
+    Send the file itself (CSV, Excel or text) as the request body. Nothing is stored.
+    """
+    layout = inspect_table(await _read_upload(request, filename))
+    return FileColumnsRead(
+        kind=layout.kind,
+        has_header=layout.has_header,
+        headers=layout.headers,
+        samples=layout.samples,
+        suggested=layout.suggested,
+        row_count=layout.row_count,
+    )
+
+
+@router.post("/me/games/file-import", openapi_extra=FILE_BODY)
+async def read_import_file(
+    request: Request,
+    filename: Filename,
+    user: CurrentUser,
+    session: SessionDep,
+    bgg: BggDep,
+    # One per file column, in order: what it holds, or "" to ignore it. Not needed for a
+    # BGG export, whose columns are known.
+    columns: Annotated[list[str], Query(max_length=200)] = [],  # noqa: B006
+    # Where the games go when no column holds ownership or wishlist.
+    whole_file: WholeFile | None = None,
+) -> FileImportRead:
+    """Read an uploaded file with the chosen columns and match its rows to games.
+
+    Send the same file as the request body. Nothing of yours is written; games new to the
+    catalog are recorded there.
+    """
+    table = await _read_upload(request, filename)
+    layout = inspect_table(table)
+    if layout.kind is FileKind.BGG_EXPORT:
+        entries = bgg_export_entries(table)
+        await catalog.upsert_collection_games(session, entries)
+        await session.commit()
+        rows = bgg_export_rows(entries)
+    else:
+        try:
+            chosen = [ImportColumn(c) if c else None for c in columns]
+            rows = parse_rows(table, layout, chosen, whole_file)
+        except ValueError as exc:  # FileError, or an unknown column name
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+    matches = await match_rows(session, bgg, rows)
+    return FileImportRead(
+        kind=layout.kind,
+        filename=filename,
+        rows=[_row_read(m) for m in matches],
+    )
+
+
+@router.post("/me/games/file-import/preview")
+async def preview_file_import(
+    body: FilePreviewIn, user: CurrentUser, session: SessionDep
+) -> ImportPreview:
+    """List what importing the matched rows of a file would change. Writes nothing.
+
+    A game listed twice keeps the values of its last row. A blank cell never clears an
+    answer you gave, unless the file is a whole BGG collection.
+    """
+    incoming: dict[int, dict[str, Any]] = {}
+    for game in body.games:
+        incoming.setdefault(game.game_id, {}).update(game.values.model_dump(exclude_unset=True))
+    known = set(await session.scalars(select(Game.id).where(Game.id.in_(incoming))))
+    return await _build_preview(
+        session,
+        user,
+        {game_id: values for game_id, values in incoming.items() if game_id in known},
+        mirrored=collection.BGG_STATUS_FIELDS if body.whole_bgg_collection else frozenset(),
+        source=Source.FILE,
     )
 
 

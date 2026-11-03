@@ -252,7 +252,7 @@ def _parse_collection_item(item: Element) -> CollectionEntry | None:
     )
 
 
-def _merge_copies(first: CollectionEntry, other: CollectionEntry) -> None:
+def merge_copies(first: CollectionEntry, other: CollectionEntry) -> None:
     """Fold a second copy of the same game into the first entry, in place."""
     first.own |= other.own
     first.prevowned |= other.prevowned
@@ -279,7 +279,7 @@ def parse_collection(xml: bytes) -> list[CollectionEntry]:
         if entry is None:
             continue
         if entry.id in entries:
-            _merge_copies(entries[entry.id], entry)
+            merge_copies(entries[entry.id], entry)
         else:
             entries[entry.id] = entry
     return list(entries.values())
