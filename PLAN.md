@@ -42,8 +42,8 @@ These are folded into the checklist below.
 - [ ] Protect `main` (require CI to pass)
 - [x] Register app with BGG XML API; store bearer token
 - [x] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
-- [ ] Supabase: create project; grab the **transaction pooler** connection string (port 6543; the direct connection is IPv6-only on the free tier)
-- [ ] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
+- [x] Supabase: create project; grab the **transaction pooler** connection string (port 6543; the direct connection is IPv6-only on the free tier)
+- [x] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
 - [ ] Resend (or Postmark) account for transactional email; verify sending domain
 
 ### Phase 1 — Project scaffolding ✅
@@ -72,7 +72,8 @@ These are folded into the checklist below.
 - [x] Game search endpoint (local cache first, fall back to BGG search)
 - [x] "Powered by BGG" attribution in footer/game pages
 - [x] Load BGG's ranks CSV (all game names/ranks) with `app.import_bgg_ranks` (182,688 games locally; the download needs a logged-in BGG session, not the app token)
-- [ ] Load the ranks CSV into Supabase at deploy time, and refresh it now and then
+- [x] Load the ranks CSV into Supabase (182,688 games, 60 MB of the 500 MB free tier)
+- [ ] Refresh the ranks CSV now and then (manual download while logged in to BGG)
 - **Done when:** searching "Wingspan" returns the right game with player counts and image
 
 ### Phase 4 — Collection import & matching
@@ -151,10 +152,11 @@ These are folded into the checklist below.
 - [x] Run the API as a DigitalOcean function: Python 3.13, `web: raw` adapter, no connection pool, pooler-safe statements, BGG throttle shared through Postgres
 - [x] `functions/` project (vendors `backend/app`, builds deps in DO's Python 3.13 container; bundle ~19 MB zipped of the 48 MB limit)
 - [x] `.do/app.yaml` spec: static site + functions component, `/api` routed to the function
-- [ ] Run `alembic upgrade head` against Supabase before each deploy that adds migrations (Functions-only apps have no pre-deploy job)
-- [ ] Env vars/secrets in DO: DB URL (Supabase transaction pooler, `sslmode=require`), BGG token, Resend key
-- [ ] First deploy; confirm the GitHub connection can see `bmewing/boardgamemeetups`
-- [ ] Kinde prod callback URLs
+- [x] Migrations applied to Supabase (`uv run --env-file .env.production alembic upgrade head`; rerun before deploying new migrations, since Functions-only apps have no pre-deploy job)
+- [x] Env vars/secrets in DO: DB URL (Supabase transaction pooler, `sslmode=require`), BGG token
+- [ ] Resend key (Phase 11)
+- [x] First deploy: https://boardgamemeetups-i59h7.ondigitalocean.app (auto-deploys on push to `main`)
+- [x] Kinde prod callback URLs
 - [ ] Own OAuth credentials for Google, Facebook and Discord in Kinde (dev currently uses Kinde's shared keys, so consent screens name Kinde, not this app)
 - [ ] Kinde custom domain (e.g. `auth.<your-domain>`) so sign-ins survive page reloads without keeping the refresh token in localStorage (only allowed in local dev)
 - [ ] App custom domain + TLS (optional)
