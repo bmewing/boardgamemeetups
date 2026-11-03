@@ -11,7 +11,7 @@ from sqlalchemy import any_, delete, func, literal, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import catalog, collection
+from app import base_games, catalog, collection
 from app.api.games import BggDep, GameSummary
 from app.auth import CurrentUser
 from app.bgg import BggError, BggStillPreparing, BggUnknownUser
@@ -138,6 +138,28 @@ class GameBrief(BaseModel):
     is_expansion: bool
 
 
+class BaseGameSuggestion(BaseModel):
+    game: GameSummary
+    expansions: list[GameBrief]  # your owned expansions for it
+    ownership: Ownership | None  # e.g. previously owned, if it's in your list
+    on_wishlist: bool
+
+
+class BaseGameChoice(BaseModel):
+    """An expansion of yours that fits several base games, none of which you own."""
+
+    expansion: GameBrief
+    options: list[GameSummary]  # the best known first
+    option_count: int
+
+
+class MissingBaseGamesRead(BaseModel):
+    suggestions: list[BaseGameSuggestion]
+    choices: list[BaseGameChoice]
+    unchecked: int  # owned expansions whose base games aren't known yet: ask again
+    hidden: int  # left out because you removed those games here
+
+
 class FieldChangeRead(BaseModel):
     field: FieldName
     current: Any
@@ -257,7 +279,8 @@ async def remove_my_game(
 
     Only games that are expansions of this one are removed from `expansions`; other ids are
     ignored, so a mistaken id can't take an unrelated game with it. Removed games are
-    remembered, so a later import offers them unticked instead of adding them back.
+    remembered, so a later import offers them unticked instead of adding them back. A game
+    that isn't in the list can be removed too: it's then left out of suggestions.
     """
     removed = await session.scalars(
         delete(UserGame)
@@ -274,7 +297,11 @@ async def remove_my_game(
         )
         .returning(UserGame.game_id)
     )
-    ids = list(removed)
+    ids = set(removed)
+    # Also for a game that isn't in the list ("not interested" in a suggestion), so it isn't
+    # suggested or imported again.
+    if await session.get(Game, game_id) is not None:
+        ids.add(game_id)
     if ids:
         await session.execute(
             insert(RemovedGame)
@@ -286,6 +313,39 @@ async def remove_my_game(
 
 # Two BGG requests (20 games each), ~5s apart: well inside the function's time limit.
 DETAILS_PER_CALL = 40
+
+
+@router.post("/me/games/missing-base-games")
+async def find_missing_base_games(
+    user: CurrentUser, session: SessionDep, bgg: BggDep
+) -> MissingBaseGamesRead:
+    """Base games of expansions you own, where you don't own the base game.
+
+    Looks up base games on BGG for a batch of expansions that haven't been checked yet;
+    while `unchecked` is above zero, calling again checks more.
+    """
+    found = await base_games.find_missing_base_games(session, bgg, user.id)
+    return MissingBaseGamesRead(
+        suggestions=[
+            BaseGameSuggestion(
+                game=GameSummary.from_game(s.game),
+                expansions=[_brief(e) for e in s.expansions],
+                ownership=s.row.ownership if s.row else None,
+                on_wishlist=bool(s.row and s.row.wishlist_priority is not None),
+            )
+            for s in found.suggestions
+        ],
+        choices=[
+            BaseGameChoice(
+                expansion=_brief(c.expansion),
+                options=[GameSummary.from_game(g) for g in c.options],
+                option_count=c.option_count,
+            )
+            for c in found.choices
+        ],
+        unchecked=found.unchecked,
+        hidden=found.hidden,
+    )
 
 
 @router.post("/me/games/fill-details")

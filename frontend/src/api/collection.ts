@@ -111,3 +111,21 @@ export function useInvalidateMyGames() {
   const queryClient = useQueryClient()
   return useCallback(() => queryClient.invalidateQueries({ queryKey: MY_GAMES_KEY }), [queryClient])
 }
+
+export type MissingBaseGames = components['schemas']['MissingBaseGamesRead']
+export type BaseGameSuggestion = components['schemas']['BaseGameSuggestion']
+export type BaseGameChoice = components['schemas']['BaseGameChoice']
+
+/**
+ * Base games of the user's owned expansions that they don't own. Each call looks up a batch
+ * of unchecked expansions on BGG, so this asks again while that makes progress.
+ */
+export async function findMissingBaseGames(): Promise<MissingBaseGames> {
+  let previous = Infinity
+  for (;;) {
+    const { data, error } = await api.POST('/api/me/games/missing-base-games')
+    if (error) throw new Error(detailOf(error, 'Could not check your expansions'))
+    if (data.unchecked === 0 || data.unchecked >= previous) return data
+    previous = data.unchecked
+  }
+}
