@@ -132,6 +132,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/games/fill-details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fill My Game Details
+         * @description Fetch BGG details (weight, best counts…) for some of your games that lack them.
+         *
+         *     A BGG collection only gives a game's basics, so the collection page calls this until
+         *     nothing remains. If BGG is down, nothing is filled and the caller should stop.
+         */
+        post: operations["fill_my_game_details_api_me_games_fill_details_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/games/bgg-pull": {
         parameters: {
             query?: never;
@@ -200,6 +223,13 @@ export interface components {
          * @enum {string}
          */
         CollectionVisibility: "private" | "friends" | "public";
+        /** DetailsProgress */
+        DetailsProgress: {
+            /** Filled */
+            filled: number;
+            /** Remaining */
+            remaining: number;
+        };
         /** FieldChangeRead */
         FieldChangeRead: {
             /**
@@ -797,6 +827,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fill_my_game_details_api_me_games_fill_details_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetailsProgress"];
                 };
             };
         };

@@ -1,10 +1,12 @@
 import { Badge, Card, Group, Image, Stack, Text } from '@mantine/core'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import type { GameSummary } from '../api/games'
 import { bestWithLabel, playersLabel, playtimeLabel, weightLabel } from './gameFacts'
 
-export function GameCard({ game }: { game: GameSummary }) {
+/** A game in a list; `children` adds lines under the game's facts (e.g. your answers). */
+export function GameCard({ game, children }: { game: GameSummary; children?: ReactNode }) {
   const facts = [playersLabel(game), playtimeLabel(game), weightLabel(game)].filter(Boolean)
   const best = bestWithLabel(game)
 
@@ -48,6 +50,7 @@ export function GameCard({ game }: { game: GameSummary }) {
               {best}
             </Badge>
           )}
+          {children}
         </Stack>
       </Group>
     </Card>
