@@ -196,10 +196,15 @@ function PreviewView({
 
   if (preview.games.length === 0) {
     return (
-      <Alert color="teal" title="Already up to date">
-        BGG lists {plural(counts.games_on_source, 'game')}, and nothing there differs from what you
-        have here.
-      </Alert>
+      <Stack align="flex-start">
+        <Alert color="teal" title="Already up to date" w="100%">
+          BGG lists {plural(counts.games_on_source, 'game')}, and nothing there differs from what
+          you have here.
+        </Alert>
+        <Button component={Link} to="/collection">
+          Go to my games
+        </Button>
+      </Stack>
     )
   }
 
