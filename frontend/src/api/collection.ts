@@ -13,11 +13,12 @@ export type FieldChange = components['schemas']['FieldChangeRead']
 export type FieldName = FieldChange['field']
 export type ChangeIn = components['schemas']['ChangeIn']
 export type ImportResult = components['schemas']['ImportResult']
+export type ImportSource = components['schemas']['ImportApply']['source']
 
 const MY_GAMES_KEY = ['me', 'games'] as const
 
 /** The API's own explanation (FastAPI's `detail`), when it sent a plain one. */
-function detailOf(error: unknown, fallback: string): string {
+export function detailOf(error: unknown, fallback: string): string {
   if (error && typeof error === 'object' && 'detail' in error) {
     const { detail } = error as { detail: unknown }
     if (typeof detail === 'string') return detail
@@ -84,9 +85,9 @@ export function useBggPullPreview() {
 export function useApplyImport() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (changes: ChangeIn[]) => {
+    mutationFn: async ({ changes, source }: { changes: ChangeIn[]; source: ImportSource }) => {
       const { data, error } = await api.POST('/api/me/games/import', {
-        body: { source: 'bgg', changes },
+        body: { source, changes },
       })
       if (error) throw new Error(detailOf(error, 'Could not apply these changes'))
       return data

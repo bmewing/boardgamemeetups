@@ -4,6 +4,7 @@ import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { BggPullPage } from './pages/BggPullPage'
 import { CollectionPage } from './pages/CollectionPage'
+import { FileImportPage } from './pages/FileImportPage'
 import { GamePage } from './pages/GamePage'
 import { GamesPage } from './pages/GamesPage'
 import { HomePage } from './pages/HomePage'
@@ -35,6 +36,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <BggPullPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'collection/import',
+        element: (
+          <RequireAuth>
+            <FileImportPage />
           </RequireAuth>
         ),
       },

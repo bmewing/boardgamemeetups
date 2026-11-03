@@ -205,3 +205,28 @@ async def test_files_over_the_size_limit_are_refused(
     )
 
     assert response.status_code == 413
+
+
+async def test_a_name_matches_the_base_game_with_a_subtitle(
+    client: AsyncClient, bgg: FakeBgg, auth: dict[str, str], db_session: AsyncSession
+) -> None:
+    base, expansion = 990_200_010, 990_200_011
+    db_session.add_all(
+        [
+            Game(id=base, name="Zyxclank: A Deck Adventure", bgg_users_rated=16_000),
+            Game(id=expansion, name="Zyxclank: Big Expansion", is_expansion=True),
+        ]
+    )
+    await db_session.commit()
+
+    body = await upload(
+        client,
+        auth,
+        "/api/me/games/file-import",
+        b"Name\nZyxclank\n",
+        columns=["name"],
+        whole_file="owned",
+    )
+
+    [row] = body["rows"]
+    assert (row["status"], row["match"]["id"]) == ("matched", base)
