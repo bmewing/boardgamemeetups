@@ -41,7 +41,7 @@ These are folded into the checklist below.
 - [x] Create GitHub repo (`bmewing/boardgamemeetups`)
 - [ ] Protect `main` (require CI to pass)
 - [ ] Register app with BGG XML API; store bearer token
-- [ ] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
+- [x] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
 - [ ] Supabase: create project; grab the **session pooler** connection string (the direct connection is IPv6-only on the free tier)
 - [ ] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
 - [ ] Resend (or Postmark) account for transactional email; verify sending domain
@@ -57,12 +57,12 @@ These are folded into the checklist below.
 - [x] `.env.example` for both halves; README with local run steps
 - **Done when:** local Postgres + `uv run fastapi dev` + `npm run dev` gives a hello-world page calling `/api/health`
 
-### Phase 2 — Auth & users
-- [ ] Frontend: Kinde React SDK login/logout, protected routes
-- [ ] Backend: dependency that verifies Kinde access token (JWKS, audience, issuer) and returns current user
-- [ ] `users` table; upsert on first authenticated request (kinde_id, email, display name, avatar)
-- [ ] Profile page: display name, time zone, BGG username (optional), collection visibility
-- [ ] Account deletion endpoint
+### Phase 2 — Auth & users ✅
+- [x] Frontend: Kinde React SDK login/logout, protected routes
+- [x] Backend: dependency that verifies Kinde access token (JWKS, audience, issuer) and returns current user
+- [x] `users` table; upsert on first authenticated request (kinde_id, email, display name, avatar)
+- [x] Profile page: display name, time zone, BGG username (optional), collection visibility
+- [x] Account deletion endpoint
 - **Done when:** can log in on localhost, see your profile, and an unauthenticated API call returns 401
 
 ### Phase 3 — Game catalog & BGG integration
@@ -150,6 +150,7 @@ These are folded into the checklist below.
 - [ ] `.do/app.yaml` spec: static site (frontend build) + web service (backend) with route `/api`, plus a pre-deploy job running `alembic upgrade head`
 - [ ] Env vars/secrets in DO: DB URL (Supabase session pooler, `sslmode=require`), Kinde domain/audience, BGG token, Resend key
 - [ ] Kinde prod callback URLs
+- [ ] Own OAuth credentials for Google, Facebook and Discord in Kinde (dev currently uses Kinde's shared keys, so consent screens name Kinde, not this app)
 - [ ] Kinde custom domain (e.g. `auth.<your-domain>`) so sign-ins survive page reloads without keeping the refresh token in localStorage (only allowed in local dev)
 - [ ] App custom domain + TLS (optional)
 - [ ] Auto-deploy from `main`
