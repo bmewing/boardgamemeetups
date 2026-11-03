@@ -162,7 +162,7 @@ These are folded into the checklist below.
 - [ ] App custom domain + TLS (optional)
 - [x] Auto-deploy from `main`
 - [ ] Staging database: a second Supabase project (free tier allows two)
-- **Done when:** production URL works end-to-end with a real login
+- **Done when:** production URL works end-to-end with a real login (met 2026-11-03; the open items above can follow later)
 
 ### Phase 13 — Post-MVP / nice-to-haves
 - [ ] Multi-table splitting for big groups (recommend 2 games that together seat everyone)
