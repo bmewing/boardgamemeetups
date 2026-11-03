@@ -127,7 +127,8 @@ export interface paths {
          * @description Forget everything you've recorded about a game, and optionally some of its expansions.
          *
          *     Only games that are expansions of this one are removed from `expansions`; other ids are
-         *     ignored, so a mistaken id can't take an unrelated game with it.
+         *     ignored, so a mistaken id can't take an unrelated game with it. Removed games are
+         *     remembered, so a later import offers them unticked instead of adding them back.
          */
         delete: operations["remove_my_game_api_me_games__game_id__delete"];
         options?: never;
@@ -315,6 +316,8 @@ export interface components {
             is_new: boolean;
             /** On Source */
             on_source: boolean;
+            /** Removed Before */
+            removed_before: boolean;
             /** Changes */
             changes: components["schemas"]["FieldChangeRead"][];
         };
@@ -387,6 +390,8 @@ export interface components {
             overwrites: number;
             /** Not On Source */
             not_on_source: number;
+            /** Removed Before */
+            removed_before: number;
         };
         /** ImportPreview */
         ImportPreview: {

@@ -19,12 +19,20 @@ const brief = (id: number, name: string) => ({
 const preview: ImportPreview = {
   source: 'bgg',
   bgg_username: 'sam_bgg',
-  counts: { games_on_source: 3, new_games: 1, fills: 2, overwrites: 1, not_on_source: 1 },
+  counts: {
+    games_on_source: 4,
+    new_games: 1,
+    fills: 2,
+    overwrites: 1,
+    not_on_source: 1,
+    removed_before: 1,
+  },
   games: [
     {
       game: brief(1, 'Azul'),
       is_new: true,
       on_source: true,
+      removed_before: false,
       changes: [
         { field: 'ownership', current: null, incoming: 'owned', kind: 'fill' },
         { field: 'plays', current: 0, incoming: 4, kind: 'fill' },
@@ -34,13 +42,22 @@ const preview: ImportPreview = {
       game: brief(2, 'Brass'),
       is_new: false,
       on_source: true,
+      removed_before: false,
       changes: [{ field: 'rating', current: 6, incoming: 9, kind: 'overwrite' }],
     },
     {
       game: brief(3, 'Catan'),
       is_new: false,
       on_source: false,
+      removed_before: false,
       changes: [{ field: 'ownership', current: 'owned', incoming: null, kind: 'not_on_source' }],
+    },
+    {
+      game: brief(4, 'Dominion'),
+      is_new: true,
+      on_source: true,
+      removed_before: true,
+      changes: [{ field: 'ownership', current: null, incoming: 'owned', kind: 'fill' }],
     },
   ],
 }
@@ -88,6 +105,9 @@ describe('BggPullPage', () => {
     // Clearing a game BGG no longer lists is opt-in.
     const catan = screen.getByText('Catan').closest('div[class*="Card"]') as HTMLElement
     expect(within(catan).getByRole('checkbox')).not.toBeChecked()
+    // So is bringing back a game removed here, which waits in its own closed section.
+    expect(screen.getByText(/1 game you removed here is still on BGG/)).toBeInTheDocument()
+    expect(screen.getByText('Removed here before (1)')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Apply 3 changes (1 overwrite yours)' }),
     ).toBeInTheDocument()

@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal, Self
 from fastapi import APIRouter, HTTPException, Path, Query, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import any_, delete, func, literal, select
+from sqlalchemy.dialects.postgresql import insert
 
 from app import catalog, collection
 from app.api.games import BggDep, GameSummary
@@ -29,6 +30,7 @@ from app.models import (
     Ownership,
     PlayerCountVote,
     PlaytimeFeel,
+    RemovedGame,
     Source,
     UserGame,
 )
@@ -130,15 +132,18 @@ class GameDiffRead(BaseModel):
     game: GameBrief
     is_new: bool
     on_source: bool
+    # You removed this game here before; it's offered unticked.
+    removed_before: bool
     changes: list[FieldChangeRead]
 
 
 class ImportCounts(BaseModel):
     games_on_source: int
-    new_games: int
-    fills: int
+    new_games: int  # not counting games you removed before
+    fills: int  # not counting games you removed before
     overwrites: int
     not_on_source: int
+    removed_before: int
 
 
 class ImportPreview(BaseModel):
@@ -215,6 +220,7 @@ async def update_my_game(
     if row is None:
         row = UserGame(user_id=user.id, game_id=game_id, source=Source.MANUAL, **merged)
         session.add(row)
+        await collection.forget_removals(session, user.id, [game_id])
     else:
         for name, value in updates.items():
             setattr(row, name, value)
@@ -233,10 +239,12 @@ async def remove_my_game(
     """Forget everything you've recorded about a game, and optionally some of its expansions.
 
     Only games that are expansions of this one are removed from `expansions`; other ids are
-    ignored, so a mistaken id can't take an unrelated game with it.
+    ignored, so a mistaken id can't take an unrelated game with it. Removed games are
+    remembered, so a later import offers them unticked instead of adding them back.
     """
-    await session.execute(
-        delete(UserGame).where(
+    removed = await session.scalars(
+        delete(UserGame)
+        .where(
             UserGame.user_id == user.id,
             (UserGame.game_id == game_id)
             | UserGame.game_id.in_(
@@ -247,7 +255,15 @@ async def remove_my_game(
                 )
             ),
         )
+        .returning(UserGame.game_id)
     )
+    ids = list(removed)
+    if ids:
+        await session.execute(
+            insert(RemovedGame)
+            .values([{"user_id": user.id, "game_id": i} for i in ids])
+            .on_conflict_do_nothing()
+        )
     await session.commit()
 
 
@@ -314,7 +330,13 @@ async def preview_bgg_pull(user: CurrentUser, session: SessionDep, bgg: BggDep) 
             select(Game).where(Game.id.in_([d.game_id for d in diffs]))
         )
     }
-    kinds = [change.kind for diff in diffs for change in diff.changes]
+    removed = set(
+        await session.scalars(select(RemovedGame.game_id).where(RemovedGame.user_id == user.id))
+    )
+    was_removed = {d.game_id for d in diffs if d.is_new and d.game_id in removed}
+    kinds = [
+        change.kind for diff in diffs if diff.game_id not in was_removed for change in diff.changes
+    ]
     return ImportPreview(
         source=Source.BGG,
         bgg_username=user.bgg_username,
@@ -323,6 +345,7 @@ async def preview_bgg_pull(user: CurrentUser, session: SessionDep, bgg: BggDep) 
                 game=GameBrief.model_validate(games[d.game_id], from_attributes=True),
                 is_new=d.is_new,
                 on_source=d.on_source,
+                removed_before=d.game_id in was_removed,
                 changes=[
                     FieldChangeRead.model_validate(change, from_attributes=True)
                     for change in d.changes
@@ -332,10 +355,11 @@ async def preview_bgg_pull(user: CurrentUser, session: SessionDep, bgg: BggDep) 
         ],
         counts=ImportCounts(
             games_on_source=len(entries),
-            new_games=sum(d.is_new for d in diffs),
+            new_games=sum(d.is_new and d.game_id not in was_removed for d in diffs),
             fills=kinds.count(ChangeKind.FILL),
             overwrites=kinds.count(ChangeKind.OVERWRITE),
             not_on_source=sum(not d.on_source for d in diffs),
+            removed_before=len(was_removed),
         ),
     )
 

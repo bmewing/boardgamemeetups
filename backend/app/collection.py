@@ -14,11 +14,11 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from pydantic import Field, StringConstraints, TypeAdapter
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bgg import CollectionEntry
-from app.models import Game, Ownership, PlaytimeFeel, Source, User, UserGame
+from app.models import Game, Ownership, PlaytimeFeel, RemovedGame, Source, User, UserGame
 
 # The UserGame columns a user (or an import) can set, with what each must hold.
 WishlistPriority = Annotated[int, Field(ge=1, le=5)]
@@ -171,6 +171,18 @@ def bgg_values(entry: CollectionEntry) -> dict[str, Any]:
     }
 
 
+async def forget_removals(
+    session: AsyncSession, user_id: uuid.UUID, game_ids: Sequence[int]
+) -> None:
+    """The user added these games back, so imports may offer them ticked again."""
+    if game_ids:
+        await session.execute(
+            delete(RemovedGame).where(
+                RemovedGame.user_id == user_id, RemovedGame.game_id.in_(game_ids)
+            )
+        )
+
+
 async def user_rows(session: AsyncSession, user_id: uuid.UUID) -> dict[int, UserGame]:
     rows = await session.scalars(select(UserGame).where(UserGame.user_id == user_id))
     return {row.game_id: row for row in rows}
@@ -217,6 +229,7 @@ async def apply_changes(
             .with_for_update()
         )
     }
+    touched: list[int] = []
     for game_id, game_changes in by_game.items():
         if game_id not in known:
             result.skipped.append(Skipped(game_id, None, "unknown game"))
@@ -241,7 +254,9 @@ async def apply_changes(
             for name, value in updates.items():
                 setattr(row, name, value)
         result.applied += len(updates)
+        touched.append(game_id)
 
+    await forget_removals(session, user.id, touched)
     if source is Source.BGG:
         user.bgg_pulled_at = datetime.now(UTC)
     await session.commit()
