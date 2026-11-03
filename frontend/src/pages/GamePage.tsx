@@ -16,6 +16,7 @@ import { Link, useParams } from 'react-router'
 
 import { type GameDetail, useGame } from '../api/games'
 import { bestWithLabel, playersLabel, playtimeLabel, weightLabel } from '../components/gameFacts'
+import { MyGamePanel } from '../components/MyGamePanel'
 
 function PlayerCountVotes({ game }: { game: GameDetail }) {
   if (game.player_count_votes.length === 0) return null
@@ -124,6 +125,7 @@ export function GamePage() {
           </Anchor>
         </Stack>
       </SimpleGrid>
+      <MyGamePanel gameId={g.id} />
       <PlayerCountVotes game={g} />
     </Stack>
   )

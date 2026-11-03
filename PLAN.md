@@ -94,13 +94,13 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - [x] `user_game_player_counts` (user, game, count, vote: best / recommended / not recommended), the same answers as BGG's poll so group votes add straight onto `games.player_count_votes`
 - [x] `user_game_moods` (user, game, mood)
 - [ ] Expansions are owned games of their own; an owned expansion's player range widens its base game's range
-- [ ] **Pull from BGG** (API done: `POST /api/me/games/bgg-pull` previews, `POST /api/me/games/import` applies the kept changes; UI to do) (by BGG username, collection API): fetch, compute the diff against our data, show a preview before anything is written (new games, blanks that would be filled, values that would be **overwritten**, games owned here but not on BGG), then apply on confirm. BGG doesn't expose a user's own weight or player-count votes, so those only come from our UI or a file
+- [x] **Pull from BGG** (`/collection/pull`: `POST /api/me/games/bgg-pull` previews, `POST /api/me/games/import` applies the kept changes) (by BGG username, collection API): fetch, compute the diff against our data, show a preview before anything is written (new games, blanks that would be filled, values that would be **overwritten**, games owned here but not on BGG), then apply on confirm. BGG doesn't expose a user's own weight or player-count votes, so those only come from our UI or a file
 - [ ] Upload BGG CSV export → match by `objectid` directly, then the same diff preview as a pull
 - [ ] Upload our Excel/CSV template (`openpyxl` for .xlsx): name, year, optional BGG ID, then one column per `user_games` field, plus player-count votes and moods. Also accept a plain list of names
 - [ ] Name matching for files without BGG IDs → exact match, then fuzzy (local `pg_trgm` + BGG search + rapidfuzz on name/year) → confidence score
 - [ ] Import review screen: auto-matched, needs-review (pick from candidates), unmatched (manual search), followed by the diff preview
-- [ ] Manual add/remove single game (API done: `PUT`/`DELETE /api/me/games/{id}`; UI to do)
-- [ ] Collection page (grid/list, filters by player count/weight/length)
+- [x] Manual add/remove single game (the "My games" panel on a game's page)
+- [x] Collection page (grid/list, filters by player count/weight/length); fetches BGG details for pulled games a batch at a time while open
 - **Done when:** a BGG pull, a BGG CSV and a messy plain list each end up as a fully matched collection, and a second pull shows an accurate overwrite preview
 
 **Phase 4 notes: BGG is pull-only.** BGG's XML API is read-only. Writing back would mean driving BGG's website with the user's own BGG login, which means holding their BGG password and likely breaks the terms of our registered app. So data only flows from BGG to us, never back, and every pull or file import is previewed as a diff and applied only on confirm.

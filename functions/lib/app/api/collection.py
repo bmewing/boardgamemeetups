@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal, Self
 
 from fastapi import APIRouter, HTTPException, Path, status
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app import catalog, collection
 from app.api.games import BggDep, GameSummary
@@ -97,6 +97,11 @@ class UserGameUpdate(BaseModel):
             if name in self.model_fields_set and getattr(self, name) is None:
                 raise ValueError(f"{name} can't be null")
         return self
+
+
+class DetailsProgress(BaseModel):
+    filled: int
+    remaining: int
 
 
 class MoodRead(BaseModel):
@@ -225,6 +230,31 @@ async def remove_my_game(game_id: GameId, user: CurrentUser, session: SessionDep
     if row is not None:
         await session.delete(row)
         await session.commit()
+
+
+# Two BGG requests (20 games each), ~5s apart: well inside the function's time limit.
+DETAILS_PER_CALL = 40
+
+
+@router.post("/me/games/fill-details")
+async def fill_my_game_details(
+    user: CurrentUser, session: SessionDep, bgg: BggDep
+) -> DetailsProgress:
+    """Fetch BGG details (weight, best counts…) for some of your games that lack them.
+
+    A BGG collection only gives a game's basics, so the collection page calls this until
+    nothing remains. If BGG is down, nothing is filled and the caller should stop.
+    """
+    missing = (
+        select(Game)
+        .join(UserGame, UserGame.game_id == Game.id)
+        .where(UserGame.user_id == user.id, Game.details_fetched_at.is_(None))
+    )
+    games = list(await session.scalars(missing.order_by(Game.id).limit(DETAILS_PER_CALL)))
+    await catalog.refresh_details(session, bgg, games, only_missing=True)
+    filled = sum(game.details_fetched_at is not None for game in games)
+    remaining = await session.scalar(select(func.count()).select_from(missing.subquery()))
+    return DetailsProgress(filled=filled, remaining=remaining or 0)
 
 
 @router.post("/me/games/bgg-pull")

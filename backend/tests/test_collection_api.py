@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import replace
 from typing import Any
 
@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.games import get_bgg_client
-from app.bgg import BggStillPreparing, BggUnknownUser, CollectionEntry
+from app.bgg import BggError, BggStillPreparing, BggUnknownUser, CollectionEntry, GameDetails
 from app.main import app
 from app.models import Game, Mood
 from tests.conftest import TokenFactory, bearer
@@ -43,6 +43,14 @@ class FakeBgg:
         self.entries = bgg_collection()
         self.usernames: list[str] = []
         self.error: Exception | None = None
+        self.thing_calls: list[list[int]] = []
+
+    async def things(self, ids: Iterable[int]) -> list[GameDetails]:
+        ids = list(ids)
+        self.thing_calls.append(ids)
+        if self.error:
+            raise self.error
+        return [GameDetails(id=i, name=f"Zyx {i}", is_expansion=False, weight=2.0) for i in ids]
 
     async def collection(self, username: str) -> list[CollectionEntry]:
         self.usernames.append(username)
@@ -338,3 +346,32 @@ async def test_moods_are_listed_in_order(
     response = await client.get("/api/moods", headers=auth)
 
     assert [m["id"] for m in response.json()] == ["zz_a", "zz_b"]
+
+
+@pytest.mark.usefixtures("with_bgg_username")
+async def test_details_are_filled_in_for_pulled_games(
+    client: AsyncClient, bgg: FakeBgg, auth: dict[str, str]
+) -> None:
+    await client.post(
+        "/api/me/games/import", json=accept_all(await preview(client, auth)), headers=auth
+    )
+
+    response = await client.post("/api/me/games/fill-details", headers=auth)
+
+    assert response.json() == {"filled": 3, "remaining": 0}
+    assert sorted(bgg.thing_calls[0]) == [OWNED, WISHED, EXPANSION]
+    assert (await my_games(client, auth))[OWNED]["game"]["weight"] == 2.0
+
+
+@pytest.mark.usefixtures("with_bgg_username")
+async def test_filling_details_stops_cleanly_when_bgg_is_down(
+    client: AsyncClient, bgg: FakeBgg, auth: dict[str, str]
+) -> None:
+    await client.post(
+        "/api/me/games/import", json=accept_all(await preview(client, auth)), headers=auth
+    )
+    bgg.error = BggError("down")
+
+    response = await client.post("/api/me/games/fill-details", headers=auth)
+
+    assert response.json() == {"filled": 0, "remaining": 3}
