@@ -1,4 +1,5 @@
 import type { FieldName, Ownership, UserGame } from '../api/collection'
+import type { GameSummary } from '../api/games'
 
 export const FIELD_LABELS: Record<FieldName, string> = {
   ownership: 'Ownership',
@@ -66,4 +67,21 @@ export function isOwned(row: Pick<UserGame, 'ownership'>): boolean {
 
 export function isWanted(row: Pick<UserGame, 'wishlist_priority' | 'want_to_play'>): boolean {
   return row.wishlist_priority !== null || row.want_to_play
+}
+
+/**
+ * The expansions in `rows` that belong to `game`, to offer removing along with it. An
+ * expansion that also fits another base game still in the list stays out of this.
+ */
+export function expansionsInList(game: GameSummary, rows: UserGame[]): GameSummary[] {
+  if (game.is_expansion) return []
+  const listed = new Set(rows.map((r) => r.game.id))
+  return rows
+    .map((r) => r.game)
+    .filter(
+      (g) =>
+        g.is_expansion &&
+        g.base_game_ids.includes(game.id) &&
+        !g.base_game_ids.some((id) => id !== game.id && listed.has(id)),
+    )
 }

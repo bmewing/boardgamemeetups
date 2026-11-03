@@ -54,9 +54,15 @@ export function useUpdateMyGame() {
 export function useRemoveMyGame() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (gameId: number) => {
+    mutationFn: async ({
+      gameId,
+      expansionIds = [],
+    }: {
+      gameId: number
+      expansionIds?: number[]
+    }) => {
       const { error } = await api.DELETE('/api/me/games/{game_id}', {
-        params: { path: { game_id: gameId } },
+        params: { path: { game_id: gameId }, query: { expansions: expansionIds } },
       })
       if (error) throw new Error('Could not remove this game')
     },

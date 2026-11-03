@@ -375,3 +375,47 @@ async def test_filling_details_stops_cleanly_when_bgg_is_down(
     response = await client.post("/api/me/games/fill-details", headers=auth)
 
     assert response.json() == {"filled": 0, "remaining": 3}
+
+
+@pytest.fixture
+async def base_with_expansions(db_session: AsyncSession) -> tuple[int, int, int]:
+    base, expansion, unrelated = 990_100_010, 990_100_011, 990_100_012
+    db_session.add_all(
+        [
+            Game(id=base, name="Zyxbase"),
+            Game(id=expansion, name="Zyxbase: More", is_expansion=True, base_game_ids=[base]),
+            Game(id=unrelated, name="Zyxother", is_expansion=True, base_game_ids=[OWNED]),
+        ]
+    )
+    await db_session.commit()
+    return base, expansion, unrelated
+
+
+async def test_removing_a_game_can_take_its_expansions(
+    client: AsyncClient, auth: dict[str, str], base_with_expansions: tuple[int, int, int]
+) -> None:
+    base, expansion, unrelated = base_with_expansions
+    for game_id in base_with_expansions:
+        await client.put(f"/api/me/games/{game_id}", json={"ownership": "owned"}, headers=auth)
+
+    response = await client.delete(
+        f"/api/me/games/{base}",
+        params={"expansions": [expansion, unrelated]},
+        headers=auth,
+    )
+
+    assert response.status_code == 204
+    # The unrelated game was asked for but isn't an expansion of this one, so it stays.
+    assert set(await my_games(client, auth)) == {unrelated}
+
+
+async def test_removing_a_game_leaves_its_expansions_by_default(
+    client: AsyncClient, auth: dict[str, str], base_with_expansions: tuple[int, int, int]
+) -> None:
+    base, expansion, _unrelated = base_with_expansions
+    for game_id in (base, expansion):
+        await client.put(f"/api/me/games/{game_id}", json={"ownership": "owned"}, headers=auth)
+
+    await client.delete(f"/api/me/games/{base}", headers=auth)
+
+    assert set(await my_games(client, auth)) == {expansion}

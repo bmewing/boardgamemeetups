@@ -124,7 +124,10 @@ export interface paths {
         post?: never;
         /**
          * Remove My Game
-         * @description Forget everything you've recorded about a game.
+         * @description Forget everything you've recorded about a game, and optionally some of its expansions.
+         *
+         *     Only games that are expansions of this one are removed from `expansions`; other ids are
+         *     ignored, so a mistaken id can't take an unrelated game with it.
          */
         delete: operations["remove_my_game_api_me_games__game_id__delete"];
         options?: never;
@@ -282,6 +285,8 @@ export interface components {
             bgg_rank: number | null;
             /** Best With */
             best_with: number[];
+            /** Base Game Ids */
+            base_game_ids: number[];
             /** Image Url */
             image_url: string | null;
             /** Playing Time */
@@ -296,8 +301,6 @@ export interface components {
             categories: string[];
             /** Mechanics */
             mechanics: string[];
-            /** Base Game Ids */
-            base_game_ids: number[];
             /** Recommended With */
             recommended_with: number[];
             /** Player Count Votes */
@@ -341,6 +344,8 @@ export interface components {
             bgg_rank: number | null;
             /** Best With */
             best_with: number[];
+            /** Base Game Ids */
+            base_game_ids: number[];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -804,7 +809,9 @@ export interface operations {
     };
     remove_my_game_api_me_games__game_id__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                expansions?: number[];
+            };
             header?: never;
             path: {
                 game_id: number;

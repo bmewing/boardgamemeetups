@@ -21,6 +21,7 @@ const game = (id: number, name: string, extra: Partial<GameSummary> = {}): GameS
   weight: 1.8,
   bgg_rank: null,
   best_with: [],
+  base_game_ids: [],
   ...extra,
 })
 
@@ -118,6 +119,61 @@ describe('CollectionPage', () => {
     await waitFor(() => expect(screen.queryByText('Azul')).not.toBeInTheDocument())
     expect(deleted).toEqual(['/api/me/games/1'])
     expect(screen.getByText('Brass')).toBeInTheDocument()
+  })
+
+  it('offers to remove the expansions of a base game along with it', async () => {
+    const base = game(10, 'Disaster Looms!')
+    const listed = [
+      row(base),
+      row(game(11, 'Disaster Looms!: CEOs', { is_expansion: true, base_game_ids: [10] })),
+      row(game(12, 'Disaster Looms!: Founders', { is_expansion: true, base_game_ids: [10] })),
+      // Also fits Azul, which stays in the list, so it isn't offered.
+      row(game(13, 'Shared Pack', { is_expansion: true, base_game_ids: [10, 1] })),
+      row(game(1, 'Azul')),
+    ]
+    let removed: URL | null = null
+    mockApi({
+      'GET /api/me/games': () => Response.json(listed),
+      'POST /api/me/games/fill-details': () => Response.json({ filled: 0, remaining: 0 }),
+      'DELETE /api/me/games/10': (request) => {
+        removed = new URL(request.url)
+        return new Response(null, { status: 204 })
+      },
+    })
+    renderWithProviders(<CollectionPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Disaster Looms!' }))
+    const option = screen.getByRole('checkbox', { name: 'Also remove its 2 expansions' })
+    expect(option).toBeChecked()
+    expect(screen.getByText('Disaster Looms!: CEOs, Disaster Looms!: Founders')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
+
+    await waitFor(() => expect(removed).not.toBeNull())
+    expect(removed!.searchParams.getAll('expansions')).toEqual(['11', '12'])
+  })
+
+  it('removes only the base game when the expansions are unticked', async () => {
+    const listed = [
+      row(game(10, 'Disaster Looms!')),
+      row(game(11, 'Disaster Looms!: CEOs', { is_expansion: true, base_game_ids: [10] })),
+    ]
+    let removed: URL | null = null
+    mockApi({
+      'GET /api/me/games': () => Response.json(listed),
+      'POST /api/me/games/fill-details': () => Response.json({ filled: 0, remaining: 0 }),
+      'DELETE /api/me/games/10': (request) => {
+        removed = new URL(request.url)
+        return new Response(null, { status: 204 })
+      },
+    })
+    renderWithProviders(<CollectionPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Disaster Looms!' }))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Also remove its expansion' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
+
+    await waitFor(() => expect(removed).not.toBeNull())
+    expect(removed!.searchParams.getAll('expansions')).toEqual([])
   })
 
   it('points to BGG and search when the list is empty', async () => {

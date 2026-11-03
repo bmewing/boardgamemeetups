@@ -28,7 +28,13 @@ import {
 } from '../api/collection'
 import { GameCard } from '../components/GameCard'
 import { RemoveGameButton } from '../components/RemoveGameButton'
-import { isOwned, isWanted, OWNERSHIP_LABELS, WISHLIST_LABELS } from '../components/userGameFields'
+import {
+  expansionsInList,
+  isOwned,
+  isWanted,
+  OWNERSHIP_LABELS,
+  WISHLIST_LABELS,
+} from '../components/userGameFields'
 
 type Shelf = 'owned' | 'wanted' | 'all'
 type Weight = 'light' | 'medium' | 'heavy'
@@ -92,10 +98,12 @@ function YourAnswers({ row }: { row: UserGame }) {
 /** The remove button sits beside the card's link, not inside it, so clicks don't navigate. */
 function WithRemove({
   row,
+  allRows,
   children,
   overImage = false,
 }: {
   row: UserGame
+  allRows: UserGame[]
   children: ReactNode
   overImage?: boolean
 }) {
@@ -103,7 +111,11 @@ function WithRemove({
     <Box pos="relative">
       {children}
       <Box pos="absolute" top={8} right={8}>
-        <RemoveGameButton gameId={row.game.id} name={row.game.name} overImage={overImage} />
+        <RemoveGameButton
+          game={row.game}
+          expansions={expansionsInList(row.game, allRows)}
+          overImage={overImage}
+        />
       </Box>
     </Box>
   )
@@ -291,7 +303,7 @@ export function CollectionPage() {
       {view === 'list' ? (
         <Stack gap="xs">
           {shown.map((row) => (
-            <WithRemove key={row.game.id} row={row}>
+            <WithRemove key={row.game.id} row={row} allRows={games.data}>
               <GameCard game={row.game} pr={44}>
                 <YourAnswers row={row} />
               </GameCard>
@@ -301,7 +313,7 @@ export function CollectionPage() {
       ) : (
         <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }}>
           {shown.map((row) => (
-            <WithRemove key={row.game.id} row={row} overImage>
+            <WithRemove key={row.game.id} row={row} allRows={games.data} overImage>
               <GameTile row={row} />
             </WithRemove>
           ))}
