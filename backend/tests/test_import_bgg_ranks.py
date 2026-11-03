@@ -3,7 +3,7 @@ import io
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.catalog import upsert_details, upsert_rank_rows
-from app.import_bgg_ranks import parse_rows
+from app.import_bgg_ranks import CHUNK_SIZE, parse_rows
 from app.models import Game
 from tests.test_games_api import BASE_ID, quokka_details
 
@@ -39,6 +39,25 @@ def test_parse_rows_reads_the_ranks_csv() -> None:
             "bgg_users_rated": 120,
         },
     ]
+
+
+async def test_a_full_import_batch_fits_in_one_statement(db_session: AsyncSession) -> None:
+    rows = [
+        {
+            "id": 990_100_000 + i,
+            "name": f"Batch game {i}",
+            "year_published": 2030,
+            "is_expansion": False,
+            "bgg_rank": None,
+            "bgg_rating": None,
+            "bgg_users_rated": None,
+        }
+        for i in range(CHUNK_SIZE)
+    ]
+
+    await upsert_rank_rows(db_session, rows)
+
+    assert await db_session.get(Game, 990_100_000 + CHUNK_SIZE - 1) is not None
 
 
 async def test_importing_ranks_keeps_fetched_details(db_session: AsyncSession) -> None:

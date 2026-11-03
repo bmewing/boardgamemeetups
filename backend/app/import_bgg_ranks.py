@@ -16,8 +16,9 @@ from typing import Any
 from app.catalog import upsert_rank_rows
 from app.db import SessionLocal
 
-# 7 columns per row keeps each statement well under Postgres's 32,767 parameter limit.
-CHUNK_SIZE = 4000
+# Each row binds 10 parameters (7 CSV fields plus the 3 array column defaults), and one
+# statement may bind at most 32,767.
+CHUNK_SIZE = 3000
 
 
 def _int(value: str | None) -> int | None:

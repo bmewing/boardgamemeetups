@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.games import get_bgg_client
 from app.bgg import BggError, GameDetails, SearchHit
+from app.catalog import upsert_rank_rows
 from app.main import app
 from app.models import Game
 from tests.conftest import TokenFactory, bearer
@@ -126,6 +127,39 @@ async def test_search_tolerates_typos(
     response = await client.get("/api/games/search", params={"q": "quokazzyx"}, headers=auth)
 
     assert BASE_ID in [r["id"] for r in response.json()]
+
+
+async def test_search_prefers_popular_games_among_name_matches(
+    client: AsyncClient, bgg: FakeBgg, auth: dict[str, str], db_session: AsyncSession
+) -> None:
+    rows = [
+        (990_000_011, "Zyxbrass Empire", 300),
+        (990_000_012, "Zyxbrass: Birmingham", 60_000),
+        (990_000_013, "Zyxbras", None),  # typo-only match, ranked after real matches
+    ]
+    await upsert_rank_rows(
+        db_session,
+        [
+            {
+                "id": game_id,
+                "name": name,
+                "year_published": 2030,
+                "is_expansion": False,
+                "bgg_rank": None,
+                "bgg_rating": None,
+                "bgg_users_rated": rated,
+            }
+            for game_id, name, rated in rows
+        ],
+    )
+
+    response = await client.get("/api/games/search", params={"q": "zyxbrass"}, headers=auth)
+
+    assert [r["name"] for r in response.json()] == [
+        "Zyxbrass: Birmingham",
+        "Zyxbrass Empire",
+        "Zyxbras",
+    ]
 
 
 async def test_search_can_leave_out_expansions(

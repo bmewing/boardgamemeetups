@@ -71,7 +71,8 @@ These are folded into the checklist below.
 - [x] Refresh policy (re-fetch if stale > N days, lazily)
 - [x] Game search endpoint (local cache first, fall back to BGG search)
 - [x] "Powered by BGG" attribution in footer/game pages
-- [ ] Load BGG's ranks CSV (all game names/ranks) with `app.import_bgg_ranks` — needs a manual download while logged in to BGG
+- [x] Load BGG's ranks CSV (all game names/ranks) with `app.import_bgg_ranks` (182,688 games locally; the download needs a logged-in BGG session, not the app token)
+- [ ] Load the ranks CSV into Supabase at deploy time, and refresh it now and then
 - **Done when:** searching "Wingspan" returns the right game with player counts and image
 
 ### Phase 4 — Collection import & matching

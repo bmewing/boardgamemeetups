@@ -69,7 +69,8 @@ Backend, from `backend/`:
 uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest
 ```
 
-The tests need the local Postgres database from above.
+The tests need the local Postgres database from above. They run in their own `pytest`
+schema, rebuilt empty on each run, so they never read or change your dev data.
 
 Frontend, from `frontend/`:
 

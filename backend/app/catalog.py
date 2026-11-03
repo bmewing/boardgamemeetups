@@ -6,7 +6,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -99,13 +99,21 @@ async def refresh_details(
 def _search_statement(query: str, limit: int, include_expansions: bool) -> Any:
     q = query.strip().lower()
     name = func.lower(Game.name)
+    # Exact name, then names starting with the query, then containing it, then typo matches.
+    tier = case(
+        (name == q, 0),
+        (name.startswith(q, autoescape=True), 1),
+        (name.contains(q, autoescape=True), 2),
+        else_=3,
+    )
     stmt = (
         select(Game)
         .where(or_(name.contains(q, autoescape=True), name.op("%")(q)))
         .order_by(
-            (name == q).desc(),
-            name.startswith(q, autoescape=True).desc(),
-            name.contains(q, autoescape=True).desc(),
+            tier,
+            # Among real matches the popular game is the likely one ("brass" -> Brass:
+            # Birmingham, not Brass Empire); among typo matches, the closest spelling is.
+            case((tier < 3, Game.bgg_users_rated)).desc().nulls_last(),
             func.similarity(name, q).desc(),
             Game.bgg_users_rated.desc().nulls_last(),
         )

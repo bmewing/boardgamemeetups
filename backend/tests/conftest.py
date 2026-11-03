@@ -6,18 +6,45 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.auth import get_jwks_client
 from app.config import get_settings
-from app.db import engine, get_session
+from app.db import get_session
 from app.main import app
+from app.models import Base
 
 TEST_ISSUER = "https://test.kinde.com"
 TEST_AUDIENCE = "https://api.test"
 TEST_KID = "test-key"
 
 TokenFactory = Callable[..., str]
+
+# Tests get their own schema, rebuilt empty each run, so data in the dev database (such as
+# an imported BGG catalog) can't change their results. pg_trgm stays reachable in public.
+TEST_SCHEMA = "pytest"
+test_engine = create_async_engine(
+    get_settings().database_url,
+    connect_args={"server_settings": {"search_path": f"{TEST_SCHEMA}, public"}},
+)
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def test_schema() -> AsyncIterator[None]:
+    # Create the schema before test_engine first connects: SQLAlchemy fixes an engine's
+    # default schema on its first connection, and would otherwise settle on public.
+    setup_engine = create_async_engine(get_settings().database_url)
+    async with setup_engine.begin() as connection:
+        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public"))
+        await connection.execute(text(f"DROP SCHEMA IF EXISTS {TEST_SCHEMA} CASCADE"))
+        await connection.execute(text(f"CREATE SCHEMA {TEST_SCHEMA}"))
+    await setup_engine.dispose()
+    async with test_engine.begin() as connection:
+        # No existence check: it counts any visible table, including the dev ones in public.
+        await connection.run_sync(Base.metadata.create_all, checkfirst=False)
+    yield
+    await test_engine.dispose()
 
 
 @pytest.fixture(scope="session")
@@ -73,7 +100,7 @@ def make_token(signing_key: rsa.RSAPrivateKey) -> TokenFactory:
 @pytest.fixture
 async def db_session() -> AsyncIterator[AsyncSession]:
     """A session whose commits land in savepoints that are rolled back after the test."""
-    async with engine.connect() as connection:
+    async with test_engine.connect() as connection:
         transaction = await connection.begin()
         session = AsyncSession(
             bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
