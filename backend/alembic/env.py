@@ -1,18 +1,18 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from app.config import get_settings
+from app.db import create_engine_for
 from app.models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+# The ini parser treats % as interpolation, and percent-encoded passwords contain it.
+config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -64,11 +64,9 @@ async def run_async_migrations() -> None:
 
     """
 
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    # Same connection settings as the app, so migrations work through Supabase's
+    # transaction pooler when SERVERLESS is set.
+    connectable = create_engine_for(get_settings())
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

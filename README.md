@@ -115,6 +115,12 @@ tests are the same as in local development.
   ```
 
 - Functions-only apps have no pre-deploy step, so run migrations against the production
-  database yourself before deploying code that needs them.
+  database yourself before deploying code that needs them. Production settings live in the
+  gitignored `backend/.env.production`; from `backend/`:
+
+  ```bash
+  uv run --env-file .env.production alembic upgrade head
+  uv run --env-file .env.production python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
+  ```
 - `DATABASE_URL` in production is Supabase's transaction pooler; `SERVERLESS=true` (set in
   `functions/project.yml`) turns off connection pooling and prepared-statement caching to suit it.
