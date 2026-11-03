@@ -1,0 +1,20 @@
+# The whole API runs as one web function, core/app, wrapping the FastAPI app
+# (backend/app/serverless.py). App Platform routes /api/core/app/<path> to it.
+# ${...} values come from the functions component's environment in .do/app.yaml.
+environment:
+  SERVERLESS: "true"
+  DATABASE_URL: "${DATABASE_URL}"
+  KINDE_DOMAIN: "${KINDE_DOMAIN}"
+  KINDE_AUDIENCE: "${KINDE_AUDIENCE}"
+  BGG_API_TOKEN: "${BGG_API_TOKEN}"
+
+packages:
+  - name: core
+    functions:
+      - name: app
+        runtime: python:3.13
+        web: raw
+        limits:
+          # A first search for an unknown game makes two BGG calls ~5s apart, plus retries.
+          timeout: 60000
+          memory: 512

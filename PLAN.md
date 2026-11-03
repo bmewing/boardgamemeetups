@@ -6,11 +6,11 @@ A web app for organizing board game meetups. Users log in, import their game col
 
 - **Stack:** FastAPI (Python) backend + React (Vite + TypeScript) SPA
 - **Auth:** Kinde (React SDK in the browser; FastAPI checks Kinde JWTs against Kinde's JWKS)
-- **DB:** Free external Postgres (Supabase free tier, used as plain Postgres via its session pooler). Local dev uses a locally installed Postgres. SQLAlchemy 2 + Alembic.
-- **Hosting:** DigitalOcean App Platform, personal account. One app with two components:
-  - React build as a **static site** (free tier) at `/`
-  - FastAPI as a **web service** (~$5/mo basic instance) at `/api`, so they share an origin and there's no CORS to deal with
-  - Expected cost is about **$5/mo**
+- **DB:** Free external Postgres (Supabase free tier, used as plain Postgres via its transaction pooler, which suits serverless). Local dev uses a locally installed Postgres. SQLAlchemy 2 + Alembic.
+- **Hosting:** DigitalOcean App Platform, personal account (b.mark@ewingsonline.com). One app, `boardgamemeetups`, with two components on one origin (no CORS):
+  - React build as a **static site** at `/`
+  - The FastAPI app as **one DigitalOcean function** (`core/app`, Python 3.13) behind `/api`, via an adapter (`backend/app/serverless.py`)
+  - Expected cost is about **$3/mo**: the account's 3 free static-site apps are already used, and Functions usage should stay in its free allowance
 - **Groups:** both persistent groups (with a recurring schedule; each occurrence editable on its own) and ad-hoc meetups
 
 ## Considerations beyond the core features
@@ -27,7 +27,7 @@ These are folded into the checklist below.
 - **Big groups:** with 9 people, the recommendation should be "two tables", not one game. This is v2, but the data model should allow it.
 - **Expansions:** treat them as attached to their base game, not as separate recommendations.
 - **Close the loop:** log what was actually played after a meetup. That feeds "recently played" into future recommendations.
-- **Supabase free tier pauses after a week without activity.** Fine while people use the app; the `/api/health` check queries the database, so DO's health checks should keep it awake, but verify after launch.
+- **Supabase free tier pauses after a week without activity.** Fine while people use the app. Functions get no platform health checks, so if usage is sparse, add a weekly GitHub Actions ping of `/api/health`.
 - **Privacy:** the address is shown only to invitees, and users control who can see their collection (friends vs. public).
 - **Time zones and calendar export** (.ics file / "add to calendar").
 - **Mobile-first UI:** most RSVPs and votes will happen on phones.
@@ -42,7 +42,7 @@ These are folded into the checklist below.
 - [ ] Protect `main` (require CI to pass)
 - [x] Register app with BGG XML API; store bearer token
 - [x] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
-- [ ] Supabase: create project; grab the **session pooler** connection string (the direct connection is IPv6-only on the free tier)
+- [ ] Supabase: create project; grab the **transaction pooler** connection string (port 6543; the direct connection is IPv6-only on the free tier)
 - [ ] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
 - [ ] Resend (or Postmark) account for transactional email; verify sending domain
 
@@ -144,13 +144,16 @@ These are folded into the checklist below.
 - [ ] Email service wrapper (Resend) with templates
 - [ ] Triggers: invited, friend request, RSVP reminder (X days before), pick locked, "you're bringing X", meetup changed/cancelled
 - [ ] Per-user notification preferences
-- [ ] Scheduled reminders: a DO App Platform scheduled job if available on the plan, otherwise a lightweight cron (GitHub Actions schedule hitting a protected endpoint)
+- [ ] Scheduled reminders: a GitHub Actions cron hitting a protected endpoint (Functions on App Platform can't be scheduled yet)
 - **Done when:** each trigger sends a real email in staging
 
 ### Phase 12 — Deploy to DigitalOcean
-- [ ] Dockerfile for backend (uvicorn/gunicorn), health check at `/api/health`
-- [ ] `.do/app.yaml` spec: static site (frontend build) + web service (backend) with route `/api`, plus a pre-deploy job running `alembic upgrade head`
-- [ ] Env vars/secrets in DO: DB URL (Supabase session pooler, `sslmode=require`), Kinde domain/audience, BGG token, Resend key
+- [x] Run the API as a DigitalOcean function: Python 3.13, `web: raw` adapter, no connection pool, pooler-safe statements, BGG throttle shared through Postgres
+- [x] `functions/` project (vendors `backend/app`, builds deps in DO's Python 3.13 container; bundle ~19 MB zipped of the 48 MB limit)
+- [x] `.do/app.yaml` spec: static site + functions component, `/api` routed to the function
+- [ ] Run `alembic upgrade head` against Supabase before each deploy that adds migrations (Functions-only apps have no pre-deploy job)
+- [ ] Env vars/secrets in DO: DB URL (Supabase transaction pooler, `sslmode=require`), BGG token, Resend key
+- [ ] First deploy; confirm the GitHub connection can see `bmewing/boardgamemeetups`
 - [ ] Kinde prod callback URLs
 - [ ] Own OAuth credentials for Google, Facebook and Discord in Kinde (dev currently uses Kinde's shared keys, so consent screens name Kinde, not this app)
 - [ ] Kinde custom domain (e.g. `auth.<your-domain>`) so sign-ins survive page reloads without keeping the refresh token in localStorage (only allowed in local dev)

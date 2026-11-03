@@ -1,0 +1,3 @@
+# Build artifacts: lib/build.sh vendors the backend here, and build.sh installs deps.
+lib/app/
+packages/core/app/virtualenv/

@@ -20,6 +20,6 @@ async def health(session: SessionDep) -> HealthResponse:
     # Always 200: restarting the web service won't fix a database outage.
     try:
         await session.execute(text("SELECT 1"))
-    except OSError, TimeoutError, SQLAlchemyError:
+    except (OSError, TimeoutError, SQLAlchemyError):
         return HealthResponse(status="degraded", database="unavailable")
     return HealthResponse(status="ok", database="ok")

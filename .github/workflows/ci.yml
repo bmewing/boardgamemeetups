@@ -38,6 +38,11 @@ jobs:
       - run: uv run mypy
       - run: uv run alembic upgrade head
       - run: uv run pytest
+      - name: Function requirements match the lockfile
+        run: |
+          uv export --no-default-groups --no-hashes --no-emit-project --no-header \
+            --format requirements-txt -o ../functions/packages/core/app/requirements.txt
+          git diff --exit-code -- ../functions/packages/core/app/requirements.txt
 
   frontend:
     runs-on: ubuntu-latest

@@ -1,12 +1,19 @@
 from collections.abc import AsyncIterator
-from typing import Annotated
+from typing import Annotated, Any
+from uuid import uuid4
 
 from fastapi import Depends
-from sqlalchemy import MetaData
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import MetaData, make_url
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 
 # Stable constraint names so Alembic autogenerate produces predictable migrations.
 NAMING_CONVENTION = {
@@ -22,11 +29,23 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
-engine = create_async_engine(
-    get_settings().database_url,
-    pool_pre_ping=True,
-    connect_args={"timeout": 5},
-)
+def create_engine_for(settings: Settings) -> AsyncEngine:
+    if not settings.serverless:
+        return create_async_engine(
+            settings.database_url, pool_pre_ping=True, connect_args={"timeout": 5}
+        )
+    # Functions are short-lived and can be frozen between requests, so keep no pool; and
+    # Supabase's transaction pooler can't keep prepared statements between transactions.
+    url = make_url(settings.database_url).update_query_dict({"prepared_statement_cache_size": "0"})
+    connect_args: dict[str, Any] = {
+        "timeout": 5,
+        "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
+    }
+    return create_async_engine(url, poolclass=NullPool, connect_args=connect_args)
+
+
+engine = create_engine_for(get_settings())
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 

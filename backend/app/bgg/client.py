@@ -1,17 +1,16 @@
 """Client for the BoardGameGeek XML API2.
 
 BGG asks callers to space requests about five seconds apart and answers 429/5xx when they
-don't, so every request goes through one lock that enforces the gap and retries with backoff.
+don't, so every request waits its turn on a shared throttle and retries with backoff.
 """
 
-import asyncio
 import logging
-import time
 from collections.abc import Iterable
 
 import httpx
 
 from app.bgg.parse import GameDetails, SearchHit, parse_search, parse_things
+from app.bgg.throttle import LocalThrottle, Throttle
 
 logger = logging.getLogger(__name__)
 
@@ -31,35 +30,30 @@ class BggClient:
         *,
         min_interval: float = 5.0,
         max_retries: int = 3,
+        throttle: Throttle | None = None,
     ) -> None:
         self._http = http
         self._min_interval = min_interval
         self._max_retries = max_retries
-        self._lock = asyncio.Lock()
-        self._next_request_at = 0.0
+        self._throttle = throttle or LocalThrottle()
 
     async def _get(self, path: str, params: dict[str, str]) -> bytes:
-        async with self._lock:
-            for attempt in range(self._max_retries + 1):
-                delay = self._next_request_at - time.monotonic()
-                if delay > 0:
-                    await asyncio.sleep(delay)
-                try:
-                    response = await self._http.get(path, params=params)
-                except httpx.TransportError as exc:
-                    status: int | str = type(exc).__name__
-                else:
-                    status = response.status_code
-                    if status == 200:
-                        self._next_request_at = time.monotonic() + self._min_interval
-                        return response.content
-                    if status not in RETRY_STATUSES:
-                        self._next_request_at = time.monotonic() + self._min_interval
-                        raise BggError(f"BGG returned {status} for {path}")
-                backoff = self._min_interval * 2**attempt
-                self._next_request_at = time.monotonic() + backoff
-                logger.warning("BGG %s for %s; retrying in %.0fs", status, path, backoff)
-            raise BggError(f"BGG kept refusing {path}")
+        for attempt in range(self._max_retries + 1):
+            await self._throttle.reserve(self._min_interval)
+            try:
+                response = await self._http.get(path, params=params)
+            except httpx.TransportError as exc:
+                status: int | str = type(exc).__name__
+            else:
+                status = response.status_code
+                if status == 200:
+                    return response.content
+                if status not in RETRY_STATUSES:
+                    raise BggError(f"BGG returned {status} for {path}")
+            backoff = self._min_interval * 2**attempt
+            await self._throttle.hold_off(backoff)
+            logger.warning("BGG %s for %s; retrying in %.0fs", status, path, backoff)
+        raise BggError(f"BGG kept refusing {path}")
 
     async def search(self, query: str) -> list[SearchHit]:
         xml = await self._get(

@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Self
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -60,7 +60,7 @@ class GameSummary(BaseModel):
     best_with: list[int]
 
     @classmethod
-    def from_game(cls, game: Game) -> GameSummary:
+    def from_game(cls, game: Game) -> Self:
         return cls.model_validate(
             {**_columns(game), "best_with": _numeric_counts(game, best_only=True)}
         )
@@ -80,7 +80,7 @@ class GameDetail(GameSummary):
     bgg_url: str
 
     @classmethod
-    def from_game(cls, game: Game) -> GameDetail:
+    def from_game(cls, game: Game) -> Self:
         votes = [
             PlayerCountVote(players=players, **counts)
             for players, counts in (game.player_count_votes or {}).items()

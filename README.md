@@ -6,6 +6,7 @@ for the roadmap.
 
 - `backend/` — FastAPI, SQLAlchemy 2 (async), Alembic, Postgres
 - `frontend/` — React, Vite, TypeScript, Mantine, TanStack Query
+- `functions/` — packages the backend as a DigitalOcean function for deployment
 
 ## Prerequisites
 
@@ -96,3 +97,24 @@ uv run alembic upgrade head
 ```
 
 New models must be imported in `app/models/__init__.py` for autogenerate to see them.
+
+## Deployment
+
+Production runs on DigitalOcean App Platform (`.do/app.yaml`): the frontend as a static site
+and the whole API as one DigitalOcean function, `core/app`, reached at `/api/core/app/...`.
+`backend/app/serverless.py` adapts function requests to the FastAPI app, so the code and
+tests are the same as in local development.
+
+- The function runs Python 3.13, the newest DigitalOcean offers; keep the backend on 3.13.
+- `functions/lib/build.sh` copies `backend/app` into the bundle, and the function's
+  `build.sh` installs `functions/packages/core/app/requirements.txt`. After changing backend
+  dependencies, regenerate that file from `backend/` (CI fails if it's out of date):
+
+  ```bash
+  uv export --no-default-groups --no-hashes --no-emit-project --no-header --format requirements-txt -o ../functions/packages/core/app/requirements.txt
+  ```
+
+- Functions-only apps have no pre-deploy step, so run migrations against the production
+  database yourself before deploying code that needs them.
+- `DATABASE_URL` in production is Supabase's transaction pooler; `SERVERLESS=true` (set in
+  `functions/project.yml`) turns off connection pooling and prepared-statement caching to suit it.

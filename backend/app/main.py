@@ -5,8 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api import api_router
-from app.bgg import BggClient, create_http_client
+from app.bgg import BggClient, PostgresThrottle, create_http_client
 from app.config import get_settings
+from app.db import engine
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if not settings.bgg_api_token:
         logger.warning("BGG_API_TOKEN is not set; BoardGameGeek requests will be refused")
     async with create_http_client(settings.bgg_api_token) as http:
-        # One shared client so every request respects BGG's spacing between calls.
-        app.state.bgg = BggClient(http, min_interval=settings.bgg_min_interval_seconds)
+        # The throttle lives in Postgres so every running copy of the API shares BGG's spacing.
+        app.state.bgg = BggClient(
+            http,
+            min_interval=settings.bgg_min_interval_seconds,
+            throttle=PostgresThrottle(engine),
+        )
         yield
 
 

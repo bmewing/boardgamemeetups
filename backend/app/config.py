@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     environment: str = "development"
+    # True when running as DigitalOcean Functions (short-lived, behind a transaction pooler).
+    serverless: bool = False
     database_url: str = "postgresql+asyncpg://boardgame:boardgame@localhost:5432/boardgamegroup"
 
     # Kinde business domain, e.g. https://yourname.kinde.com. Also the token issuer.

@@ -14,8 +14,12 @@ export function setAccessTokenGetter(getter: TokenGetter) {
   getAccessToken = getter
 }
 
-// Typed client generated from the FastAPI OpenAPI schema (`npm run gen:api`).
-export const api = createClient<paths>({ baseUrl: window.location.origin })
+// Typed client generated from the FastAPI OpenAPI schema (`npm run gen:api`). In production
+// the API is a DigitalOcean function reached through VITE_API_BASE (/api/core/app); locally
+// it's empty and Vite proxies /api to the dev server.
+export const api = createClient<paths>({
+  baseUrl: window.location.origin + (import.meta.env.VITE_API_BASE ?? ''),
+})
 
 api.use({
   async onRequest({ request }) {

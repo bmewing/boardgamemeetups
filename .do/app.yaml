@@ -1,0 +1,64 @@
+# App Platform spec: the React app as a static site, the API as one DigitalOcean function.
+# Secrets (DATABASE_URL, BGG_API_TOKEN) are set on the app in DigitalOcean, not here; a spec
+# fetched back with `doctl apps spec get` carries them only in encrypted EV[...] form.
+name: boardgamemeetups
+region: nyc
+
+static_sites:
+  - name: web
+    github:
+      repo: bmewing/boardgamemeetups
+      branch: main
+      deploy_on_push: true
+    source_dir: frontend
+    build_command: npm ci && npm run build
+    output_dir: dist
+    catchall_document: index.html  # client-side routes like /games/123
+    envs:
+      - key: VITE_KINDE_DOMAIN
+        scope: BUILD_TIME
+        value: https://boardgamegroup.kinde.com
+      - key: VITE_KINDE_CLIENT_ID
+        scope: BUILD_TIME
+        value: 226d3ab0d847428a83cda0b690884c39
+      - key: VITE_KINDE_AUDIENCE
+        scope: BUILD_TIME
+        value: https://api.boardgamemeetups
+      - key: VITE_API_BASE
+        scope: BUILD_TIME
+        value: /api/core/app
+
+functions:
+  - name: api
+    github:
+      repo: bmewing/boardgamemeetups
+      branch: main
+      deploy_on_push: true
+    source_dir: functions
+    envs:
+      - key: DATABASE_URL  # Supabase transaction pooler (port 6543), with ?sslmode=require
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: BGG_API_TOKEN
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: KINDE_DOMAIN
+        scope: RUN_AND_BUILD_TIME
+        value: https://boardgamegroup.kinde.com
+      - key: KINDE_AUDIENCE
+        scope: RUN_AND_BUILD_TIME
+        value: https://api.boardgamemeetups
+
+ingress:
+  rules:
+    # App Platform strips /api; the next two segments pick the function (core/app).
+    - component:
+        name: api
+      match:
+        path:
+          prefix: /api
+    - component:
+        name: web
+      match:
+        path:
+          prefix: /
