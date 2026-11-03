@@ -2,7 +2,7 @@
 # (backend/app/serverless.py). App Platform routes /api/core/app/<path> to it.
 # ${...} values come from the functions component's environment in .do/app.yaml.
 environment:
-  SERVERLESS: "true"
+  SERVERLESS: "${SERVERLESS}"
   DATABASE_URL: "${DATABASE_URL}"
   KINDE_DOMAIN: "${KINDE_DOMAIN}"
   KINDE_AUDIENCE: "${KINDE_AUDIENCE}"

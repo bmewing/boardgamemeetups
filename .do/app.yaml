@@ -36,6 +36,10 @@ functions:
       deploy_on_push: true
     source_dir: functions
     envs:
+      # App Platform requires every variable functions/project.yml names to be defined here.
+      - key: SERVERLESS
+        scope: RUN_AND_BUILD_TIME
+        value: "true"
       - key: DATABASE_URL  # Supabase transaction pooler (port 6543), with ?sslmode=require
         scope: RUN_AND_BUILD_TIME
         type: SECRET
