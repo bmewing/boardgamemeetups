@@ -189,6 +189,10 @@ function PreviewView({
     0,
   )
   const { counts } = preview
+  const additions = [
+    counts.new_games > 0 && `add ${plural(counts.new_games, 'new game')}`,
+    counts.fills > 0 && `fill ${plural(counts.fills, 'blank')}`,
+  ].filter((part) => part !== false)
 
   if (preview.games.length === 0) {
     return (
@@ -223,16 +227,21 @@ function PreviewView({
   return (
     <Stack>
       <Text>
-        BGG lists {plural(counts.games_on_source, 'game')}. Pulling would add{' '}
-        {plural(counts.new_games, 'new game')}, fill {plural(counts.fills, 'blank')},{' '}
-        <Text span fw={counts.overwrites ? 700 : undefined} c={counts.overwrites ? 'orange' : ''}>
-          overwrite {plural(counts.overwrites, 'answer')} you gave here
-        </Text>
-        , and find {plural(counts.not_on_source, 'game')} you have here that BGG doesn't.
+        BGG lists {plural(counts.games_on_source, 'game')}.
+        {additions.length > 0 && ` Pulling would ${additions.join(' and ')}.`}
       </Text>
-      {gone.length > 0 && (
+      {counts.overwrites > 0 ? (
+        <Text fw={700} c="orange">
+          It would overwrite {plural(counts.overwrites, 'answer')} you gave here.
+        </Text>
+      ) : (
+        <Text>None of your answers here would be overwritten.</Text>
+      )}
+      {counts.not_on_source > 0 && (
         <Text size="sm" c="dimmed">
-          Games no longer on BGG are left alone unless you tick them.
+          {counts.not_on_source === 1
+            ? "1 game you have here isn't on BGG; it's left alone unless you tick it."
+            : `${counts.not_on_source} games you have here aren't on BGG; they're left alone unless you tick them.`}
         </Text>
       )}
       <Accordion

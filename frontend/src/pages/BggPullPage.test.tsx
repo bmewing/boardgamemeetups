@@ -76,7 +76,10 @@ describe('BggPullPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Fetch from BGG' }))
 
-    expect(await screen.findByText(/overwrite 1 answer you gave here/)).toBeInTheDocument()
+    expect(
+      await screen.findByText('It would overwrite 1 answer you gave here.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Pulling would add 1 new game and fill 2 blanks/)).toBeInTheDocument()
     expect(screen.getByText('New games (1)')).toBeInTheDocument()
     expect(screen.getByText('Ownership: Owned · Plays: 4')).toBeInTheDocument()
     const brass = screen.getByText('Brass').closest('div[class*="Card"]') as HTMLElement
