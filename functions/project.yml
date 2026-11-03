@@ -1,6 +1,8 @@
 # The whole API runs as one web function, core/app, wrapping the FastAPI app
 # (backend/app/serverless.py). App Platform routes /api/core/app/<path> to it.
-# ${...} values come from the functions component's environment in .do/app.yaml.
+# Placeholders below are filled from the functions component's environment in
+# .do/app.yaml. Don't write the placeholder syntax in comments: App Platform's build
+# check reads it as a variable the app must define.
 environment:
   SERVERLESS: "${SERVERLESS}"
   DATABASE_URL: "${DATABASE_URL}"
