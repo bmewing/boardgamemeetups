@@ -1,17 +1,28 @@
-import { Badge, Card, Group, Image, Stack, Text } from '@mantine/core'
+import { Badge, Card, Group, Image, type MantineSpacing, Stack, Text } from '@mantine/core'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import type { GameSummary } from '../api/games'
 import { bestWithLabel, playersLabel, playtimeLabel, weightLabel } from './gameFacts'
 
-/** A game in a list; `children` adds lines under the game's facts (e.g. your answers). */
-export function GameCard({ game, children }: { game: GameSummary; children?: ReactNode }) {
+/**
+ * A game in a list; `children` adds lines under the game's facts (e.g. your answers), and
+ * `pr` leaves room on the right for a control laid over the card.
+ */
+export function GameCard({
+  game,
+  children,
+  pr,
+}: {
+  game: GameSummary
+  children?: ReactNode
+  pr?: MantineSpacing
+}) {
   const facts = [playersLabel(game), playtimeLabel(game), weightLabel(game)].filter(Boolean)
   const best = bestWithLabel(game)
 
   return (
-    <Card component={Link} to={`/games/${game.id}`} withBorder padding="sm">
+    <Card component={Link} to={`/games/${game.id}`} withBorder padding="sm" pr={pr}>
       <Group wrap="nowrap" align="flex-start">
         <Image
           src={game.thumbnail_url}
