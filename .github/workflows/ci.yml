@@ -38,6 +38,11 @@ jobs:
       - run: uv run mypy
       - run: uv run alembic upgrade head
       - run: uv run pytest
+      - name: Function's copy of backend/app is current
+        run: |
+          bash ../functions/sync_backend.sh
+          git diff --exit-code -- ../functions/lib/app
+          test -z "$(git status --porcelain -- ../functions/lib/app)"
       - name: Function requirements match the lockfile
         run: |
           uv export --no-default-groups --no-hashes --no-emit-project --no-header \

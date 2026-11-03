@@ -106,9 +106,17 @@ and the whole API as one DigitalOcean function, `core/app`, reached at `/api/cor
 tests are the same as in local development.
 
 - The function runs Python 3.13, the newest DigitalOcean offers; keep the backend on 3.13.
-- `functions/lib/build.sh` copies `backend/app` into the bundle, and the function's
-  `build.sh` installs `functions/packages/core/app/requirements.txt`. After changing backend
-  dependencies, regenerate that file from `backend/` (CI fails if it's out of date):
+- The function runs a committed copy of the backend in `functions/lib/app` (a remote build
+  only receives `functions/`, so it can't copy `backend/` itself). After changing
+  `backend/app`, refresh the copy (CI fails if it's stale):
+
+  ```bash
+  bash functions/sync_backend.sh
+  ```
+
+- The function's `build.sh` installs `functions/packages/core/app/requirements.txt` in
+  DigitalOcean's Python 3.13 container. After changing backend dependencies, regenerate it
+  from `backend/` (CI fails if it's out of date):
 
   ```bash
   uv export --no-default-groups --no-hashes --no-emit-project --no-header --format requirements-txt -o ../functions/packages/core/app/requirements.txt
