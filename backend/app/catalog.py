@@ -10,7 +10,7 @@ from sqlalchemy import case, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bgg import BggClient, BggError, GameDetails, SearchHit
+from app.bgg import BggClient, BggError, CollectionEntry, GameDetails, SearchHit
 from app.config import get_settings
 from app.models import Game
 
@@ -62,6 +62,48 @@ async def upsert_rank_rows(session: AsyncSession, rows: Sequence[dict[str, Any]]
             set_={column: stmt.excluded[column] for column in RANK_COLUMNS},
         )
     )
+
+
+# Catalog columns a BGG collection listing includes. It lacks weight, categories, mechanics
+# and the player-count poll, so rows it creates are still stubs until details are fetched.
+COLLECTION_COLUMNS = (
+    "name",
+    "year_published",
+    "is_expansion",
+    "thumbnail_url",
+    "image_url",
+    "min_players",
+    "max_players",
+    "min_playtime",
+    "max_playtime",
+    "playing_time",
+    "bgg_rank",
+    "bgg_rating",
+    "bgg_users_rated",
+)
+# Postgres allows 32,767 parameters per statement; stay well under it.
+COLLECTION_BATCH = 1000
+
+
+async def upsert_collection_games(
+    session: AsyncSession, entries: Sequence[CollectionEntry]
+) -> None:
+    """Make sure every game in a BGG collection is in the catalog, filling in blank columns."""
+    for start in range(0, len(entries), COLLECTION_BATCH):
+        batch = entries[start : start + COLLECTION_BATCH]
+        rows = [{"id": e.id, **{c: getattr(e, c) for c in COLLECTION_COLUMNS}} for e in batch]
+        stmt = insert(Game).values(rows)
+        await session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[Game.id],
+                # Keep what we have (fetched details win); only fill gaps.
+                set_={
+                    c: func.coalesce(getattr(Game, c), stmt.excluded[c])
+                    for c in COLLECTION_COLUMNS
+                    if c not in ("name", "is_expansion")
+                },
+            )
+        )
 
 
 def _is_stale(game: Game, now: datetime) -> bool:

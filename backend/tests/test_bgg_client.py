@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from app.bgg import BggClient, BggError, create_http_client
+from app.bgg import BggClient, BggError, BggStillPreparing, BggUnknownUser, create_http_client
 
 THING_XML = (Path(__file__).parent / "fixtures" / "bgg" / "thing_wingspan.xml").read_bytes()
 EMPTY_ITEMS = b"<items></items>"
@@ -92,3 +92,44 @@ async def test_requests_are_spaced_apart(http: httpx.AsyncClient) -> None:
     await client.things([2])
 
     assert time.monotonic() - started >= 0.2
+
+
+COLLECTION_URL = "https://boardgamegeek.com/xmlapi2/collection"
+FIXTURES = Path(__file__).parent / "fixtures" / "bgg"
+
+
+@respx.mock
+async def test_collection_asks_for_base_games_and_expansions_apart(
+    http: httpx.AsyncClient,
+) -> None:
+    base = respx.get(COLLECTION_URL, params={"subtype": "boardgame"}).respond(
+        content=(FIXTURES / "collection_boardgames.xml").read_bytes()
+    )
+    expansions = respx.get(COLLECTION_URL, params={"subtype": "boardgameexpansion"}).respond(
+        content=(FIXTURES / "collection_expansions.xml").read_bytes()
+    )
+
+    entries = await BggClient(http, min_interval=0).collection("someone")
+
+    assert base.calls.last.request.url.params["excludesubtype"] == "boardgameexpansion"
+    assert base.calls.last.request.url.params["username"] == "someone"
+    assert expansions.called
+    assert {e.id for e in entries} == {167791, 224517, 266192, 290837}
+
+
+@respx.mock
+async def test_collection_reports_an_unknown_user(http: httpx.AsyncClient) -> None:
+    respx.get(COLLECTION_URL).respond(
+        content=b"<errors><error><message>Invalid username specified</message></error></errors>"
+    )
+
+    with pytest.raises(BggUnknownUser):
+        await BggClient(http, min_interval=0).collection("nobody")
+
+
+@respx.mock
+async def test_collection_still_queued_after_retries(http: httpx.AsyncClient) -> None:
+    respx.get(COLLECTION_URL).respond(202)
+
+    with pytest.raises(BggStillPreparing):
+        await BggClient(http, min_interval=0, max_retries=1).collection("someone")

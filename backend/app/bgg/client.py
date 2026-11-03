@@ -9,7 +9,15 @@ from collections.abc import Iterable
 
 import httpx
 
-from app.bgg.parse import GameDetails, SearchHit, parse_search, parse_things
+from app.bgg.parse import (
+    BggResponseError,
+    CollectionEntry,
+    GameDetails,
+    SearchHit,
+    parse_collection,
+    parse_search,
+    parse_things,
+)
 from app.bgg.throttle import LocalThrottle, Throttle
 
 logger = logging.getLogger(__name__)
@@ -21,6 +29,14 @@ RETRY_STATUSES = {202, 429, 500, 502, 503, 504}
 
 class BggError(Exception):
     """BGG could not be reached or kept refusing the request."""
+
+
+class BggStillPreparing(BggError):
+    """BGG kept answering 202: it queues collection exports and serves them once ready."""
+
+
+class BggUnknownUser(BggError):
+    """BGG has no user by that name."""
 
 
 class BggClient:
@@ -38,12 +54,13 @@ class BggClient:
         self._throttle = throttle or LocalThrottle()
 
     async def _get(self, path: str, params: dict[str, str]) -> bytes:
+        status: int | str = "no response"
         for attempt in range(self._max_retries + 1):
             await self._throttle.reserve(self._min_interval)
             try:
                 response = await self._http.get(path, params=params)
             except httpx.TransportError as exc:
-                status: int | str = type(exc).__name__
+                status = type(exc).__name__
             else:
                 status = response.status_code
                 if status == 200:
@@ -53,6 +70,8 @@ class BggClient:
             backoff = self._min_interval * 2**attempt
             await self._throttle.hold_off(backoff)
             logger.warning("BGG %s for %s; retrying in %.0fs", status, path, backoff)
+        if status == 202:
+            raise BggStillPreparing(f"BGG is still preparing {path}")
         raise BggError(f"BGG kept refusing {path}")
 
     async def search(self, query: str) -> list[SearchHit]:
@@ -76,6 +95,26 @@ class BggClient:
             )
             details.extend(parse_things(xml))
         return details
+
+    async def collection(self, username: str) -> list[CollectionEntry]:
+        """Everything in a user's BGG collection, base games and expansions alike."""
+        # BGG files expansions under the boardgame subtype too, so ask for the two apart.
+        entries: list[CollectionEntry] = []
+        for subtype, extra in (
+            ("boardgame", {"excludesubtype": "boardgameexpansion"}),
+            ("boardgameexpansion", {}),
+        ):
+            xml = await self._get(
+                "/xmlapi2/collection",
+                {"username": username, "subtype": subtype, "stats": "1", **extra},
+            )
+            try:
+                entries.extend(parse_collection(xml))
+            except BggResponseError as exc:
+                if "invalid username" in str(exc).lower():
+                    raise BggUnknownUser(username) from exc
+                raise BggError(str(exc)) from exc
+        return entries
 
 
 def create_http_client(token: str) -> httpx.AsyncClient:

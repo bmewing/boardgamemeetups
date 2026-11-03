@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Annotated
 from zoneinfo import available_timezones
 
@@ -42,6 +43,7 @@ class UserRead(BaseModel):
     avatar_url: str | None
     time_zone: str
     bgg_username: str | None
+    bgg_pulled_at: datetime | None
     collection_visibility: CollectionVisibility
 
 

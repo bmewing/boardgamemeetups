@@ -7,5 +7,6 @@ export const profile: UserProfile = {
   avatar_url: null,
   time_zone: 'UTC',
   bgg_username: null,
+  bgg_pulled_at: null,
   collection_visibility: 'friends',
 }

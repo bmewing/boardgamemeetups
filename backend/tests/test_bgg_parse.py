@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from app.bgg.parse import parse_search, parse_things
+import pytest
+
+from app.bgg.parse import BggResponseError, parse_collection, parse_search, parse_things
 
 FIXTURES = Path(__file__).parent / "fixtures" / "bgg"
 
@@ -53,3 +55,44 @@ def test_parse_ignores_items_without_ids_or_names() -> None:
 
     assert parse_things(xml) == []
     assert parse_search(xml) == []
+
+
+def test_parse_collection_merges_copies_and_reads_the_users_answers() -> None:
+    entries = {
+        e.id: e for e in parse_collection((FIXTURES / "collection_boardgames.xml").read_bytes())
+    }
+
+    assert sorted(entries) == [167791, 224517, 266192]
+    wingspan = entries[266192]  # listed twice: an owned copy and one for trade
+    assert wingspan.own is True
+    assert wingspan.rating == 8.5
+    assert wingspan.plays == 12
+    assert wingspan.comment == "Sleeved."
+    assert (wingspan.min_players, wingspan.max_players, wingspan.playing_time) == (1, 5, 70)
+    assert wingspan.bgg_rank == 38
+    assert wingspan.thumbnail_url == "https://cf.geekdo-images.com/wingspan_small.jpg"
+    assert wingspan.is_expansion is False
+
+    mars = entries[167791]
+    assert (mars.own, mars.prevowned, mars.want_to_play) == (False, True, True)
+    assert mars.rating == 7.25
+
+    brass = entries[224517]
+    assert brass.rating is None  # "N/A"
+    assert brass.wishlist_priority == 2
+    assert brass.comment is None  # only a wishlist comment
+
+
+def test_parse_collection_reads_expansions() -> None:
+    [oceania] = parse_collection((FIXTURES / "collection_expansions.xml").read_bytes())
+
+    assert oceania.is_expansion is True
+    assert oceania.preordered is True
+    assert oceania.bgg_rank is None  # "Not Ranked"
+
+
+def test_parse_collection_raises_on_bgg_errors() -> None:
+    xml = b"<errors><error><message>Invalid username specified</message></error></errors>"
+
+    with pytest.raises(BggResponseError, match="Invalid username"):
+        parse_collection(xml)

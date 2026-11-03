@@ -80,8 +80,8 @@ These are folded into the checklist below.
 
 Per-user game data lives in one row per user per game, so a user can rate or tag any game, owned or not, and one import can fill every field. Blank always means "no opinion"; the UI may show a default (e.g. "just right") without storing it, so group results only count real answers.
 
-- [ ] `moods` (seeded list, each with tag weights for the fallback guess from categories/mechanics/weight), e.g. *Light & quick, Party/social, Laughs, Chill, Brain-burner, Cutthroat, Thematic/story, Family-friendly*. Used both to tag games and to pick an RSVP mood. Meetup-only moods that describe the group's history (*Something new, Old favorite, No preference*) can't be tagged on a game
-- [ ] `user_games` (user, game, plus):
+- [x] `moods` (seeded list; the tag weights for the fallback guess from categories/mechanics/weight come with Phase 9), e.g. *Light & quick, Party/social, Laughs, Chill, Brain-burner, Cutthroat, Thematic/story, Family-friendly*. Used both to tag games and to pick an RSVP mood. Meetup-only moods that describe the group's history (*Something new, Old favorite, No preference*) can't be tagged on a game
+- [x] `user_games` (user, game, plus):
   - ownership: `owned` / `previously_owned` / `preordered` / none
   - `wishlist_priority` (1–5, blank = not wishlisted), `want_to_play`
   - `rating` (decimal 1–10, BGG's scale and labels)
@@ -90,16 +90,16 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
   - `can_teach`, and `teach_minutes`, required when `can_teach` is set
   - `plays` (count; imported from BGG `numplays`, then added to by the Phase 10 play log)
   - `will_bring` (owned copies only, default yes; no for a copy that's lent out or stays home)
-  - `notes`, `source` (bgg / file / manual), `bgg_pulled_at`, timestamps
-- [ ] `user_game_player_counts` (user, game, count, vote: best / recommended / not recommended), the same answers as BGG's poll so group votes add straight onto `games.player_count_votes`
-- [ ] `user_game_moods` (user, game, mood)
+  - `notes`, `source` (bgg / file / manual), timestamps; the last applied pull is `users.bgg_pulled_at`
+- [x] `user_game_player_counts` (user, game, count, vote: best / recommended / not recommended), the same answers as BGG's poll so group votes add straight onto `games.player_count_votes`
+- [x] `user_game_moods` (user, game, mood)
 - [ ] Expansions are owned games of their own; an owned expansion's player range widens its base game's range
-- [ ] **Pull from BGG** (by BGG username, collection API): fetch, compute the diff against our data, show a preview before anything is written (new games, blanks that would be filled, values that would be **overwritten**, games owned here but not on BGG), then apply on confirm. BGG doesn't expose a user's own weight or player-count votes, so those only come from our UI or a file
+- [ ] **Pull from BGG** (API done: `POST /api/me/games/bgg-pull` previews, `POST /api/me/games/import` applies the kept changes; UI to do) (by BGG username, collection API): fetch, compute the diff against our data, show a preview before anything is written (new games, blanks that would be filled, values that would be **overwritten**, games owned here but not on BGG), then apply on confirm. BGG doesn't expose a user's own weight or player-count votes, so those only come from our UI or a file
 - [ ] Upload BGG CSV export → match by `objectid` directly, then the same diff preview as a pull
 - [ ] Upload our Excel/CSV template (`openpyxl` for .xlsx): name, year, optional BGG ID, then one column per `user_games` field, plus player-count votes and moods. Also accept a plain list of names
 - [ ] Name matching for files without BGG IDs → exact match, then fuzzy (local `pg_trgm` + BGG search + rapidfuzz on name/year) → confidence score
 - [ ] Import review screen: auto-matched, needs-review (pick from candidates), unmatched (manual search), followed by the diff preview
-- [ ] Manual add/remove single game
+- [ ] Manual add/remove single game (API done: `PUT`/`DELETE /api/me/games/{id}`; UI to do)
 - [ ] Collection page (grid/list, filters by player count/weight/length)
 - **Done when:** a BGG pull, a BGG CSV and a messy plain list each end up as a fully matched collection, and a second pull shows an accurate overwrite preview
 
