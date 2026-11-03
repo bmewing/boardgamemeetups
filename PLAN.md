@@ -160,7 +160,7 @@ These are folded into the checklist below.
 - [ ] Own OAuth credentials for Google, Facebook and Discord in Kinde (dev currently uses Kinde's shared keys, so consent screens name Kinde, not this app)
 - [ ] Kinde custom domain (e.g. `auth.<your-domain>`) so sign-ins survive page reloads without keeping the refresh token in localStorage (only allowed in local dev)
 - [ ] App custom domain + TLS (optional)
-- [ ] Auto-deploy from `main`
+- [x] Auto-deploy from `main`
 - [ ] Staging database: a second Supabase project (free tier allows two)
 - **Done when:** production URL works end-to-end with a real login
 
