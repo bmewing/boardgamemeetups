@@ -100,6 +100,7 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - [ ] Name matching for files without BGG IDs → exact match, then fuzzy (local `pg_trgm` + BGG search + rapidfuzz on name/year) → confidence score
 - [ ] Import review screen: auto-matched, needs-review (pick from candidates), unmatched (manual search), followed by the diff preview
 - [x] Manual add/remove single game (the "My games" panel on a game's page)
+- [x] Remove from the My games list too, optionally with the game's expansions; removed games are remembered (`removed_games`) so later imports offer them unticked, until the user adds them back
 - [x] Collection page (grid/list, filters by player count/weight/length); fetches BGG details for pulled games a batch at a time while open
 - **Done when:** a BGG pull, a BGG CSV and a messy plain list each end up as a fully matched collection, and a second pull shows an accurate overwrite preview
 

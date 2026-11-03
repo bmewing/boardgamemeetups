@@ -4,12 +4,13 @@ from typing import Any
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.games import get_bgg_client
 from app.bgg import BggError, BggStillPreparing, BggUnknownUser, CollectionEntry, GameDetails
 from app.main import app
-from app.models import Game, Mood
+from app.models import Game, Mood, RemovedGame
 from tests.conftest import TokenFactory, bearer
 
 # Ids far outside BGG's range, so a local database holding the real catalog can't interfere.
@@ -133,6 +134,7 @@ async def test_first_pull_previews_new_games_and_writes_nothing(
         "fills": 7,
         "overwrites": 0,
         "not_on_source": 0,
+        "removed_before": 0,
     }
     owned = changes_for(body, OWNED)
     assert owned["ownership"] == {
@@ -419,3 +421,52 @@ async def test_removing_a_game_leaves_its_expansions_by_default(
     await client.delete(f"/api/me/games/{base}", headers=auth)
 
     assert set(await my_games(client, auth)) == {expansion}
+
+
+@pytest.mark.usefixtures("with_bgg_username")
+async def test_games_removed_here_are_flagged_on_the_next_pull(
+    client: AsyncClient, bgg: FakeBgg, auth: dict[str, str]
+) -> None:
+    await client.post(
+        "/api/me/games/import", json=accept_all(await preview(client, auth)), headers=auth
+    )
+    await client.delete(f"/api/me/games/{WISHED}", headers=auth)
+
+    body = await preview(client, auth)
+
+    [wished] = body["games"]
+    assert wished["game"]["id"] == WISHED
+    assert (wished["is_new"], wished["removed_before"]) == (True, True)
+    assert body["counts"]["new_games"] == 0
+    assert body["counts"]["fills"] == 0
+    assert body["counts"]["removed_before"] == 1
+
+
+@pytest.mark.usefixtures("with_bgg_username")
+async def test_keeping_a_removed_game_in_a_pull_adds_it_back_for_good(
+    client: AsyncClient, bgg: FakeBgg, auth: dict[str, str]
+) -> None:
+    await client.post(
+        "/api/me/games/import", json=accept_all(await preview(client, auth)), headers=auth
+    )
+    await client.delete(f"/api/me/games/{WISHED}", headers=auth)
+
+    await client.post(
+        "/api/me/games/import", json=accept_all(await preview(client, auth)), headers=auth
+    )
+    await client.delete(f"/api/me/games/{OWNED}", headers=auth)
+    body = await preview(client, auth)
+
+    assert {g["game"]["id"]: g["removed_before"] for g in body["games"]} == {OWNED: True}
+
+
+async def test_adding_a_removed_game_by_hand_clears_the_removal(
+    client: AsyncClient, auth: dict[str, str], manual_game: int, db_session: AsyncSession
+) -> None:
+    await client.put(f"/api/me/games/{manual_game}", json={"rating": 5}, headers=auth)
+    await client.delete(f"/api/me/games/{manual_game}", headers=auth)
+    assert len(list(await db_session.scalars(select(RemovedGame)))) == 1
+
+    await client.put(f"/api/me/games/{manual_game}", json={"rating": 6}, headers=auth)
+
+    assert list(await db_session.scalars(select(RemovedGame))) == []

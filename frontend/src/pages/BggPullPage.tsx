@@ -30,10 +30,14 @@ import { FIELD_LABELS, formatValue } from '../components/userGameFields'
 
 const key = (gameId: number, field: string) => `${gameId}:${field}`
 
-/** Everything is kept except clearing games BGG no longer lists, which the user opts into. */
+/**
+ * Everything is kept except clearing games BGG no longer lists and bringing back games the
+ * user removed here; those the user opts into.
+ */
 function defaultSelection(preview: ImportPreview): Set<string> {
   const keys = new Set<string>()
   for (const game of preview.games) {
+    if (game.removed_before) continue
     for (const change of game.changes) {
       if (change.kind !== 'not_on_source') keys.add(key(game.game.id, change.field))
     }
@@ -168,7 +172,8 @@ function PreviewView({
       return next
     })
 
-  const newGames = preview.games.filter((g) => g.is_new)
+  const newGames = preview.games.filter((g) => g.is_new && !g.removed_before)
+  const removedBefore = preview.games.filter((g) => g.removed_before)
   const updated = preview.games.filter((g) => !g.is_new && g.on_source)
   const gone = preview.games.filter((g) => !g.on_source)
   const kept: ChangeIn[] = preview.games.flatMap((g) =>
@@ -215,6 +220,12 @@ function PreviewView({
       games: newGames,
       whole: true,
     },
+    removedBefore.length > 0 && {
+      value: 'removed',
+      title: `Removed here before (${removedBefore.length})`,
+      games: removedBefore,
+      whole: true,
+    },
     updated.length > 0 && {
       value: 'updated',
       title: `Changes to games you have (${updated.length})`,
@@ -249,10 +260,19 @@ function PreviewView({
             : `${counts.not_on_source} games you have here aren't on BGG; they're left alone unless you tick them.`}
         </Text>
       )}
+      {counts.removed_before > 0 && (
+        <Text size="sm" c="dimmed">
+          {counts.removed_before === 1
+            ? "1 game you removed here is still on BGG; it's left out unless you tick it."
+            : `${counts.removed_before} games you removed here are still on BGG; they're left out unless you tick them.`}
+        </Text>
+      )}
       <Accordion
         multiple
         variant="separated"
-        defaultValue={sections.filter((s) => !s.whole || s.games.length <= 20).map((s) => s.value)}
+        defaultValue={sections
+          .filter((s) => s.value !== 'removed' && (!s.whole || s.games.length <= 20))
+          .map((s) => s.value)}
       >
         {sections.map((s) => (
           <Accordion.Item key={s.value} value={s.value}>

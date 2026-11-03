@@ -144,3 +144,19 @@ class UserGameMood(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     game_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     mood_id: Mapped[str] = mapped_column(String(32), ForeignKey("moods.id"), primary_key=True)
+
+
+class RemovedGame(Base):
+    """A game the user removed from their list, so imports don't quietly offer it back.
+
+    Imports still show it, but left unticked. Adding the game again, by hand or by keeping
+    it in an import, clears this.
+    """
+
+    __tablename__ = "removed_games"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"), primary_key=True)
+    removed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
