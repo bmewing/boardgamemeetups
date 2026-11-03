@@ -128,9 +128,33 @@ export interface paths {
          *
          *     Only games that are expansions of this one are removed from `expansions`; other ids are
          *     ignored, so a mistaken id can't take an unrelated game with it. Removed games are
-         *     remembered, so a later import offers them unticked instead of adding them back.
+         *     remembered, so a later import offers them unticked instead of adding them back. A game
+         *     that isn't in the list can be removed too: it's then left out of suggestions.
          */
         delete: operations["remove_my_game_api_me_games__game_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/games/missing-base-games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Find Missing Base Games
+         * @description Base games of expansions you own, where you don't own the base game.
+         *
+         *     Looks up base games on BGG for a batch of expansions that haven't been checked yet;
+         *     while `unchecked` is above zero, calling again checks more.
+         */
+        post: operations["find_missing_base_games_api_me_games_missing_base_games_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -271,6 +295,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * BaseGameChoice
+         * @description An expansion of yours that fits several base games, none of which you own.
+         */
+        BaseGameChoice: {
+            expansion: components["schemas"]["GameBrief"];
+            /** Options */
+            options: components["schemas"]["GameSummary"][];
+            /** Option Count */
+            option_count: number;
+        };
+        /** BaseGameSuggestion */
+        BaseGameSuggestion: {
+            game: components["schemas"]["GameSummary"];
+            /** Expansions */
+            expansions: components["schemas"]["GameBrief"][];
+            ownership: components["schemas"]["Ownership"] | null;
+            /** On Wishlist */
+            on_wishlist: boolean;
+        };
         /** CandidateRead */
         CandidateRead: {
             game: components["schemas"]["GameBrief"];
@@ -560,6 +604,17 @@ export interface components {
          * @enum {string}
          */
         MatchStatus: "matched" | "review" | "unmatched";
+        /** MissingBaseGamesRead */
+        MissingBaseGamesRead: {
+            /** Suggestions */
+            suggestions: components["schemas"]["BaseGameSuggestion"][];
+            /** Choices */
+            choices: components["schemas"]["BaseGameChoice"][];
+            /** Unchecked */
+            unchecked: number;
+            /** Hidden */
+            hidden: number;
+        };
         /** MoodRead */
         MoodRead: {
             /** Id */
@@ -996,6 +1051,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    find_missing_base_games_api_me_games_missing_base_games_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MissingBaseGamesRead"];
                 };
             };
         };

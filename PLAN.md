@@ -98,6 +98,7 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - [x] Upload BGG CSV export → match by `objectid` directly, then the same diff preview as a pull (untested with a real export: BGG's column names are assumed)
 - [x] Upload any Excel/CSV/text list (`/collection/import`): the user says what each column holds (guessed from headers; several columns can feed notes), and where the whole file goes (owned / wishlist / neither) when no column says. A template is at `/game-list-template.csv`
 - [ ] Player-count votes and moods as file columns
+- [x] "Find missing base games" on My games: base games of owned expansions that aren't owned, grouped by base game; an expansion that fits several base games is offered once with its best-known options. "Not interested" is remembered (`removed_games`)
 - [x] Name matching for files without BGG IDs → exact match ignoring punctuation and a trailing ", The", year when given, the far-better-known game among same-named ones, "X" for a base game named "X: Subtitle", then `pg_trgm` candidates for review (134-row example: 115 matched, ~6 s locally)
 - [x] Import review screen: rows needing a look (one-click candidates), matched rows, and an inline Search BGG box on every row; then the diff preview
 - [x] Manual add/remove single game (the "My games" panel on a game's page)

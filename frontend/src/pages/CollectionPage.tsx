@@ -27,6 +27,7 @@ import {
   useMyGames,
 } from '../api/collection'
 import { GameCard } from '../components/GameCard'
+import { FindMissingBaseGames } from '../components/MissingBaseGames'
 import { RemoveGameButton } from '../components/RemoveGameButton'
 import {
   expansionsInList,
@@ -207,6 +208,7 @@ export function CollectionPage() {
         <Button component={Link} to="/games" variant="default">
           Add a game
         </Button>
+        <FindMissingBaseGames />
         <Button component={Link} to="/collection/import" variant="default">
           Import a file
         </Button>
