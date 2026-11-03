@@ -161,3 +161,125 @@ def parse_things(xml: bytes) -> list[GameDetails]:
         for item in fromstring(xml).iterfind("item")
         if (details := _parse_thing(item)) is not None
     ]
+
+
+class BggResponseError(Exception):
+    """BGG answered with an <errors> document instead of data (e.g. an unknown username)."""
+
+
+@dataclass
+class CollectionEntry:
+    """One game in a BGG user's collection: catalog basics plus what the user recorded.
+
+    BGG lists a game once per copy, so `parse_collection` merges entries with the same id.
+    """
+
+    id: int
+    name: str
+    is_expansion: bool
+    year_published: int | None = None
+    thumbnail_url: str | None = None
+    image_url: str | None = None
+    min_players: int | None = None
+    max_players: int | None = None
+    min_playtime: int | None = None
+    max_playtime: int | None = None
+    playing_time: int | None = None
+    bgg_rank: int | None = None
+    bgg_rating: float | None = None
+    bgg_users_rated: int | None = None
+
+    own: bool = False
+    prevowned: bool = False
+    preordered: bool = False
+    wishlist_priority: int | None = None  # set only when wishlisted
+    want_to_play: bool = False
+    rating: float | None = None
+    plays: int = 0
+    comment: str | None = None
+
+
+def _attr(node: Element | None, key: str) -> str | None:
+    return node.get(key) if node is not None else None
+
+
+def _flag(status: Element | None, name: str) -> bool:
+    return _attr(status, name) == "1"
+
+
+def _text(item: Element, tag: str) -> str | None:
+    return (item.findtext(tag) or "").strip() or None
+
+
+def _parse_collection_item(item: Element) -> CollectionEntry | None:
+    bgg_id = _int(item.get("objectid"))
+    name = _text(item, "name")
+    if bgg_id is None or name is None:
+        return None
+    stats = item.find("stats")
+    rating = stats.find("rating") if stats is not None else None
+    status = item.find("status")
+    rank = None
+    if rating is not None:
+        for node in rating.iterfind("ranks/rank"):
+            if node.get("name") == "boardgame":
+                rank = _int(node.get("value"))
+    wishlisted = _flag(status, "wishlist")
+    return CollectionEntry(
+        id=bgg_id,
+        name=name,
+        is_expansion=item.get("subtype") == "boardgameexpansion",
+        year_published=_positive(_int(_text(item, "yearpublished"))),
+        thumbnail_url=_text(item, "thumbnail"),
+        image_url=_text(item, "image"),
+        min_players=_positive(_int(_attr(stats, "minplayers"))),
+        max_players=_positive(_int(_attr(stats, "maxplayers"))),
+        min_playtime=_positive(_int(_attr(stats, "minplaytime"))),
+        max_playtime=_positive(_int(_attr(stats, "maxplaytime"))),
+        playing_time=_positive(_int(_attr(stats, "playingtime"))),
+        bgg_rank=rank,
+        bgg_rating=_positive(_float(_value(rating, "average"))),
+        bgg_users_rated=_int(_value(rating, "usersrated")),
+        own=_flag(status, "own"),
+        prevowned=_flag(status, "prevowned"),
+        preordered=_flag(status, "preordered"),
+        wishlist_priority=_int(_attr(status, "wishlistpriority")) if wishlisted else None,
+        want_to_play=_flag(status, "wanttoplay"),
+        # "N/A" when the user hasn't rated it.
+        rating=_positive(_float(_attr(rating, "value"))),
+        plays=_int(_text(item, "numplays")) or 0,
+        comment=_text(item, "comment"),
+    )
+
+
+def _merge_copies(first: CollectionEntry, other: CollectionEntry) -> None:
+    """Fold a second copy of the same game into the first entry, in place."""
+    first.own |= other.own
+    first.prevowned |= other.prevowned
+    first.preordered |= other.preordered
+    first.want_to_play |= other.want_to_play
+    priorities = [p for p in (first.wishlist_priority, other.wishlist_priority) if p]
+    first.wishlist_priority = min(priorities) if priorities else None
+    first.rating = first.rating or other.rating
+    first.plays = max(first.plays, other.plays)
+    first.comment = first.comment or other.comment
+    for key in ("thumbnail_url", "image_url"):
+        if getattr(first, key) is None:
+            setattr(first, key, getattr(other, key))
+
+
+def parse_collection(xml: bytes) -> list[CollectionEntry]:
+    root = fromstring(xml)
+    if root.tag == "errors":
+        message = root.findtext("error/message") or "BGG returned an error"
+        raise BggResponseError(message.strip())
+    entries: dict[int, CollectionEntry] = {}
+    for item in root.iterfind("item"):
+        entry = _parse_collection_item(item)
+        if entry is None:
+            continue
+        if entry.id in entries:
+            _merge_copies(entries[entry.id], entry)
+        else:
+            entries[entry.id] = entry
+    return list(entries.values())

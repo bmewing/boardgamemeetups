@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<items totalitems="1" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse" pubdate="Tue, 03 Nov 2026 15:00:00 +0000">
+	<item objecttype="thing" objectid="290837" subtype="boardgameexpansion" collid="100005">
+		<name sortindex="1">Wingspan: Oceania Expansion</name>
+		<yearpublished>2020</yearpublished>
+		<stats minplayers="1" maxplayers="5" minplaytime="40" maxplaytime="70" playingtime="70" numowned="60000">
+			<rating value="9">
+				<usersrated value="20000" />
+				<average value="8.4" />
+				<bayesaverage value="0" />
+				<ranks>
+					<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="Not Ranked" bayesaverage="Not Ranked" />
+				</ranks>
+			</rating>
+		</stats>
+		<status own="0" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0" preordered="1" lastmodified="2026-01-01 10:00:00" />
+		<numplays>0</numplays>
+	</item>
+</items>

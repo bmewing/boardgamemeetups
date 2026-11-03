@@ -24,6 +24,8 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(2048))
     time_zone: Mapped[str] = mapped_column(String(64), default="UTC")
     bgg_username: Mapped[str | None] = mapped_column(String(64))
+    # When this user last applied a pull from BGG (not just previewed one).
+    bgg_pulled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     collection_visibility: Mapped[CollectionVisibility] = mapped_column(
         Enum(
             CollectionVisibility,

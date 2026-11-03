@@ -74,15 +74,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/moods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Moods */
+        get: operations["list_moods_api_moods_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Games */
+        get: operations["list_my_games_api_me_games_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/games/{game_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update My Game
+         * @description Add a game to your list or change what you've recorded about it.
+         */
+        put: operations["update_my_game_api_me_games__game_id__put"];
+        post?: never;
+        /**
+         * Remove My Game
+         * @description Forget everything you've recorded about a game.
+         */
+        delete: operations["remove_my_game_api_me_games__game_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/games/bgg-pull": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Bgg Pull
+         * @description Fetch your BGG collection and list what pulling it would change. Writes nothing of yours.
+         */
+        post: operations["preview_bgg_pull_api_me_games_bgg_pull_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/games/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Import
+         * @description Apply the changes you kept from a preview.
+         */
+        post: operations["apply_import_api_me_games_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ChangeIn */
+        ChangeIn: {
+            /** Game Id */
+            game_id: number;
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "ownership" | "wishlist_priority" | "want_to_play" | "rating" | "weight_vote" | "playtime_feel" | "can_teach" | "teach_minutes" | "plays" | "will_bring" | "notes";
+            /** Expected */
+            expected: unknown;
+            /** Value */
+            value: unknown;
+        };
+        /**
+         * ChangeKind
+         * @enum {string}
+         */
+        ChangeKind: "fill" | "overwrite" | "not_on_source";
         /**
          * CollectionVisibility
          * @enum {string}
          */
         CollectionVisibility: "private" | "friends" | "public";
+        /** FieldChangeRead */
+        FieldChangeRead: {
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "ownership" | "wishlist_priority" | "want_to_play" | "rating" | "weight_vote" | "playtime_feel" | "can_teach" | "teach_minutes" | "plays" | "will_bring" | "notes";
+            /** Current */
+            current: unknown;
+            /** Incoming */
+            incoming: unknown;
+            kind: components["schemas"]["ChangeKind"];
+        };
+        /** GameBrief */
+        GameBrief: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Year Published */
+            year_published: number | null;
+            /** Thumbnail Url */
+            thumbnail_url: string | null;
+            /** Is Expansion */
+            is_expansion: boolean;
+        };
         /** GameDetail */
         GameDetail: {
             /** Id */
@@ -128,9 +271,19 @@ export interface components {
             /** Recommended With */
             recommended_with: number[];
             /** Player Count Votes */
-            player_count_votes: components["schemas"]["PlayerCountVote"][];
+            player_count_votes: components["schemas"]["app__api__games__PlayerCountVote"][];
             /** Bgg Url */
             bgg_url: string;
+        };
+        /** GameDiffRead */
+        GameDiffRead: {
+            game: components["schemas"]["GameBrief"];
+            /** Is New */
+            is_new: boolean;
+            /** On Source */
+            on_source: boolean;
+            /** Changes */
+            changes: components["schemas"]["FieldChangeRead"][];
         };
         /** GameSummary */
         GameSummary: {
@@ -177,16 +330,147 @@ export interface components {
              */
             database: "ok" | "unavailable";
         };
-        /** PlayerCountVote */
-        PlayerCountVote: {
+        /** ImportApply */
+        ImportApply: {
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "bgg" | "file";
+            /** Changes */
+            changes: components["schemas"]["ChangeIn"][];
+        };
+        /** ImportCounts */
+        ImportCounts: {
+            /** Games On Source */
+            games_on_source: number;
+            /** New Games */
+            new_games: number;
+            /** Fills */
+            fills: number;
+            /** Overwrites */
+            overwrites: number;
+            /** Not On Source */
+            not_on_source: number;
+        };
+        /** ImportPreview */
+        ImportPreview: {
+            source: components["schemas"]["Source"];
+            /** Bgg Username */
+            bgg_username: string | null;
+            /** Games */
+            games: components["schemas"]["GameDiffRead"][];
+            counts: components["schemas"]["ImportCounts"];
+        };
+        /** ImportResult */
+        ImportResult: {
+            /** Applied */
+            applied: number;
+            /** Skipped */
+            skipped: components["schemas"]["SkippedRead"][];
+        };
+        /** MoodRead */
+        MoodRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Taggable */
+            taggable: boolean;
+        };
+        /**
+         * Ownership
+         * @enum {string}
+         */
+        Ownership: "owned" | "preordered" | "previously_owned";
+        /** PlayerCountRead */
+        PlayerCountRead: {
             /** Players */
-            players: string;
-            /** Best */
-            best: number;
-            /** Recommended */
-            recommended: number;
-            /** Not Recommended */
-            not_recommended: number;
+            players: number;
+            vote: components["schemas"]["app__models__user_game__PlayerCountVote"];
+        };
+        /**
+         * PlaytimeFeel
+         * @description How the game's length feels next to BGG's listed playing time.
+         * @enum {string}
+         */
+        PlaytimeFeel: "shorter" | "just_right" | "longer";
+        /** SkippedRead */
+        SkippedRead: {
+            /** Game Id */
+            game_id: number;
+            /** Field */
+            field: string | null;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * Source
+         * @description Where a row first came from.
+         * @enum {string}
+         */
+        Source: "bgg" | "file" | "manual";
+        /** UserGameRead */
+        UserGameRead: {
+            game: components["schemas"]["GameSummary"];
+            ownership: components["schemas"]["Ownership"] | null;
+            /** Wishlist Priority */
+            wishlist_priority: number | null;
+            /** Want To Play */
+            want_to_play: boolean;
+            /** Rating */
+            rating: number | null;
+            /** Weight Vote */
+            weight_vote: number | null;
+            playtime_feel: components["schemas"]["PlaytimeFeel"] | null;
+            /** Can Teach */
+            can_teach: boolean;
+            /** Teach Minutes */
+            teach_minutes: number | null;
+            /** Plays */
+            plays: number;
+            /** Will Bring */
+            will_bring: boolean;
+            /** Notes */
+            notes: string | null;
+            /** Player Counts */
+            player_counts: components["schemas"]["PlayerCountRead"][];
+            /** Moods */
+            moods: string[];
+            source: components["schemas"]["Source"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * UserGameUpdate
+         * @description Fields to change; anything left out keeps its value. Null clears a field.
+         */
+        UserGameUpdate: {
+            ownership?: components["schemas"]["Ownership"] | null;
+            /** Wishlist Priority */
+            wishlist_priority?: number | null;
+            /** Want To Play */
+            want_to_play?: boolean | null;
+            /** Rating */
+            rating?: number | null;
+            /** Weight Vote */
+            weight_vote?: number | null;
+            playtime_feel?: components["schemas"]["PlaytimeFeel"] | null;
+            /** Can Teach */
+            can_teach?: boolean | null;
+            /** Teach Minutes */
+            teach_minutes?: number | null;
+            /** Plays */
+            plays?: number | null;
+            /** Will Bring */
+            will_bring?: boolean | null;
+            /** Notes */
+            notes?: string | null;
         };
         /** UserRead */
         UserRead: {
@@ -205,6 +489,8 @@ export interface components {
             time_zone: string;
             /** Bgg Username */
             bgg_username: string | null;
+            /** Bgg Pulled At */
+            bgg_pulled_at: string | null;
             collection_visibility: components["schemas"]["CollectionVisibility"];
         };
         /** UserUpdate */
@@ -230,6 +516,23 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** PlayerCountVote */
+        app__api__games__PlayerCountVote: {
+            /** Players */
+            players: string;
+            /** Best */
+            best: number;
+            /** Recommended */
+            recommended: number;
+            /** Not Recommended */
+            not_recommended: number;
+        };
+        /**
+         * PlayerCountVote
+         * @description The same three answers as BGG's suggested-player-count poll.
+         * @enum {string}
+         */
+        app__models__user_game__PlayerCountVote: "best" | "recommended" | "not_recommended";
     };
     responses: never;
     parameters: never;
@@ -381,6 +684,163 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GameDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_moods_api_moods_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoodRead"][];
+                };
+            };
+        };
+    };
+    list_my_games_api_me_games_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserGameRead"][];
+                };
+            };
+        };
+    };
+    update_my_game_api_me_games__game_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                game_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserGameUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserGameRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_my_game_api_me_games__game_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                game_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_bgg_pull_api_me_games_bgg_pull_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+        };
+    };
+    apply_import_api_me_games_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
                 };
             };
             /** @description Validation Error */
