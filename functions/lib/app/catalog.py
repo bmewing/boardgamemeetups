@@ -6,7 +6,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import Numeric, case, cast, func, literal, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -148,15 +148,24 @@ def _search_statement(query: str, limit: int, include_expansions: bool) -> Any:
         (name.contains(q, autoescape=True), 2),
         else_=3,
     )
+    # Typo matches compare the whole name (`%`) or, for long names, the words typed against
+    # words in the name (`<%`), so "clank in space" finds "Clank! In! Space!: A Deck-…".
+    closeness = func.greatest(func.similarity(name, q), func.word_similarity(q, name))
     stmt = (
         select(Game)
-        .where(or_(name.contains(q, autoescape=True), name.op("%")(q)))
+        .where(
+            or_(
+                name.contains(q, autoescape=True),
+                name.op("%")(q),
+                literal(q).op("<%")(name),
+            )
+        )
         .order_by(
             tier,
             # Among real matches the popular game is the likely one ("brass" -> Brass:
             # Birmingham, not Brass Empire); among typo matches, the closest spelling is.
             case((tier < 3, Game.bgg_users_rated)).desc().nulls_last(),
-            func.similarity(name, q).desc(),
+            func.round(cast(closeness, Numeric), 1).desc(),
             Game.bgg_users_rated.desc().nulls_last(),
         )
         .limit(limit)

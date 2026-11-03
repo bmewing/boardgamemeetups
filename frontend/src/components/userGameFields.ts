@@ -85,3 +85,8 @@ export function expansionsInList(game: GameSummary, rows: UserGame[]): GameSumma
         !g.base_game_ids.some((id) => id !== game.id && listed.has(id)),
     )
 }
+
+/** "1 game", "3 games". */
+export function plural(n: number, one: string, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`
+}

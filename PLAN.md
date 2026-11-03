@@ -95,10 +95,11 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - [x] `user_game_moods` (user, game, mood)
 - [ ] Expansions are owned games of their own; an owned expansion's player range widens its base game's range
 - [x] **Pull from BGG** (`/collection/pull`: `POST /api/me/games/bgg-pull` previews, `POST /api/me/games/import` applies the kept changes) (by BGG username, collection API): fetch, compute the diff against our data, show a preview before anything is written (new games, blanks that would be filled, values that would be **overwritten**, games owned here but not on BGG), then apply on confirm. BGG doesn't expose a user's own weight or player-count votes, so those only come from our UI or a file
-- [ ] Upload BGG CSV export → match by `objectid` directly, then the same diff preview as a pull
-- [ ] Upload our Excel/CSV template (`openpyxl` for .xlsx): name, year, optional BGG ID, then one column per `user_games` field, plus player-count votes and moods. Also accept a plain list of names
-- [ ] Name matching for files without BGG IDs → exact match, then fuzzy (local `pg_trgm` + BGG search + rapidfuzz on name/year) → confidence score
-- [ ] Import review screen: auto-matched, needs-review (pick from candidates), unmatched (manual search), followed by the diff preview
+- [x] Upload BGG CSV export → match by `objectid` directly, then the same diff preview as a pull (untested with a real export: BGG's column names are assumed)
+- [x] Upload any Excel/CSV/text list (`/collection/import`): the user says what each column holds (guessed from headers; several columns can feed notes), and where the whole file goes (owned / wishlist / neither) when no column says. A template is at `/game-list-template.csv`
+- [ ] Player-count votes and moods as file columns
+- [x] Name matching for files without BGG IDs → exact match ignoring punctuation and a trailing ", The", year when given, the far-better-known game among same-named ones, "X" for a base game named "X: Subtitle", then `pg_trgm` candidates for review (134-row example: 115 matched, ~6 s locally)
+- [x] Import review screen: rows needing a look (one-click candidates), matched rows, and an inline Search BGG box on every row; then the diff preview
 - [x] Manual add/remove single game (the "My games" panel on a game's page)
 - [x] Remove from the My games list too, optionally with the game's expansions; removed games are remembered (`removed_games`) so later imports offer them unticked, until the user adds them back
 - [x] Collection page (grid/list, filters by player count/weight/length); fetches BGG details for pulled games a batch at a time while open

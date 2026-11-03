@@ -73,6 +73,8 @@ def loose_key(name: str) -> str:
 # this many times the ratings of the next one (and enough ratings to mean something).
 CLEAR_FAVOURITE = 10
 MIN_RATINGS = 100
+# How well "X" fits a base game named "X: Some Subtitle".
+SUBTITLED_SCORE = 0.9
 
 
 async def _by_id(session: AsyncSession, bgg: BggClient, rows: Sequence[FileRow]) -> dict[int, Game]:
@@ -98,11 +100,24 @@ async def _by_id(session: AsyncSession, bgg: BggClient, rows: Sequence[FileRow])
     return {g.id: g for g in await session.scalars(select(Game).where(Game.id.in_(ids)))}
 
 
+def _like_prefix(text: str) -> str:
+    """A LIKE pattern for names starting with `text`, with LIKE's wildcards escaped."""
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return escaped + "%"
+
+
+def _is_subtitled(game: Game, q: str) -> bool:
+    """A base game whose name is the file's name plus a subtitle ("X: A Deck-Building Game")."""
+    return not game.is_expansion and normalize(game.name).startswith(f"{q}:")
+
+
 async def _candidates(session: AsyncSession, name: str, year: int | None) -> list[Candidate]:
     q = normalize(name)
     lowered = func.lower(Game.name)
     similarity = func.similarity(lowered, q)
-    found = await session.execute(
+    # Two small queries, each served by the name index. Combined with OR, Postgres gives up
+    # on the index and scans every game, about 200 ms a row.
+    close = await session.execute(
         select(Game, similarity)
         .where(or_(lowered == q, lowered.op("%")(q)))
         .order_by(
@@ -110,9 +125,25 @@ async def _candidates(session: AsyncSession, name: str, year: int | None) -> lis
         )
         .limit(CANDIDATES_FETCHED)
     )
+    # "X: Subtitle" names, best known first; expansions are left out in Python, since
+    # filtering them here would also cost the index.
+    prefixed = await session.execute(
+        select(Game, similarity)
+        .where(lowered.like(_like_prefix(f"{q}:"), escape="\\"))
+        .order_by(Game.bgg_users_rated.desc().nulls_last())
+        .limit(CANDIDATES_FETCHED)
+    )
+    found: dict[int, tuple[Game, float]] = {}
+    for game, sim in [*close, *prefixed]:
+        found.setdefault(game.id, (game, sim))
     candidates = []
-    for game, sim in found:
-        score = 1.0 if loose_key(game.name) == loose_key(q) else float(sim)
+    for game, sim in found.values():
+        if loose_key(game.name) == loose_key(q):
+            score = 1.0
+        elif _is_subtitled(game, q):
+            score = SUBTITLED_SCORE
+        else:
+            score = float(sim)
         if year and game.year_published and game.year_published != year:
             score -= 0.15
         candidates.append(Candidate(game, max(round(score, 2), 0.0)))
@@ -121,23 +152,32 @@ async def _candidates(session: AsyncSession, name: str, year: int | None) -> lis
     return candidates[:CANDIDATES_SHOWN]
 
 
+def _clear_favourite(candidates: list[Candidate]) -> Candidate | None:
+    """The best-known of these, if it's far better known than the rest."""
+    ranked = sorted(candidates, key=lambda c: -(c.game.bgg_users_rated or 0))
+    top = ranked[0].game.bgg_users_rated or 0
+    runner_up = (ranked[1].game.bgg_users_rated or 0) if len(ranked) > 1 else 0
+    if top >= MIN_RATINGS and top >= CLEAR_FAVOURITE * runner_up:
+        return ranked[0]
+    return None
+
+
 def _decide(row: FileRow, candidates: list[Candidate]) -> RowMatch:
     if not candidates:
         return RowMatch(row, MatchStatus.UNMATCHED, 0.0)
-    key = loose_key(row.name or "")
-    exact = [c for c in candidates if loose_key(c.game.name) == key]
+    q = normalize(row.name or "")
+    exact = [c for c in candidates if loose_key(c.game.name) == loose_key(q)]
     fits_year = [c for c in exact if row.year and c.game.year_published == row.year]
     if len(fits_year) == 1:
         return RowMatch(row, MatchStatus.MATCHED, 1.0, fits_year[0].game, candidates)
     if len(exact) == 1 and not row.year:
         return RowMatch(row, MatchStatus.MATCHED, 1.0, exact[0].game, candidates)
-    if len(exact) > 1 and not row.year:
-        top, runner_up = sorted(exact, key=lambda c: -(c.game.bgg_users_rated or 0))[:2]
-        top_ratings = top.game.bgg_users_rated or 0
-        if top_ratings >= MIN_RATINGS and top_ratings >= CLEAR_FAVOURITE * (
-            runner_up.game.bgg_users_rated or 0
-        ):
-            return RowMatch(row, MatchStatus.MATCHED, 0.95, top.game, candidates)
+    if len(exact) > 1 and not row.year and (favourite := _clear_favourite(exact)):
+        return RowMatch(row, MatchStatus.MATCHED, 0.95, favourite.game, candidates)
+    subtitled = [c for c in candidates if _is_subtitled(c.game, q)]
+    if not exact and subtitled and not row.year and (favourite := _clear_favourite(subtitled)):
+        # "Clank! In! Space!" for "Clank! In! Space!: A Deck-Building Adventure".
+        return RowMatch(row, MatchStatus.MATCHED, SUBTITLED_SCORE, favourite.game, candidates)
     # Several games share the name, or it's only close: suggest the best and ask.
     best = exact[0] if exact else candidates[0]
     return RowMatch(row, MatchStatus.REVIEW, best.score, best.game, candidates)

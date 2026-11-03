@@ -207,6 +207,9 @@ export function CollectionPage() {
         <Button component={Link} to="/games" variant="default">
           Add a game
         </Button>
+        <Button component={Link} to="/collection/import" variant="default">
+          Import a file
+        </Button>
         <Button component={Link} to="/collection/pull">
           Pull from BGG
         </Button>
@@ -237,7 +240,8 @@ export function CollectionPage() {
       <Stack>
         {header}
         <Text c="dimmed">
-          No games yet. Pull your collection from BoardGameGeek, or search for a game to add it.
+          No games yet. Pull your collection from BoardGameGeek, import a spreadsheet, or search for
+          a game to add it.
         </Text>
       </Stack>
     )
