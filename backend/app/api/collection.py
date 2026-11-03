@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import Annotated, Any, Literal, Self
 
-from fastapi import APIRouter, HTTPException, Path, status
+from fastapi import APIRouter, HTTPException, Path, Query, status
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import any_, delete, func, literal, select
 
 from app import catalog, collection
 from app.api.games import BggDep, GameSummary
@@ -224,12 +224,31 @@ async def update_my_game(
 
 
 @router.delete("/me/games/{game_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_my_game(game_id: GameId, user: CurrentUser, session: SessionDep) -> None:
-    """Forget everything you've recorded about a game."""
-    row = await session.get(UserGame, (user.id, game_id))
-    if row is not None:
-        await session.delete(row)
-        await session.commit()
+async def remove_my_game(
+    game_id: GameId,
+    user: CurrentUser,
+    session: SessionDep,
+    expansions: Annotated[list[int], Query(max_length=200)] = [],  # noqa: B006
+) -> None:
+    """Forget everything you've recorded about a game, and optionally some of its expansions.
+
+    Only games that are expansions of this one are removed from `expansions`; other ids are
+    ignored, so a mistaken id can't take an unrelated game with it.
+    """
+    await session.execute(
+        delete(UserGame).where(
+            UserGame.user_id == user.id,
+            (UserGame.game_id == game_id)
+            | UserGame.game_id.in_(
+                select(Game.id).where(
+                    Game.id.in_(expansions),
+                    Game.is_expansion.is_(True),
+                    literal(game_id) == any_(Game.base_game_ids),
+                )
+            ),
+        )
+    )
+    await session.commit()
 
 
 # Two BGG requests (20 games each), ~5s apart: well inside the function's time limit.

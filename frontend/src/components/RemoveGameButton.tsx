@@ -1,7 +1,9 @@
-import { ActionIcon, Button, Group, Popover, Stack, Text } from '@mantine/core'
+import { ActionIcon, Button, Checkbox, Group, Popover, Stack, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
+import { useState } from 'react'
 
 import { useRemoveMyGame } from '../api/collection'
+import type { GameSummary } from '../api/games'
 
 function TrashIcon() {
   return (
@@ -21,38 +23,81 @@ function TrashIcon() {
   )
 }
 
-/** A trash button that asks once before removing a game and everything recorded about it. */
-export function RemoveGameButton({
-  gameId,
-  name,
-  overImage = false,
-}: {
-  gameId: number
-  name: string
-  /** Give the button a solid backdrop so it shows over box art. */
+interface Props {
+  game: GameSummary
+  /** Its expansions in the user's list, offered for removal along with it. */
+  expansions?: GameSummary[]
+  /** An icon for lists and tiles, or a labelled button for the game's own page. */
+  variant?: 'icon' | 'text'
+  /** Give the icon a solid backdrop so it shows over box art. */
   overImage?: boolean
-}) {
-  const [opened, { close, toggle }] = useDisclosure(false)
+  onRemoved?: () => void
+}
+
+/** Asks once before removing a game (and, if ticked, its expansions) from the user's list. */
+export function RemoveGameButton({
+  game,
+  expansions = [],
+  variant = 'icon',
+  overImage = false,
+  onRemoved,
+}: Props) {
+  const [opened, { open, close }] = useDisclosure(false)
+  const [withExpansions, setWithExpansions] = useState(true)
   const remove = useRemoveMyGame()
+  const toggle = () => {
+    if (opened) return close()
+    setWithExpansions(true)
+    open()
+  }
+  const confirm = () =>
+    remove.mutate(
+      { gameId: game.id, expansionIds: withExpansions ? expansions.map((e) => e.id) : [] },
+      {
+        onSuccess: () => {
+          close()
+          onRemoved?.()
+        },
+      },
+    )
 
   return (
-    <Popover opened={opened} onChange={(open) => !open && close()} position="bottom-end" withArrow>
+    <Popover opened={opened} onChange={(o) => !o && close()} position="bottom-end" withArrow>
       <Popover.Target>
-        <ActionIcon
-          variant={overImage ? 'default' : 'subtle'}
-          color="gray"
-          aria-label={`Remove ${name}`}
-          onClick={toggle}
-          loading={remove.isPending}
-        >
-          <TrashIcon />
-        </ActionIcon>
+        {variant === 'icon' ? (
+          <ActionIcon
+            variant={overImage ? 'default' : 'subtle'}
+            color="gray"
+            aria-label={`Remove ${game.name}`}
+            onClick={toggle}
+            loading={remove.isPending}
+          >
+            <TrashIcon />
+          </ActionIcon>
+        ) : (
+          <Button size="xs" variant="subtle" color="red" onClick={toggle}>
+            Remove from my games
+          </Button>
+        )}
       </Popover.Target>
-      <Popover.Dropdown maw={280}>
+      <Popover.Dropdown maw={300}>
         <Stack gap="xs">
           <Text size="sm">
-            Remove <b>{name}</b> from your games? Anything you recorded about it goes too.
+            Remove <b>{game.name}</b> from your games? Anything you recorded about it goes too.
           </Text>
+          {expansions.length > 0 && (
+            <Checkbox
+              size="xs"
+              checked={withExpansions}
+              onChange={(e) => setWithExpansions(e.currentTarget.checked)}
+              label={
+                expansions.length === 1
+                  ? 'Also remove its expansion'
+                  : `Also remove its ${expansions.length} expansions`
+              }
+              description={expansions.map((e) => e.name).join(', ')}
+            />
+          )}
           {remove.isError && (
             <Text size="sm" c="red">
               {remove.error.message}
@@ -62,12 +107,7 @@ export function RemoveGameButton({
             <Button size="xs" variant="default" onClick={close}>
               Cancel
             </Button>
-            <Button
-              size="xs"
-              color="red"
-              loading={remove.isPending}
-              onClick={() => remove.mutate(gameId, { onSuccess: close })}
-            >
+            <Button size="xs" color="red" loading={remove.isPending} onClick={confirm}>
               Remove
             </Button>
           </Group>

@@ -20,6 +20,7 @@ const wingspan: GameSummary = {
   weight: 2.48,
   bgg_rank: 38,
   best_with: [3],
+  base_game_ids: [],
 }
 
 const expansion: GameSummary = {
@@ -28,6 +29,7 @@ const expansion: GameSummary = {
   name: 'Wingspan: European Expansion',
   is_expansion: true,
   best_with: [],
+  base_game_ids: [266192],
 }
 
 describe('GamesPage', () => {

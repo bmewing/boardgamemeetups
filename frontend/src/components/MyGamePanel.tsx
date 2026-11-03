@@ -1,13 +1,8 @@
-import { Alert, Button, Card, Group, Select, Stack, Switch, Text, Title } from '@mantine/core'
+import { Alert, Card, Group, Select, Stack, Switch, Text, Title } from '@mantine/core'
 
-import {
-  type Ownership,
-  type UserGameUpdate,
-  useMyGames,
-  useRemoveMyGame,
-  useUpdateMyGame,
-} from '../api/collection'
-import { OWNERSHIP_LABELS } from './userGameFields'
+import { type Ownership, type UserGameUpdate, useMyGames, useUpdateMyGame } from '../api/collection'
+import { RemoveGameButton } from './RemoveGameButton'
+import { expansionsInList, OWNERSHIP_LABELS } from './userGameFields'
 
 const NOT_OWNED = 'none'
 const OWNERSHIP_OPTIONS = [
@@ -21,10 +16,9 @@ const DEFAULT_WISHLIST_PRIORITY = 3
 export function MyGamePanel({ gameId }: { gameId: number }) {
   const games = useMyGames()
   const update = useUpdateMyGame()
-  const remove = useRemoveMyGame()
   const row = games.data?.find((r) => r.game.id === gameId)
   const save = (changes: UserGameUpdate) => update.mutate({ gameId, changes })
-  const busy = games.isPending || update.isPending || remove.isPending
+  const busy = games.isPending || update.isPending
 
   return (
     <Card withBorder>
@@ -32,15 +26,11 @@ export function MyGamePanel({ gameId }: { gameId: number }) {
         <Group justify="space-between">
           <Title order={4}>My games</Title>
           {row && (
-            <Button
-              size="xs"
-              variant="subtle"
-              color="red"
-              loading={remove.isPending}
-              onClick={() => remove.mutate(gameId)}
-            >
-              Remove from my games
-            </Button>
+            <RemoveGameButton
+              game={row.game}
+              expansions={expansionsInList(row.game, games.data ?? [])}
+              variant="text"
+            />
           )}
         </Group>
         {!row && !games.isPending && (
@@ -77,9 +67,7 @@ export function MyGamePanel({ gameId }: { gameId: number }) {
             onChange={(e) => save({ want_to_play: e.currentTarget.checked })}
           />
         </Group>
-        {(update.isError || remove.isError) && (
-          <Alert color="red">{(update.error ?? remove.error)?.message}</Alert>
-        )}
+        {update.isError && <Alert color="red">{update.error.message}</Alert>}
       </Stack>
     </Card>
   )

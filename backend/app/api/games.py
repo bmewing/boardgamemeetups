@@ -58,6 +58,7 @@ class GameSummary(BaseModel):
     weight: float | None
     bgg_rank: int | None
     best_with: list[int]
+    base_game_ids: list[int]  # for an expansion, the games it expands
 
     @classmethod
     def from_game(cls, game: Game) -> Self:
@@ -74,7 +75,6 @@ class GameDetail(GameSummary):
     bgg_users_rated: int | None
     categories: list[str]
     mechanics: list[str]
-    base_game_ids: list[int]
     recommended_with: list[int]
     player_count_votes: list[PlayerCountVote]
     bgg_url: str
