@@ -28,7 +28,7 @@ These are folded into the checklist below.
 - **Expansions:** treat them as attached to their base game, not as separate recommendations.
 - **Close the loop:** log what was actually played after a meetup. That feeds "recently played" into future recommendations.
 - **Supabase free tier pauses after a week without activity.** Fine while people use the app. Functions get no platform health checks, so if usage is sparse, add a weekly GitHub Actions ping of `/api/health`.
-- **Privacy:** the address is shown only to invitees, and users control who can see their collection (friends vs. public).
+- **Privacy:** the address is shown only to invitees, and users control who can see their collection (friends vs. public). Joining a group (invited, then confirmed) shares all of your game data with that group's members under your name, whatever your collection visibility says.
 - **Time zones and calendar export** (.ics file / "add to calendar").
 - **Mobile-first UI:** most RSVPs and votes will happen on phones.
 - **Account deletion and data export:** basic hygiene.
@@ -77,21 +77,41 @@ These are folded into the checklist below.
 - **Done when:** searching "Wingspan" returns the right game with player counts and image
 
 ### Phase 4 — Collection import & matching
-- [ ] `collection_items` (user, game, owned, notes, added_at)
-- [ ] Import by BGG username (collection API, owned flag)
-- [ ] Upload BGG CSV export → match by `objectid` directly
-- [ ] Upload generic CSV/TXT of names → exact match, then fuzzy (BGG search + rapidfuzz on name/year) → confidence score
-- [ ] Import review screen: auto-matched, needs-review (pick from candidates), unmatched (manual search)
+
+Per-user game data lives in one row per user per game, so a user can rate or tag any game, owned or not, and one import can fill every field. Blank always means "no opinion"; the UI may show a default (e.g. "just right") without storing it, so group results only count real answers.
+
+- [ ] `moods` (seeded list, each with tag weights for the fallback guess from categories/mechanics/weight), e.g. *Light & quick, Party/social, Laughs, Chill, Brain-burner, Cutthroat, Thematic/story, Family-friendly*. Used both to tag games and to pick an RSVP mood. Meetup-only moods that describe the group's history (*Something new, Old favorite, No preference*) can't be tagged on a game
+- [ ] `user_games` (user, game, plus):
+  - ownership: `owned` / `previously_owned` / `preordered` / none
+  - `wishlist_priority` (1–5, blank = not wishlisted), `want_to_play`
+  - `rating` (decimal 1–10, BGG's scale and labels)
+  - `weight_vote` (1–5, BGG's Light … Heavy scale)
+  - `playtime_feel` (shorter / just right / longer vs. the listed time)
+  - `can_teach`, and `teach_minutes`, required when `can_teach` is set
+  - `plays` (count; imported from BGG `numplays`, then added to by the Phase 10 play log)
+  - `will_bring` (owned copies only, default yes; no for a copy that's lent out or stays home)
+  - `notes`, `source` (bgg / file / manual), `bgg_pulled_at`, timestamps
+- [ ] `user_game_player_counts` (user, game, count, vote: best / recommended / not recommended), the same answers as BGG's poll so group votes add straight onto `games.player_count_votes`
+- [ ] `user_game_moods` (user, game, mood)
+- [ ] Expansions are owned games of their own; an owned expansion's player range widens its base game's range
+- [ ] **Pull from BGG** (by BGG username, collection API): fetch, compute the diff against our data, show a preview before anything is written (new games, blanks that would be filled, values that would be **overwritten**, games owned here but not on BGG), then apply on confirm. BGG doesn't expose a user's own weight or player-count votes, so those only come from our UI or a file
+- [ ] Upload BGG CSV export → match by `objectid` directly, then the same diff preview as a pull
+- [ ] Upload our Excel/CSV template (`openpyxl` for .xlsx): name, year, optional BGG ID, then one column per `user_games` field, plus player-count votes and moods. Also accept a plain list of names
+- [ ] Name matching for files without BGG IDs → exact match, then fuzzy (local `pg_trgm` + BGG search + rapidfuzz on name/year) → confidence score
+- [ ] Import review screen: auto-matched, needs-review (pick from candidates), unmatched (manual search), followed by the diff preview
 - [ ] Manual add/remove single game
 - [ ] Collection page (grid/list, filters by player count/weight/length)
-- **Done when:** a BGG CSV and a messy plain list both end up as a fully matched collection
+- **Done when:** a BGG pull, a BGG CSV and a messy plain list each end up as a fully matched collection, and a second pull shows an accurate overwrite preview
 
-### Phase 5 — Ratings, player-count opinions, wishlist
-- [ ] `game_ratings` (user, game, rating 1–10)
-- [ ] `player_count_opinions` (user, game, count, verdict: best / good / bad) — UI as a row of tappable counts per game
-- [ ] `wishlist_items` (user, game, priority, note): "want to play", any game in the catalog, not just owned
-- [ ] Show BGG's community best-count alongside the user's own opinion
-- **Done when:** can rate, set player-count opinions, and wishlist games from both the collection and search
+**Phase 4 notes: BGG is pull-only.** BGG's XML API is read-only. Writing back would mean driving BGG's website with the user's own BGG login, which means holding their BGG password and likely breaks the terms of our registered app. So data only flows from BGG to us, never back, and every pull or file import is previewed as a diff and applied only on confirm.
+
+### Phase 5 — Editing your game data
+- [ ] Game page and collection rows: edit every `user_games` field from either the collection or search
+- [ ] Player counts as a row of tappable counts per game (tap cycles best → recommended → not recommended → blank), with a one-tap "best at N" shortcut
+- [ ] "Can teach" asks for teach time before it saves
+- [ ] Mood tags as chips from the `moods` list
+- [ ] Show BGG's community values (rating, weight, best count, playing time) alongside the user's own
+- **Done when:** can set every field from both the collection and search, and BGG's values show beside your own
 
 ### Phase 6 — Friends & invites
 - [ ] `friendships` (requester, addressee, status: pending/accepted/blocked)
@@ -107,29 +127,39 @@ These are folded into the checklist below.
 - [ ] Occurrences materialized as `meetups` rows for a rolling window (e.g. next 8 weeks), generated lazily when the group is viewed and when the schedule changes
 - [ ] Each occurrence editable on its own (date/time/place/notes, or cancelled); flag `is_overridden` so schedule changes regenerate only untouched future occurrences
 - [ ] Group page: members, upcoming occurrences, schedule editor
+- [ ] Group library: every member's games with the group's combined view and each member's answers by name (see "Group roll-ups" under Phase 9)
 - **Done when:** a weekly group shows the next 8 dates; moving one date leaves the others alone; changing the rule to biweekly updates only untouched future dates
 
 ### Phase 8 — Meetups, RSVP & mood
 - [ ] `meetups` (title, host, optional group_id, start, end/duration, time zone, location name + address, max seats, notes, status: scheduled/cancelled/done)
 - [ ] Ad-hoc meetup creation: pick friends and/or a group's members
 - [ ] `meetup_invites` (meetup, user, status: invited/yes/no/maybe, plus_ones, mood, rsvp_at)
-- [ ] Mood taxonomy (seeded table, each with tag weights used by recs), e.g. *Light & quick, Party/social, Strategic/heavy, Co-op, Cutthroat, Thematic/adventure, Something new, Old favorite, No preference*
+- [ ] RSVP moods come from the Phase 4 `moods` list, plus the meetup-only *Something new, Old favorite, No preference*
 - [ ] RSVP UI: one tap yes/no/maybe + mood picker; can change until the vote locks
 - [ ] Headcount summary (confirmed + plus-ones vs. max seats; waitlist if over)
 - [ ] Address only visible to invitees; .ics download
 - **Done when:** host creates a meetup, 3 test users RSVP with moods, headcount is correct
 
 ### Phase 9 — Recommendations
-- [ ] Candidate pool = games owned by confirmed attendees (expansions folded into base)
-- [ ] Hard filters: player count fits the confirmed headcount; playtime fits the meetup duration
+- [ ] Candidate pool = games owned by confirmed attendees and marked "will bring" (expansions folded into base, widening its player range)
+- [ ] Hard filters: player count fits the confirmed headcount; playtime (plus teach time when someone attending is new to it) fits the meetup duration
+- [ ] Group roll-ups, computed per query over the people in scope (group members for the library, confirmed attendees for a meetup); groups are small, so nothing is stored:
+  - rating: average pulled toward BGG's rating when few have rated, `(sum + 2 × bgg_rating) / (n + 2)`; also show the lowest rating, and treat 3 or below as a soft veto
+  - player count: group votes added onto BGG's poll counts, group votes weighted higher; read off at the headcount
+  - weight: group average blended with BGG's weight the same way as rating
+  - playtime: BGG's time adjusted by the net shorter/longer votes; replaced by the median logged duration once Phase 10 plays exist
+  - mood: share of people who tagged each mood; fall back to the guess from categories/mechanics/weight for untagged games
+  - teaching: who's new to it (`plays` = 0 and not previously owned), who can teach, and their teach time
+  - owners willing to bring it; wishlist and want-to-play counts
 - [ ] Scoring (weighted, tunable in one config module):
-  - player-count fit (attendees' own best/good/bad opinions, falling back to the BGG poll)
-  - mood match (mood tag weights vs. game categories/mechanics/weight)
-  - attendees' average rating (unrated = neutral)
-  - wishlist hits among attendees (strong boost)
-  - novelty ("something new" mood boosts games few attendees have rated or played)
+  - player-count fit (from the roll-up above)
+  - mood match (roll-up mood shares vs. attendees' RSVP moods)
+  - attendees' rating (roll-up above; unrated = neutral), with a penalty for soft vetoes
+  - wishlist and want-to-play hits among attendees (strong boost)
+  - novelty ("something new" mood boosts games few attendees have played)
+  - teach cost (new players with no teacher attending is a penalty; with one, teach time counts against the meetup length)
   - recently played penalty (from Phase 10 play logs)
-- [ ] "Why this game" explanation chips (e.g. "3 want to play · best at 5 · matches Strategic")
+- [ ] "Why this game" explanation chips (e.g. "3 want to play · best at 5 · matches Brain-burner · Sam can teach (15 min)")
 - [ ] Recompute on RSVP change; show top ~10
 - [ ] Unit tests with fixture attendees/libraries for scoring edge cases
 - **Done when:** recs change sensibly as people RSVP and switch moods, and each rec explains itself
@@ -169,8 +199,7 @@ These are folded into the checklist below.
 - [ ] PWA install + push notifications
 - [ ] Ranked-choice voting option
 - [ ] Group stats (most played, H-index, who brings what most)
-- [ ] Periodic BGG collection re-sync
-- [ ] "Teach" flag: who knows the rules for each game
+- [ ] Reminder to pull from BGG when the last pull is old (still previewed and confirmed by the user, never silent)
 
 ---
 
