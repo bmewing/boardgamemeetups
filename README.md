@@ -47,6 +47,20 @@ npm install
 npm run dev
 ```
 
+## Game catalog
+
+Game data comes from the [BoardGameGeek XML API](https://boardgamegeek.com/using_the_xml_api).
+Put your BGG application token in `backend/.env` as `BGG_API_TOKEN`. The backend caches what it
+fetches and spaces its BGG requests about five seconds apart, as BGG asks.
+
+Optionally, preload every game's name and rank so search works locally without asking BGG:
+download the ranks CSV while logged in to BGG at https://boardgamegeek.com/data_dumps/bg_ranks,
+then from `backend/`:
+
+```bash
+uv run python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
+```
+
 ## Checks
 
 Backend, from `backend/`:

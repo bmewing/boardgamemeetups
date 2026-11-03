@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     # Audience of the Kinde API registered for this backend.
     kinde_audience: str = ""
 
+    # BoardGameGeek XML API application token (secret).
+    bgg_api_token: str = ""
+    # BGG asks for roughly 5 seconds between requests.
+    bgg_min_interval_seconds: float = 5.0
+    # Cached game details older than this are re-fetched when next viewed.
+    game_refresh_days: int = 30
+
     @field_validator("database_url")
     @classmethod
     def use_asyncpg_driver(cls, url: str) -> str:

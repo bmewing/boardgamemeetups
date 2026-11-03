@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="utf-8"?><items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse"><item type="boardgame" id="266192">
+         <thumbnail>https://cf.geekdo-images.com/yLZJCVLlIx4c7eJEWUNJ7w__small/img/VNToqgS2-pOGU6MuvIkMPKn_y-s=/fit-in/200x150/filters:strip_icc()/pic4458123.jpg</thumbnail>
+      <image>https://cf.geekdo-images.com/yLZJCVLlIx4c7eJEWUNJ7w__original/img/cI782Zis9cT66j2MjSHKJGnFPNw=/0x0/filters:format(jpeg)/pic4458123.jpg</image>
+   	                                  				
+				<name type="primary" sortindex="1" value="Wingspan" />
+			
+						               													<description>Trimmed.</description>
+										      	               				<yearpublished value="2019" />
+						               				<minplayers value="1" />
+						               				<maxplayers value="5" />
+						      			<poll name="suggested_numplayers" title="User Suggested Number of Players" totalvotes="2193">
+			
+		<results numplayers="1">		
+					<result value="Best" numvotes="117" />
+					<result value="Recommended" numvotes="860" />
+					<result value="Not Recommended" numvotes="402" />
+				</results>					
+			
+		<results numplayers="2">		
+					<result value="Best" numvotes="646" />
+					<result value="Recommended" numvotes="1181" />
+					<result value="Not Recommended" numvotes="103" />
+				</results>					
+			
+		<results numplayers="3">		
+					<result value="Best" numvotes="1270" />
+					<result value="Recommended" numvotes="611" />
+					<result value="Not Recommended" numvotes="26" />
+				</results>					
+			
+		<results numplayers="4">		
+					<result value="Best" numvotes="561" />
+					<result value="Recommended" numvotes="963" />
+					<result value="Not Recommended" numvotes="245" />
+				</results>					
+			
+		<results numplayers="5">		
+					<result value="Best" numvotes="54" />
+					<result value="Recommended" numvotes="569" />
+					<result value="Not Recommended" numvotes="894" />
+				</results>					
+			
+		<results numplayers="5+">		
+					<result value="Best" numvotes="3" />
+					<result value="Recommended" numvotes="33" />
+					<result value="Not Recommended" numvotes="1066" />
+				</results>					
+	</poll>
+<poll-summary name="suggested_numplayers"  title="User Suggested Number of Players">
+  <result name="bestwith" value="Best with 3 players" />
+  <result name="recommmendedwith" value="Recommended with 1–4 players" />
+</poll-summary> 			               				<playingtime value="70" />
+						               				<minplaytime value="40" />
+						               				<maxplaytime value="70" />
+						               				<minage value="10" />
+						      			<poll name="suggested_playerage" title="User Suggested Player Age" totalvotes="505">
+			<results>		
+					<result value="2" numvotes="0" />
+					<result value="3" numvotes="0" />
+					<result value="4" numvotes="0" />
+					<result value="5" numvotes="2" />
+					<result value="6" numvotes="13" />
+					<result value="8" numvotes="168" />
+					<result value="10" numvotes="227" />
+					<result value="12" numvotes="87" />
+					<result value="14" numvotes="8" />
+					<result value="16" numvotes="0" />
+					<result value="18" numvotes="0" />
+					<result value="21 and up" numvotes="0" />
+				</results>					
+	</poll> 			      			<poll name="language_dependence" title="Language Dependence" totalvotes="116">
+			
+		<results>		
+					<result level="1" value="No necessary in-game text" numvotes="0" />
+					<result level="2" value="Some necessary text - easily memorized or small crib sheet" numvotes="0" />
+					<result level="3" value="Moderate in-game text - needs crib sheet or paste ups" numvotes="31" />
+					<result level="4" value="Extensive use of text - massive conversion needed to be playable" numvotes="81" />
+					<result level="5" value="Unplayable in another language" numvotes="4" />
+				</results>					
+	</poll> 			      			 			      				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1089" value="Animals" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1002" value="Card Game" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1094" value="Educational" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1084" value="Environmental" />
+		
+									
+			
+
+			      				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2689" value="Action Queue" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2072" value="Dice Rolling" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2875" value="End Game Bonuses" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2040" value="Hand Management" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2041" value="Open Drafting" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2004" value="Set Collection" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2819" value="Solo / Solitaire Game" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2828" value="Turn Order: Progressive" />
+		
+									
+			
+
+			      				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="339017" value="Frogmouth Fan Pack (fan expansion for Wingspan)" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="461932" value="Wingspan: Americas Expansion" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="482446" value="Wingspan: Americas Flock Mode Pack" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="290448" value="Wingspan: European Expansion" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="455581" value="Wingspan: Fan-Designed Bird Promo Pack – Additional Asian Avians" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="455579" value="Wingspan: Fan-Designed Bird Promo Pack – Birds of Canada" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="455576" value="Wingspan: Fan-Designed Bird Promo Pack – Birds of Continental Europe" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="455580" value="Wingspan: Fan-Designed Bird Promo Pack – Birds of New Zealand" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="455577" value="Wingspan: Fan-Designed Bird Promo Pack – Birds of the U.S.A." />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="455578" value="Wingspan: Fan-Designed Bird Promo Pack – British Birds" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="471469" value="Wingspan: Fan-Designed Card Packs – Set 1" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="368895" value="Wingspan: Grus Japonensis Promo Card" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="300580" value="Wingspan: Oceania Expansion" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="290837" value="Wingspan: Swift-Start Promo Pack" />
+		
+									
+			
+
+			
+	
+
+	
+
+	
+	
+	
+   		<statistics page="1">
+								<ratings >
+			<usersrated value="116394" />
+			<average value="7.99136" />
+			<bayesaverage value="7.83756" />
+
+			<ranks>
+															<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="38" bayesaverage="7.83756" />
+																				<rank type="family" id="5497" name="strategygames" friendlyname="Strategy Game Rank" value="50" bayesaverage="7.77112" />
+											<rank type="family" id="5499" name="familygames" friendlyname="Family Game Rank" value="5" bayesaverage="7.84657" />
+												</ranks>
+
+			<stddev value="1.37897" />
+			<median value="0" />
+			<owned value="186932" />
+			<trading value="1007" />
+			<wanting value="1253" />
+			<wishing value="22514" />
+			<numcomments value="15402" />
+			<numweights value="3848" />
+			<averageweight value="2.4795" />
+			</ratings>
+								</statistics>
+     
+	
+          
+</item>
+<item type="boardgameexpansion" id="290837">
+         <thumbnail>https://cf.geekdo-images.com/zObYCTHx2puNgGjqBgCbGw__small/img/p7ndbgU1JIDn-lKu0l7bYdR1FYc=/fit-in/200x150/filters:strip_icc()/pic4984464.png</thumbnail>
+      <image>https://cf.geekdo-images.com/zObYCTHx2puNgGjqBgCbGw__original/img/NhN93FZfLoZuWkGJiDCKsz3v_0I=/0x0/filters:format(png)/pic4984464.png</image>
+   	                                  				
+				<name type="primary" sortindex="1" value="Wingspan: Swift-Start Promo Pack" />
+			
+						               													<description>Trimmed.</description>
+										      	               				<yearpublished value="2019" />
+						               				<minplayers value="1" />
+						               				<maxplayers value="5" />
+						      			<poll name="suggested_numplayers" title="User Suggested Number of Players" totalvotes="13">
+			
+		<results numplayers="1">		
+					<result value="Best" numvotes="0" />
+					<result value="Recommended" numvotes="6" />
+					<result value="Not Recommended" numvotes="1" />
+				</results>					
+			
+		<results numplayers="2">		
+					<result value="Best" numvotes="1" />
+					<result value="Recommended" numvotes="8" />
+					<result value="Not Recommended" numvotes="2" />
+				</results>					
+			
+		<results numplayers="3">		
+					<result value="Best" numvotes="7" />
+					<result value="Recommended" numvotes="1" />
+					<result value="Not Recommended" numvotes="1" />
+				</results>					
+			
+		<results numplayers="4">		
+					<result value="Best" numvotes="3" />
+					<result value="Recommended" numvotes="5" />
+					<result value="Not Recommended" numvotes="1" />
+				</results>					
+			
+		<results numplayers="5">		
+					<result value="Best" numvotes="0" />
+					<result value="Recommended" numvotes="4" />
+					<result value="Not Recommended" numvotes="3" />
+				</results>					
+			
+		<results numplayers="5+">		
+					<result value="Best" numvotes="0" />
+					<result value="Recommended" numvotes="1" />
+					<result value="Not Recommended" numvotes="5" />
+				</results>					
+	</poll>
+<poll-summary name="suggested_numplayers"  title="User Suggested Number of Players">
+  <result name="bestwith" value="Best with 3 players" />
+  <result name="recommmendedwith" value="Recommended with 1–5 players" />
+</poll-summary> 			               				<playingtime value="70" />
+						               				<minplaytime value="40" />
+						               				<maxplaytime value="70" />
+						               				<minage value="0" />
+						      			<poll name="suggested_playerage" title="User Suggested Player Age" totalvotes="6">
+			<results>		
+					<result value="2" numvotes="0" />
+					<result value="3" numvotes="0" />
+					<result value="4" numvotes="0" />
+					<result value="5" numvotes="0" />
+					<result value="6" numvotes="0" />
+					<result value="8" numvotes="6" />
+					<result value="10" numvotes="0" />
+					<result value="12" numvotes="0" />
+					<result value="14" numvotes="0" />
+					<result value="16" numvotes="0" />
+					<result value="18" numvotes="0" />
+					<result value="21 and up" numvotes="0" />
+				</results>					
+	</poll> 			      			<poll name="language_dependence" title="Language Dependence" totalvotes="2">
+			
+		<results>		
+					<result level="1" value="No necessary in-game text" numvotes="0" />
+					<result level="2" value="Some necessary text - easily memorized or small crib sheet" numvotes="0" />
+					<result level="3" value="Moderate in-game text - needs crib sheet or paste ups" numvotes="1" />
+					<result level="4" value="Extensive use of text - massive conversion needed to be playable" numvotes="1" />
+					<result level="5" value="Unplayable in another language" numvotes="0" />
+				</results>					
+	</poll> 			      			 			      				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1089" value="Animals" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1002" value="Card Game" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1021" value="Economic" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1094" value="Educational" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamecategory" id="1042" value="Expansion for Base-game" />
+		
+									
+			
+
+			      				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2072" value="Dice Rolling" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2040" value="Hand Management" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2041" value="Open Drafting" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2004" value="Set Collection" />
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgamemechanic" id="2819" value="Solo / Solitaire Game" />
+		
+									
+			
+
+			      			
+
+			      				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="266192" value="Wingspan" inbound="true"/>
+		
+									
+				
+		 			
+
+			
+		
+					<link type="boardgameexpansion" id="366161" value="Wingspan Asia" inbound="true"/>
+		
+									
+			
+
+			
+	
+
+	
+
+	
+	
+	
+   		<statistics page="1">
+								<ratings >
+			<usersrated value="1837" />
+			<average value="7.90395" />
+			<bayesaverage value="6.48205" />
+
+			<ranks>
+															<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="Not Ranked" bayesaverage="6.48205" />
+												</ranks>
+
+			<stddev value="1.47363" />
+			<median value="0" />
+			<owned value="8979" />
+			<trading value="47" />
+			<wanting value="70" />
+			<wishing value="294" />
+			<numcomments value="392" />
+			<numweights value="39" />
+			<averageweight value="2.2308" />
+			</ratings>
+								</statistics>
+     
+	
+          
+</item>
+</items>

@@ -40,7 +40,7 @@ These are folded into the checklist below.
 ### Phase 0 — Accounts & setup
 - [x] Create GitHub repo (`bmewing/boardgamemeetups`)
 - [ ] Protect `main` (require CI to pass)
-- [ ] Register app with BGG XML API; store bearer token
+- [x] Register app with BGG XML API; store bearer token
 - [x] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
 - [ ] Supabase: create project; grab the **session pooler** connection string (the direct connection is IPv6-only on the free tier)
 - [ ] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
@@ -65,12 +65,13 @@ These are folded into the checklist below.
 - [x] Account deletion endpoint
 - **Done when:** can log in on localhost, see your profile, and an unauthenticated API call returns 401
 
-### Phase 3 — Game catalog & BGG integration
-- [ ] BGG client: bearer token, polite rate limiting (queue + backoff on 202/429), batch `thing` lookups (up to 20 IDs)
-- [ ] `games` table caching BGG data: id, name, year, image/thumbnail, min/max players, min/max playtime, weight, categories, mechanics, BGG suggested-player-count poll results, is_expansion + base game link, `fetched_at`
-- [ ] Refresh policy (re-fetch if stale > N days, lazily)
-- [ ] Game search endpoint (local cache first, fall back to BGG search)
-- [ ] "Powered by BGG" attribution in footer/game pages
+### Phase 3 — Game catalog & BGG integration ✅
+- [x] BGG client: bearer token, polite rate limiting (queue + backoff on 202/429), batch `thing` lookups (up to 20 IDs)
+- [x] `games` table caching BGG data: id, name, year, image/thumbnail, min/max players, min/max playtime, weight, categories, mechanics, BGG suggested-player-count poll results, is_expansion + base game link, `fetched_at`
+- [x] Refresh policy (re-fetch if stale > N days, lazily)
+- [x] Game search endpoint (local cache first, fall back to BGG search)
+- [x] "Powered by BGG" attribution in footer/game pages
+- [ ] Load BGG's ranks CSV (all game names/ranks) with `app.import_bgg_ranks` — needs a manual download while logged in to BGG
 - **Done when:** searching "Wingspan" returns the right game with player counts and image
 
 ### Phase 4 — Collection import & matching

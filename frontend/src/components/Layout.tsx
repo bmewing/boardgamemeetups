@@ -1,17 +1,44 @@
-import { Anchor, AppShell, Container, Group, Text, Title } from '@mantine/core'
-import { Link, Outlet } from 'react-router'
+import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
+import { Anchor, AppShell, Container, Group, Image, Title } from '@mantine/core'
+import { Link, NavLink, Outlet } from 'react-router'
 
 import { UserMenu } from './UserMenu'
 
-export function Layout() {
+function PoweredByBgg() {
+  // Required by BGG's API terms: their logo, legible, linking back to BoardGameGeek.
+  // The logo's dark text needs a light backdrop in dark mode.
   return (
-    <AppShell header={{ height: 56 }} footer={{ height: 40 }} padding="md">
+    <Anchor
+      href="https://boardgamegeek.com"
+      target="_blank"
+      bg="white"
+      px={6}
+      py={2}
+      style={{ borderRadius: 4, lineHeight: 0 }}
+    >
+      <Image src="/powered-by-bgg.png" alt="Powered by BGG" h={24} w="auto" />
+    </Anchor>
+  )
+}
+
+export function Layout() {
+  const { isAuthenticated } = useKindeAuth()
+
+  return (
+    <AppShell header={{ height: 56 }} footer={{ height: 44 }} padding="md">
       <AppShell.Header>
         <Container size="md" h="100%">
-          <Group h="100%" justify="space-between">
-            <Anchor component={Link} to="/" underline="never" c="inherit">
-              <Title order={3}>Board Game Group</Title>
-            </Anchor>
+          <Group h="100%" justify="space-between" wrap="nowrap">
+            <Group gap="lg" wrap="nowrap">
+              <Anchor component={Link} to="/" underline="never" c="inherit">
+                <Title order={3}>Board Game Group</Title>
+              </Anchor>
+              {isAuthenticated && (
+                <Anchor component={NavLink} to="/games" c="inherit" fw={500}>
+                  Games
+                </Anchor>
+              )}
+            </Group>
             <UserMenu />
           </Group>
         </Container>
@@ -24,12 +51,7 @@ export function Layout() {
       <AppShell.Footer>
         <Container size="md" h="100%">
           <Group h="100%" justify="center">
-            <Text size="xs" c="dimmed">
-              Game data powered by{' '}
-              <Anchor href="https://boardgamegeek.com" target="_blank" size="xs">
-                BoardGameGeek
-              </Anchor>
-            </Text>
+            <PoweredByBgg />
           </Group>
         </Container>
       </AppShell.Footer>
