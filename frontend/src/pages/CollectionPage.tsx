@@ -1,6 +1,7 @@
 import {
   Alert,
   Badge,
+  Box,
   Button,
   Card,
   Center,
@@ -16,7 +17,7 @@ import {
   TextInput,
   Title,
 } from '@mantine/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 
 import {
@@ -26,6 +27,7 @@ import {
   useMyGames,
 } from '../api/collection'
 import { GameCard } from '../components/GameCard'
+import { RemoveGameButton } from '../components/RemoveGameButton'
 import { isOwned, isWanted, OWNERSHIP_LABELS, WISHLIST_LABELS } from '../components/userGameFields'
 
 type Shelf = 'owned' | 'wanted' | 'all'
@@ -87,9 +89,29 @@ function YourAnswers({ row }: { row: UserGame }) {
   )
 }
 
+/** The remove button sits beside the card's link, not inside it, so clicks don't navigate. */
+function WithRemove({
+  row,
+  children,
+  overImage = false,
+}: {
+  row: UserGame
+  children: ReactNode
+  overImage?: boolean
+}) {
+  return (
+    <Box pos="relative">
+      {children}
+      <Box pos="absolute" top={8} right={8}>
+        <RemoveGameButton gameId={row.game.id} name={row.game.name} overImage={overImage} />
+      </Box>
+    </Box>
+  )
+}
+
 function GameTile({ row }: { row: UserGame }) {
   return (
-    <Card component={Link} to={`/games/${row.game.id}`} withBorder padding="xs">
+    <Card component={Link} to={`/games/${row.game.id}`} withBorder padding="xs" h="100%">
       <Card.Section>
         <Image
           src={row.game.thumbnail_url}
@@ -269,15 +291,19 @@ export function CollectionPage() {
       {view === 'list' ? (
         <Stack gap="xs">
           {shown.map((row) => (
-            <GameCard key={row.game.id} game={row.game}>
-              <YourAnswers row={row} />
-            </GameCard>
+            <WithRemove key={row.game.id} row={row}>
+              <GameCard game={row.game} pr={44}>
+                <YourAnswers row={row} />
+              </GameCard>
+            </WithRemove>
           ))}
         </Stack>
       ) : (
         <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }}>
           {shown.map((row) => (
-            <GameTile key={row.game.id} row={row} />
+            <WithRemove key={row.game.id} row={row} overImage>
+              <GameTile row={row} />
+            </WithRemove>
           ))}
         </SimpleGrid>
       )}

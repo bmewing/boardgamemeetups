@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -94,6 +94,30 @@ describe('CollectionPage', () => {
     await userEvent.type(screen.getByLabelText('Max minutes'), '60')
     expect(screen.queryByText('Brass')).not.toBeInTheDocument()
     expect(screen.getByText('Azul')).toBeInTheDocument()
+  })
+
+  it('removes a game from the list after asking once', async () => {
+    let current = rows
+    const deleted: string[] = []
+    mockApi({
+      'GET /api/me/games': () => Response.json(current),
+      'POST /api/me/games/fill-details': () => Response.json({ filled: 0, remaining: 0 }),
+      'DELETE /api/me/games/1': (request) => {
+        deleted.push(new URL(request.url).pathname)
+        current = current.filter((r) => r.game.id !== 1)
+        return new Response(null, { status: 204 })
+      },
+    })
+    renderWithProviders(<CollectionPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Azul' }))
+    expect(screen.getByText(/Anything you recorded about it goes too/)).toBeInTheDocument()
+    expect(deleted).toEqual([])
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
+
+    await waitFor(() => expect(screen.queryByText('Azul')).not.toBeInTheDocument())
+    expect(deleted).toEqual(['/api/me/games/1'])
+    expect(screen.getByText('Brass')).toBeInTheDocument()
   })
 
   it('points to BGG and search when the list is empty', async () => {
