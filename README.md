@@ -23,6 +23,11 @@ psql -U postgres -c "CREATE ROLE boardgame LOGIN PASSWORD 'boardgame'" -c "CREAT
 
 Different credentials work too; just put them in `backend/.env`.
 
+Sign-in uses [Kinde](https://kinde.com). You need a Kinde **React** application (callback and
+logout URLs `http://localhost:5173`) and a Kinde **API** whose audience the app is enabled for.
+Put the domain and audience in `backend/.env`, and the domain, client ID and audience in
+`frontend/.env.local`. None of these values are secret.
+
 Backend (http://localhost:8000, docs at `/api/docs`):
 
 ```bash
@@ -37,6 +42,7 @@ Frontend (http://localhost:5173; `/api` is proxied to the backend):
 
 ```bash
 cd frontend
+cp .env.example .env.local
 npm install
 npm run dev
 ```

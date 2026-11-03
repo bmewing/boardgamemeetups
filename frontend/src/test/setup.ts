@@ -1,13 +1,20 @@
 import '@testing-library/jest-dom/vitest'
 
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
+
+import { fetchMock, kindeAuth, resetMocks } from './mocks'
+
+globalThis.fetch = fetchMock
+
+vi.mock('@kinde-oss/kinde-auth-react', () => ({ useKindeAuth: () => kindeAuth }))
 
 afterEach(() => {
   cleanup()
+  resetMocks()
 })
 
-// jsdom lacks matchMedia, which Mantine uses for color scheme detection.
+// jsdom gaps that Mantine relies on.
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
@@ -21,3 +28,9 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 })
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Element.prototype.scrollIntoView = () => {}

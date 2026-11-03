@@ -1,9 +1,11 @@
-import { Badge, Group, Stack, Text, Title } from '@mantine/core'
+import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
+import { Badge, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 
 import { api } from '../api/client'
+import { useMe } from '../api/me'
 
-export function HomePage() {
+function ApiStatus() {
   const health = useQuery({
     queryKey: ['health'],
     queryFn: async () => {
@@ -14,21 +16,39 @@ export function HomePage() {
   })
 
   return (
+    <Group gap="xs">
+      <Text size="sm" c="dimmed">
+        API status:
+      </Text>
+      {health.isPending && <Badge color="gray">checking…</Badge>}
+      {health.isError && <Badge color="red">unreachable</Badge>}
+      {health.data && (
+        <Badge color={health.data.status === 'ok' ? 'green' : 'yellow'}>
+          {health.data.status} · database {health.data.database}
+        </Badge>
+      )}
+    </Group>
+  )
+}
+
+export function HomePage() {
+  const { isAuthenticated, register } = useKindeAuth()
+  const me = useMe()
+
+  return (
     <Stack>
-      <Title order={2}>Welcome</Title>
+      {isAuthenticated ? (
+        <Title order={2}>Welcome{me.data ? `, ${me.data.display_name}` : ''}</Title>
+      ) : (
+        <Title order={2}>Welcome</Title>
+      )}
       <Text>Organize game nights, see who's coming, and pick what to play.</Text>
-      <Group gap="xs">
-        <Text size="sm" c="dimmed">
-          API status:
-        </Text>
-        {health.isPending && <Badge color="gray">checking…</Badge>}
-        {health.isError && <Badge color="red">unreachable</Badge>}
-        {health.data && (
-          <Badge color={health.data.status === 'ok' ? 'green' : 'yellow'}>
-            {health.data.status} · database {health.data.database}
-          </Badge>
-        )}
-      </Group>
+      {!isAuthenticated && (
+        <Group>
+          <Button onClick={() => register()}>Get started</Button>
+        </Group>
+      )}
+      <ApiStatus />
     </Stack>
   )
 }

@@ -149,7 +149,9 @@ These are folded into the checklist below.
 - [ ] Dockerfile for backend (uvicorn/gunicorn), health check at `/api/health`
 - [ ] `.do/app.yaml` spec: static site (frontend build) + web service (backend) with route `/api`, plus a pre-deploy job running `alembic upgrade head`
 - [ ] Env vars/secrets in DO: DB URL (Supabase session pooler, `sslmode=require`), Kinde domain/audience, BGG token, Resend key
-- [ ] Kinde prod callback URLs; custom domain + TLS (optional)
+- [ ] Kinde prod callback URLs
+- [ ] Kinde custom domain (e.g. `auth.<your-domain>`) so sign-ins survive page reloads without keeping the refresh token in localStorage (only allowed in local dev)
+- [ ] App custom domain + TLS (optional)
 - [ ] Auto-deploy from `main`
 - [ ] Staging database: a second Supabase project (free tier allows two)
 - **Done when:** production URL works end-to-end with a real login

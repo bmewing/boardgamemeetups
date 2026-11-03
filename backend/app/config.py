@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "postgresql+asyncpg://boardgame:boardgame@localhost:5432/boardgamegroup"
 
+    # Kinde business domain, e.g. https://yourname.kinde.com. Also the token issuer.
+    kinde_domain: str = ""
+    # Audience of the Kinde API registered for this backend.
+    kinde_audience: str = ""
+
     @field_validator("database_url")
     @classmethod
     def use_asyncpg_driver(cls, url: str) -> str:
@@ -24,6 +29,11 @@ class Settings(BaseSettings):
             ("ssl" if key == "sslmode" else key, value) for key, value in parse_qsl(parts.query)
         ]
         return urlunsplit(parts._replace(scheme=scheme, query=urlencode(query)))
+
+    @field_validator("kinde_domain")
+    @classmethod
+    def strip_trailing_slash(cls, domain: str) -> str:
+        return domain.rstrip("/")
 
 
 @lru_cache

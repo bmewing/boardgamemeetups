@@ -1,23 +1,17 @@
 import { screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
 
+import { profile } from '../test/fixtures'
+import { kindeAuth, mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
 import { HomePage } from './HomePage'
 
-// openapi-fetch captures fetch when the client module loads, so stub it before imports.
-const { fetchMock } = vi.hoisted(() => {
-  const fetchMock = vi.fn<typeof fetch>()
-  globalThis.fetch = fetchMock
-  return { fetchMock }
-})
+const healthy = () => Response.json({ status: 'ok', database: 'ok' })
 
 describe('HomePage', () => {
-  beforeEach(() => {
-    fetchMock.mockReset()
-  })
-
   it('shows the API and database status', async () => {
-    fetchMock.mockResolvedValue(Response.json({ status: 'ok', database: 'ok' }))
+    mockApi({ 'GET /api/health': healthy })
 
     renderWithProviders(<HomePage />)
 
@@ -25,10 +19,29 @@ describe('HomePage', () => {
   })
 
   it('shows unreachable when the API errors', async () => {
-    fetchMock.mockResolvedValue(new Response('boom', { status: 500 }))
+    mockApi({ 'GET /api/health': () => new Response('boom', { status: 500 }) })
 
     renderWithProviders(<HomePage />)
 
     expect(await screen.findByText('unreachable')).toBeInTheDocument()
+  })
+
+  it('invites signed-out visitors to create an account', async () => {
+    mockApi({ 'GET /api/health': healthy })
+    renderWithProviders(<HomePage />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Get started' }))
+
+    expect(kindeAuth.register).toHaveBeenCalled()
+  })
+
+  it('greets signed-in users by name', async () => {
+    signIn()
+    mockApi({ 'GET /api/health': healthy, 'GET /api/me': () => Response.json(profile) })
+
+    renderWithProviders(<HomePage />)
+
+    expect(await screen.findByRole('heading', { name: 'Welcome, Sam' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Get started' })).not.toBeInTheDocument()
   })
 })
