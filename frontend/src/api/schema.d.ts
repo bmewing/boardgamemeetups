@@ -179,6 +179,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/games/file-import/columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read Import Columns
+         * @description Show an uploaded file's columns, with samples and a guess at what each holds.
+         *
+         *     Send the file itself (CSV, Excel or text) as the request body. Nothing is stored.
+         */
+        post: operations["read_import_columns_api_me_games_file_import_columns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/games/file-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read Import File
+         * @description Read an uploaded file with the chosen columns and match its rows to games.
+         *
+         *     Send the same file as the request body. Nothing of yours is written; games new to the
+         *     catalog are recorded there.
+         */
+        post: operations["read_import_file_api_me_games_file_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/games/file-import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview File Import
+         * @description List what importing the matched rows of a file would change. Writes nothing.
+         *
+         *     A game listed twice keeps the values of its last row. A blank cell never clears an
+         *     answer you gave, unless the file is a whole BGG collection.
+         */
+        post: operations["preview_file_import_api_me_games_file_import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/games/import": {
         parameters: {
             query?: never;
@@ -203,6 +271,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CandidateRead */
+        CandidateRead: {
+            game: components["schemas"]["GameBrief"];
+            /** Score */
+            score: number;
+        };
         /** ChangeIn */
         ChangeIn: {
             /** Game Id */
@@ -246,6 +320,72 @@ export interface components {
             /** Incoming */
             incoming: unknown;
             kind: components["schemas"]["ChangeKind"];
+        };
+        /** FileColumnsRead */
+        FileColumnsRead: {
+            kind: components["schemas"]["FileKind"];
+            /** Has Header */
+            has_header: boolean;
+            /** Headers */
+            headers: string[];
+            /** Samples */
+            samples: string[][];
+            /** Suggested */
+            suggested: (components["schemas"]["ImportColumn"] | null)[];
+            /** Row Count */
+            row_count: number;
+        };
+        /** FileGameIn */
+        FileGameIn: {
+            /** Game Id */
+            game_id: number;
+            values: components["schemas"]["UserGameUpdate"];
+        };
+        /** FileImportRead */
+        FileImportRead: {
+            kind: components["schemas"]["FileKind"];
+            /** Filename */
+            filename: string;
+            /** Rows */
+            rows: components["schemas"]["FileRowRead"][];
+        };
+        /**
+         * FileKind
+         * @enum {string}
+         */
+        FileKind: "bgg_export" | "table";
+        /** FilePreviewIn */
+        FilePreviewIn: {
+            /**
+             * Whole Bgg Collection
+             * @default false
+             */
+            whole_bgg_collection: boolean;
+            /** Games */
+            games: components["schemas"]["FileGameIn"][];
+        };
+        /** FileRowRead */
+        FileRowRead: {
+            /** Line */
+            line: number;
+            /** Name */
+            name: string | null;
+            /** Year */
+            year: number | null;
+            /** Bgg Id */
+            bgg_id: number | null;
+            /** Values */
+            values: {
+                [key: string]: unknown;
+            };
+            /** Problems */
+            problems: string[];
+            status: components["schemas"]["MatchStatus"];
+            /** Confidence */
+            confidence: number;
+            match: components["schemas"]["GameBrief"] | null;
+            /** Candidates */
+            candidates: components["schemas"]["CandidateRead"][];
         };
         /** GameBrief */
         GameBrief: {
@@ -378,6 +518,12 @@ export interface components {
             /** Changes */
             changes: components["schemas"]["ChangeIn"][];
         };
+        /**
+         * ImportColumn
+         * @description What a file column can hold: how to find the game, or one of the user's answers.
+         * @enum {string}
+         */
+        ImportColumn: "name" | "year" | "bgg_id" | "ownership" | "wishlist_priority" | "want_to_play" | "rating" | "weight_vote" | "playtime_feel" | "can_teach" | "teach_minutes" | "plays" | "will_bring" | "notes";
         /** ImportCounts */
         ImportCounts: {
             /** Games On Source */
@@ -409,6 +555,11 @@ export interface components {
             /** Skipped */
             skipped: components["schemas"]["SkippedRead"][];
         };
+        /**
+         * MatchStatus
+         * @enum {string}
+         */
+        MatchStatus: "matched" | "review" | "unmatched";
         /** MoodRead */
         MoodRead: {
             /** Id */
@@ -556,6 +707,12 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /**
+         * WholeFile
+         * @description Where a file's games go when no column says: a list of games is usually one shelf.
+         * @enum {string}
+         */
+        WholeFile: "owned" | "wishlist" | "neither";
         /** PlayerCountVote */
         app__api__games__PlayerCountVote: {
             /** Players */
@@ -879,6 +1036,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+        };
+    };
+    read_import_columns_api_me_games_file_import_columns_post: {
+        parameters: {
+            query: {
+                filename: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileColumnsRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_import_file_api_me_games_file_import_post: {
+        parameters: {
+            query: {
+                filename: string;
+                columns?: string[];
+                whole_file?: components["schemas"]["WholeFile"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileImportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_file_import_api_me_games_file_import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FilePreviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
