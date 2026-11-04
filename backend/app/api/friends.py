@@ -113,7 +113,7 @@ class SharedAnswers(BaseModel):
     rating: float | None
     weight_vote: int | None
     playtime_feel: PlaytimeFeel | None
-    can_teach: bool
+    can_teach: bool | None  # null: not answered (owners count as teachers)
     teach_minutes: int | None
     plays: int
     will_bring: bool

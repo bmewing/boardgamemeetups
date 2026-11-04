@@ -35,7 +35,7 @@ FIELD_TYPES: dict[str, Any] = {
     "rating": Rating | None,
     "weight_vote": WeightVote | None,
     "playtime_feel": PlaytimeFeel | None,
-    "can_teach": bool,
+    "can_teach": bool | None,
     "teach_minutes": TeachMinutes | None,
     "plays": Plays,
     "will_bring": bool,
@@ -60,7 +60,6 @@ FIELD_ADAPTERS = {name: TypeAdapter(kind) for name, kind in FIELD_TYPES.items()}
 DEFAULTS: dict[str, Any] = {
     **dict.fromkeys(FIELD_TYPES),
     "want_to_play": False,
-    "can_teach": False,
     "plays": 0,
     "will_bring": True,
 }

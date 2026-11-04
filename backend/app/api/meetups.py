@@ -1,5 +1,5 @@
 """A group's dates: adding and editing them, who's coming and in what mood, the games that
-fit, and a date as a calendar file."""
+fit (ranked for the people coming), and a date as a calendar file."""
 
 import uuid
 from collections import defaultdict
@@ -13,9 +13,11 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import ics
+from app.api.collection import GameBrief
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
 from app.api.groups import Duration, Location, MeetupBrief, PlusOneLimit, meetup_briefs
+from app.api.rollups import ReasonRead, RollupRead
 from app.auth import CurrentUser
 from app.calendar import file_name, meetup_event
 from app.db import SessionDep
@@ -35,6 +37,7 @@ from app.models import (
     User,
     UserGame,
 )
+from app.recommend import Answer, Person, rollup, score
 from app.schedule import instant
 
 router = APIRouter(tags=["meetups"])
@@ -109,11 +112,19 @@ class FittingGame(BaseModel):
     bringers: list[PersonRead]  # people coming who own it and will bring it
     # One table of everyone, or a table of some of them while the rest play something else.
     fit: TableFit
+    # The player range with the expansions people are bringing (which can widen it).
+    min_players: int | None
+    max_players: int
+    expansions: list[GameBrief]
+    rollup: RollupRead  # what the people coming think of it
+    score: float  # higher suits tonight better; only the order means anything
+    reasons: list[ReasonRead]  # why, best first
 
 
 class MeetupGames(BaseModel):
     confirmed: int  # the headcount: members going plus their guests
     guests: int  # of those, guests
+    maybes: int  # members who said maybe, plus their guests
     willing_to_split: bool
     games: list[FittingGame]
     unknown_player_count: int  # games left out because BGG hasn't said how many they seat
@@ -326,53 +337,154 @@ async def meetup_calendar_file(
 async def list_meetup_games(
     meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep
 ) -> MeetupGames:
-    """Games the people coming could play: owned and marked "will bring" by someone who said
-    yes, and playable by everyone going (guests included), all together or (if the group is
-    willing to split) at a table that leaves nobody on their own."""
+    """Games the people coming could play, best suited first: owned and marked "will bring"
+    by someone who said yes, and playable by everyone going (guests included), all together
+    or (if the group is willing to split) at a table that leaves nobody on their own.
+
+    Only yes answers count toward the ranking. Maybes only give a lift to games that would
+    still fit if they came too. Length is shown, never used to filter or rank.
+    """
     meetup, group, _me = await _meetup(session, meetup_id, user)
-    going = (MeetupRsvp.meetup_id == meetup.id) & (MeetupRsvp.response == RsvpResponse.YES)
-    coming = select(MeetupRsvp.user_id).where(going)
-    members, guests = (
-        await session.execute(
-            select(func.count(), func.coalesce(func.sum(MeetupRsvp.guests), 0)).where(going)
-        )
-    ).one()
-    confirmed = members + guests
-    rows = await session.execute(
-        select(Game, User)
-        .join(UserGame, UserGame.game_id == Game.id)
-        .join(User, User.id == UserGame.user_id)
+    answered = await session.execute(
+        select(User, MeetupRsvp.response, MeetupRsvp.guests)
+        .join(MeetupRsvp, MeetupRsvp.user_id == User.id)
         .where(
-            UserGame.user_id.in_(coming),
+            MeetupRsvp.meetup_id == meetup.id,
+            MeetupRsvp.response.in_([RsvpResponse.YES, RsvpResponse.MAYBE]),
+        )
+        .order_by(func.lower(User.display_name))
+    )
+    coming: list[User] = []
+    guests = maybes = 0
+    for person, response, brings in answered:
+        if response == RsvpResponse.YES:
+            coming.append(person)
+            guests += brings
+        else:
+            maybes += 1 + brings
+    confirmed = len(coming) + guests
+    coming_ids = [u.id for u in coming]
+    people = {u.id: PersonRead.of(u) for u in coming}
+    scope = [Person(u.id, u.display_name) for u in coming]
+
+    # Everything the people coming will bring: base games, and expansions for them.
+    owned = await session.execute(
+        select(UserGame.user_id, Game)
+        .join(Game, Game.id == UserGame.game_id)
+        .where(
+            UserGame.user_id.in_(coming_ids),
             UserGame.ownership == Ownership.OWNED,
             UserGame.will_bring.is_(True),
-            Game.is_expansion.is_(False),
         )
-        .order_by(Game.name, func.lower(User.display_name))
+        .order_by(Game.name)
     )
-    games: dict[int, Game] = {}
+    bases: dict[int, Game] = {}
+    expansion_games: dict[int, Game] = {}
     bringers: dict[int, list[PersonRead]] = defaultdict(list)
-    for game, person in rows:
-        games[game.id] = game
-        bringers[game.id].append(PersonRead.of(person))
+    for owner_id, game in owned:
+        if game.is_expansion:
+            expansion_games[game.id] = game
+        else:
+            bases[game.id] = game
+            bringers[game.id].append(people[owner_id])
+    expansions: dict[int, list[Game]] = defaultdict(list)
+    for expansion in expansion_games.values():
+        for base_id in expansion.base_game_ids:
+            if base_id in bases:
+                expansions[base_id].append(expansion)
+
+    answers: dict[int, dict[uuid.UUID, Answer]] = defaultdict(dict)
+    if bases:
+        rows = await session.scalars(
+            select(UserGame).where(
+                UserGame.user_id.in_(coming_ids), UserGame.game_id.in_(list(bases))
+            )
+        )
+        names = {p.id: p for p in scope}
+        for row in rows:
+            answers[row.game_id][row.user_id] = Answer.of(row, names[row.user_id])
+    tonight = list(
+        await session.scalars(
+            select(MeetupRsvpMood.mood_id)
+            .join(
+                MeetupRsvp,
+                (MeetupRsvp.meetup_id == MeetupRsvpMood.meetup_id)
+                & (MeetupRsvp.user_id == MeetupRsvpMood.user_id),
+            )
+            .where(MeetupRsvp.meetup_id == meetup.id, MeetupRsvp.response == RsvpResponse.YES)
+        )
+    )
+    mood_names = {
+        mood_id: name for mood_id, name in await session.execute(select(Mood.id, Mood.name))
+    }
 
     fitting: list[FittingGame] = []
     unknown = 0
-    for game_id, game in games.items():
-        if game.max_players is None:
+    for game_id, game in bases.items():
+        extras = expansions[game_id]
+        low, high = _player_range(game, extras)
+        if high is None:
             unknown += 1
             continue
-        fit = table_fit(game.min_players, game.max_players, confirmed, group.willing_to_split)
-        if fit is not None:
-            fitting.append(
-                FittingGame(game=GameSummary.from_game(game), bringers=bringers[game_id], fit=fit)
+        fit = table_fit(low, high, confirmed, group.willing_to_split)
+        if fit is None:
+            continue
+        # A split game is played by a table of some of them; judge it at the biggest one.
+        table = confirmed if fit == "together" else _biggest_table(low, high, confirmed)
+        roll = rollup(game, scope, answers[game_id], table)
+        fits_maybes = maybes > 0 and (
+            table_fit(low, high, confirmed + maybes, group.willing_to_split) is not None
+        )
+        points, reasons = score(
+            roll,
+            players=table,
+            fits_maybes=fits_maybes,
+            tonight_moods=tonight,
+            mood_names=mood_names,
+        )
+        fitting.append(
+            FittingGame(
+                game=GameSummary.from_game(game),
+                bringers=bringers[game_id],
+                fit=fit,
+                min_players=low,
+                max_players=high,
+                expansions=[_brief(e) for e in extras],
+                rollup=RollupRead.of(roll, people),
+                score=round(points, 2),
+                reasons=[ReasonRead.of(r) for r in reasons],
             )
-    # Games everyone can play together come first.
-    fitting.sort(key=lambda g: (g.fit != "together", g.game.name.lower()))
+        )
+    fitting.sort(key=lambda g: (-g.score, g.fit != "together", g.game.name.lower()))
     return MeetupGames(
         confirmed=confirmed,
         guests=guests,
+        maybes=maybes,
         willing_to_split=group.willing_to_split,
         games=fitting,
         unknown_player_count=unknown,
+    )
+
+
+def _player_range(game: Game, expansions: list[Game]) -> tuple[int | None, int | None]:
+    """The base game's player range, widened by the expansions people are bringing."""
+    lows = [g.min_players for g in (game, *expansions) if g.min_players is not None]
+    highs = [g.max_players for g in (game, *expansions) if g.max_players is not None]
+    if game.max_players is None:
+        return (min(lows) if lows else None), None
+    return (min(lows) if lows else None), max(highs)
+
+
+def _biggest_table(low: int | None, high: int, players: int) -> int:
+    """The biggest table a split game can seat that still leaves two for another table."""
+    return max(t for t in range(2, players - 1) if (low or 1) <= t <= high)
+
+
+def _brief(game: Game) -> GameBrief:
+    return GameBrief(
+        id=game.id,
+        name=game.name,
+        year_published=game.year_published,
+        thumbnail_url=game.thumbnail_url,
+        is_expansion=game.is_expansion,
     )

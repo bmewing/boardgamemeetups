@@ -15,6 +15,7 @@ from app.api.collection import GameBrief
 from app.api.friends import PersonPick, PersonRead, SharedAnswers, find_person
 from app.api.games import GameSummary
 from app.api.me import TimeZone
+from app.api.rollups import RollupRead
 from app.auth import CurrentUser
 from app.db import SessionDep
 from app.friends import has_blocked
@@ -34,6 +35,7 @@ from app.models import (
     UserBlock,
     UserGame,
 )
+from app.recommend import Answer, Person, rollup
 from app.schedule import SCHEDULE, Schedule, move_to_time_zone, sync_meetups, today_in
 
 router = APIRouter(tags=["groups"])
@@ -166,6 +168,7 @@ class GroupGameRead(BaseModel):
     owners: list[PersonRead]  # members who own it
     expansions: list[GameBrief]  # expansions for it that members own
     answers: list[MemberAnswers]  # every member who has answered anything about it
+    rollup: RollupRead  # every member's answers combined
 
 
 def _brief(game: Game) -> GameBrief:
@@ -579,11 +582,23 @@ async def remove_member(
 async def list_group_games(
     group_id: uuid.UUID, user: CurrentUser, session: SessionDep
 ) -> list[GroupGameRead]:
-    """Every game a member owns, with who owns it and what each member has said about it.
+    """Every game a member owns, with who owns it, what each member has said about it, and
+    all of that combined (members with no answers count as new to it).
 
     Expansions are listed under their base game when a member owns that too.
     """
     group, _me = await membership(session, group_id, user)
+    members = list(
+        await session.scalars(
+            select(User)
+            .join(GroupMember, GroupMember.user_id == User.id)
+            .where(GroupMember.group_id == group.id)
+            .order_by(func.lower(User.display_name))
+        )
+    )
+    people = {m.id: PersonRead.of(m) for m in members}
+    scope = [Person(m.id, m.display_name) for m in members]
+    names = {p.id: p for p in scope}
     rows = await session.execute(
         select(UserGame, Game, User)
         .join(Game, Game.id == UserGame.game_id)
@@ -595,8 +610,10 @@ async def list_group_games(
     games: dict[int, Game] = {}
     owners: dict[int, list[PersonRead]] = defaultdict(list)
     answers: dict[int, list[MemberAnswers]] = defaultdict(list)
+    combined: dict[int, dict[uuid.UUID, Answer]] = defaultdict(dict)
     for row, game, person in rows:
         games[game.id] = game
+        combined[game.id][person.id] = Answer.of(row, names[person.id])
         answers[game.id].append(
             MemberAnswers(person=PersonRead.of(person), **SharedAnswers.fields_of(row))
         )
@@ -621,6 +638,7 @@ async def list_group_games(
             owners=owners[game_id],
             expansions=sorted(expansions[game_id], key=lambda e: e.name.lower()),
             answers=answers[game_id],
+            rollup=RollupRead.of(rollup(games[game_id], scope, combined[game_id]), people),
         )
         for game_id in listed
     ]
