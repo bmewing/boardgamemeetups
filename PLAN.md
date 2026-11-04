@@ -28,7 +28,7 @@ These are folded into the checklist below.
 - **Expansions:** treat them as attached to their base game, not as separate recommendations.
 - **Close the loop:** log what was actually played after a meetup. That feeds "recently played" into future recommendations.
 - **Supabase free tier pauses after a week without activity.** Fine while people use the app. Functions get no platform health checks, so if usage is sparse, add a weekly GitHub Actions ping of `/api/health`.
-- **Privacy:** the address is shown only to invitees, and users control who can see their collection (friends vs. public). Joining a group (invited, then confirmed) shares all of your game data with that group's members under your name, whatever your collection visibility says.
+- **Privacy:** the address is shown only to invitees, and users control who can see their collection (friends vs. public). Joining a group (invited, then confirmed) shares all of your game data except notes with that group's members under your name, whatever your collection visibility says. Notes stay private to you.
 - **Time zones and calendar export** (.ics file / "add to calendar").
 - **Mobile-first UI:** most RSVPs and votes will happen on phones.
 - **Account deletion and data export:** basic hygiene.
@@ -122,10 +122,14 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - **Done when:** can set every field from both the collection and search, and BGG's values show beside your own (met 2026-11-03: search sets the status fields directly and links to the game page for the rest)
 
 ### Phase 6 — Friends & invites
-- [ ] `friendships` (requester, addressee, status: pending/accepted/blocked)
-- [ ] Find friends by email / display name; send/accept/decline/remove
-- [ ] Shareable invite link (signed token) that creates the friendship after the new user signs up
-- [ ] Friend profile: view their collection/wishlist (respecting visibility)
+- [x] `friendships`: one row per pair, stored as (smaller user id, larger user id) so two crossing requests can't make two rows, plus the requester and status (pending / accepted)
+- [x] Find friends by **exact email only** (any case), not display name, so nobody can list everyone on the app. No match offers an invite link instead
+- [x] Send, accept, decline, cancel, remove. Declining deletes the request quietly; the sender isn't told
+- [x] `user_blocks` (blocker, blocked): hides you from their email search, drops their requests, and ends any friendship. Unblock from the Friends page
+- [x] Invite links as stored rows (`invite_links`: random token, owner, expiry, turned-off time, use count), not signed tokens, so a link that gets passed around can be turned off. Phase 7 adds a group to the same table
+- [x] Opening `/invite/:token` keeps the token in sessionStorage through Kinde sign-up or sign-in, then offers to become friends (`POST /api/invites/{token}/accept`)
+- [x] Friends page (account menu, with a count of incoming requests): add by email, requests, friends, invite links, blocked
+- [x] Person page: their collection and wishlist, read only, as their visibility allows: *private* = only you, *friends* = friends, *public* = anyone signed in. **Notes are never shown to anyone else**
 - **Done when:** two test accounts can befriend each other via search and via invite link
 
 ### Phase 7 — Groups (persistent + recurring)
