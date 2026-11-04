@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Cached game details older than this are re-fetched when next viewed.
     game_refresh_days: int = 30
 
+    # Where the web app lives, for links back to it from calendar events. Blank: no links.
+    app_url: str = ""
+
     @field_validator("database_url")
     @classmethod
     def use_asyncpg_driver(cls, url: str) -> str:
@@ -39,7 +42,7 @@ class Settings(BaseSettings):
         ]
         return urlunsplit(parts._replace(scheme=scheme, query=urlencode(query)))
 
-    @field_validator("kinde_domain")
+    @field_validator("kinde_domain", "app_url")
     @classmethod
     def strip_trailing_slash(cls, domain: str) -> str:
         return domain.rstrip("/")
