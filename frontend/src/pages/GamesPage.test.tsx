@@ -1,8 +1,10 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import type { UserGame, UserGameUpdate } from '../api/collection'
 import type { GameSummary } from '../api/games'
+import { blankUserGame } from '../components/userGameFields'
 import { mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
 import { GamesPage } from './GamesPage'
@@ -18,6 +20,7 @@ const wingspan: GameSummary = {
   min_playtime: 40,
   max_playtime: 70,
   weight: 2.48,
+  bgg_rating: 8.0,
   bgg_rank: 38,
   best_with: [3],
   base_game_ids: [],
@@ -55,6 +58,33 @@ describe('GamesPage', () => {
     expect(screen.getByText('Best at 3')).toBeInTheDocument()
     expect(screen.getByText('Expansion')).toBeInTheDocument()
     expect(screen.getByText('Wingspan').closest('a')).toHaveAttribute('href', '/games/266192')
+  })
+
+  it('marks a result as owned, wished for or wanted with one tap', async () => {
+    let rows: UserGame[] = [{ ...blankUserGame(expansion), want_to_play: true }]
+    const saved: UserGameUpdate[] = []
+    mockApi({
+      'GET /api/games/search': () => Response.json([wingspan, expansion]),
+      'GET /api/me/games': () => Response.json(rows),
+      'PUT /api/me/games/266192': async (request) => {
+        const body = (await request.json()) as UserGameUpdate
+        saved.push(body)
+        const row = { ...blankUserGame(wingspan), ...body } as UserGame
+        rows = [...rows, row]
+        return Response.json(row)
+      },
+    })
+    renderWithProviders(<GamesPage />, { route: '/games?q=wingspan' })
+
+    const [base, exp] = await screen.findAllByRole('checkbox', { name: 'Want to play' })
+    expect(base).not.toBeChecked()
+    expect(exp).toBeChecked()
+
+    const [own] = screen.getAllByRole('checkbox', { name: 'I own it' })
+    await userEvent.click(own)
+
+    expect(own).toBeChecked()
+    await waitFor(() => expect(saved).toEqual([{ ownership: 'owned' }]))
   })
 
   it('says so when nothing matches', async () => {

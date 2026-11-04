@@ -1,24 +1,15 @@
-import { Alert, Card, Group, Select, Stack, Switch, Text, Title } from '@mantine/core'
+import { Card, Group, Loader, Stack, Text, Title } from '@mantine/core'
 
-import { type Ownership, type UserGameUpdate, useMyGames, useUpdateMyGame } from '../api/collection'
+import { useMyGames } from '../api/collection'
+import type { GameSummary } from '../api/games'
+import { GameAnswersEditor } from './GameAnswersEditor'
 import { RemoveGameButton } from './RemoveGameButton'
-import { expansionsInList, OWNERSHIP_LABELS } from './userGameFields'
+import { blankUserGame, expansionsInList } from './userGameFields'
 
-const NOT_OWNED = 'none'
-const OWNERSHIP_OPTIONS = [
-  { value: NOT_OWNED, label: "Don't own it" },
-  ...Object.entries(OWNERSHIP_LABELS).map(([value, label]) => ({ value, label })),
-]
-// BGG's "Like to have", the middle of its five wishlist priorities.
-const DEFAULT_WISHLIST_PRIORITY = 3
-
-/** Add a game to your list, say whether you own or want it, or remove it. */
-export function MyGamePanel({ gameId }: { gameId: number }) {
+/** Everything you've recorded about a game, editable; any answer adds it to your games. */
+export function MyGamePanel({ game }: { game: GameSummary }) {
   const games = useMyGames()
-  const update = useUpdateMyGame()
-  const row = games.data?.find((r) => r.game.id === gameId)
-  const save = (changes: UserGameUpdate) => update.mutate({ gameId, changes })
-  const busy = games.isPending || update.isPending
+  const row = games.data?.find((r) => r.game.id === game.id)
 
   return (
     <Card withBorder>
@@ -33,41 +24,18 @@ export function MyGamePanel({ gameId }: { gameId: number }) {
             />
           )}
         </Group>
-        {!row && !games.isPending && (
-          <Text size="sm" c="dimmed">
-            Not in your games yet. Say whether you own or want it to add it.
-          </Text>
+        {games.isPending ? (
+          <Loader size="sm" />
+        ) : (
+          <>
+            {!row && (
+              <Text size="sm" c="dimmed">
+                Not in your games yet. Any answer below adds it.
+              </Text>
+            )}
+            <GameAnswersEditor row={row ?? blankUserGame(game)} full />
+          </>
         )}
-        <Group align="flex-end">
-          <Select
-            label="Ownership"
-            data={OWNERSHIP_OPTIONS}
-            value={row?.ownership ?? NOT_OWNED}
-            allowDeselect={false}
-            disabled={busy}
-            onChange={(value) =>
-              save({ ownership: value === NOT_OWNED ? null : (value as Ownership) })
-            }
-            w={200}
-          />
-          <Switch
-            label="On my wishlist"
-            checked={row?.wishlist_priority != null}
-            disabled={busy}
-            onChange={(e) =>
-              save({
-                wishlist_priority: e.currentTarget.checked ? DEFAULT_WISHLIST_PRIORITY : null,
-              })
-            }
-          />
-          <Switch
-            label="Want to play"
-            checked={row?.want_to_play ?? false}
-            disabled={busy}
-            onChange={(e) => save({ want_to_play: e.currentTarget.checked })}
-          />
-        </Group>
-        {update.isError && <Alert color="red">{update.error.message}</Alert>}
       </Stack>
     </Card>
   )

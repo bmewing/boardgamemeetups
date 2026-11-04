@@ -466,6 +466,8 @@ export interface components {
             max_playtime: number | null;
             /** Weight */
             weight: number | null;
+            /** Bgg Rating */
+            bgg_rating: number | null;
             /** Bgg Rank */
             bgg_rank: number | null;
             /** Best With */
@@ -478,8 +480,6 @@ export interface components {
             playing_time: number | null;
             /** Min Age */
             min_age: number | null;
-            /** Bgg Rating */
-            bgg_rating: number | null;
             /** Bgg Users Rated */
             bgg_users_rated: number | null;
             /** Categories */
@@ -527,6 +527,8 @@ export interface components {
             max_playtime: number | null;
             /** Weight */
             weight: number | null;
+            /** Bgg Rating */
+            bgg_rating: number | null;
             /** Bgg Rank */
             bgg_rank: number | null;
             /** Best With */
@@ -631,12 +633,24 @@ export interface components {
          * @enum {string}
          */
         Ownership: "owned" | "preordered" | "previously_owned";
+        /** PlayerCountIn */
+        PlayerCountIn: {
+            /** Players */
+            players: number;
+            vote: components["schemas"]["PlayerCountVote-Input"];
+        };
         /** PlayerCountRead */
         PlayerCountRead: {
             /** Players */
             players: number;
             vote: components["schemas"]["app__models__user_game__PlayerCountVote"];
         };
+        /**
+         * PlayerCountVote
+         * @description The same three answers as BGG's suggested-player-count poll.
+         * @enum {string}
+         */
+        "PlayerCountVote-Input": "best" | "recommended" | "not_recommended";
         /**
          * PlaytimeFeel
          * @description How the game's length feels next to BGG's listed playing time.
@@ -695,6 +709,9 @@ export interface components {
         /**
          * UserGameUpdate
          * @description Fields to change; anything left out keeps its value. Null clears a field.
+         *
+         *     `player_counts` and `moods` replace the whole list when sent: a count or mood left out
+         *     is blank, and an empty list clears them all.
          */
         UserGameUpdate: {
             ownership?: components["schemas"]["Ownership"] | null;
@@ -717,6 +734,10 @@ export interface components {
             will_bring?: boolean | null;
             /** Notes */
             notes?: string | null;
+            /** Player Counts */
+            player_counts?: components["schemas"]["PlayerCountIn"][] | null;
+            /** Moods */
+            moods?: string[] | null;
         };
         /** UserRead */
         UserRead: {

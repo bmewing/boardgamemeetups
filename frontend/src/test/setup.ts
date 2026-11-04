@@ -34,3 +34,7 @@ globalThis.ResizeObserver = class {
   disconnect() {}
 }
 Element.prototype.scrollIntoView = () => {}
+// An autosizing Textarea listens for web fonts loading.
+Object.defineProperty(document, 'fonts', {
+  value: { addEventListener: () => {}, removeEventListener: () => {} },
+})

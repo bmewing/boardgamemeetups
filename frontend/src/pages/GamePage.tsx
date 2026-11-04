@@ -125,7 +125,7 @@ export function GamePage() {
           </Anchor>
         </Stack>
       </SimpleGrid>
-      <MyGamePanel gameId={g.id} />
+      <MyGamePanel game={g} />
       <PlayerCountVotes game={g} />
     </Stack>
   )

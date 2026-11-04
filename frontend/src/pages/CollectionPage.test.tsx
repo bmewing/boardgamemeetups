@@ -19,6 +19,7 @@ const game = (id: number, name: string, extra: Partial<GameSummary> = {}): GameS
   min_playtime: 30,
   max_playtime: 45,
   weight: 1.8,
+  bgg_rating: null,
   bgg_rank: null,
   best_with: [],
   base_game_ids: [],
@@ -68,7 +69,7 @@ describe('CollectionPage', () => {
     renderWithProviders(<CollectionPage />)
 
     expect(await screen.findByText('Azul')).toBeInTheDocument()
-    expect(screen.getByText('Rated 8')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('8')).toBeInTheDocument()
     expect(screen.queryByText('Cascadia')).not.toBeInTheDocument()
     expect(screen.getByText('2 of 3 games')).toBeInTheDocument()
     expect(filled).toBeGreaterThan(0)
