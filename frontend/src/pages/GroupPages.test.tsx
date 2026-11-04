@@ -29,6 +29,7 @@ const brief: MeetupBrief = {
   yes: 1,
   maybe: 0,
   no: 0,
+  headcount: 1,
   my_response: null,
 }
 
@@ -42,13 +43,17 @@ const group: Group = {
   start_time: '19:00:00',
   duration_minutes: 180,
   location: "Sam's place",
+  plus_one_limit: 0,
   my_role: 'owner',
   members: [
     { person: ann, role: 'owner', joined_at: '2026-11-01T00:00:00Z' },
     { person: ben, role: 'member', joined_at: '2026-11-02T00:00:00Z' },
   ],
   invites: [],
-  upcoming: [brief, { ...brief, id: 'm2', local_date: '2026-11-12', yes: 0, edited: true }],
+  upcoming: [
+    brief,
+    { ...brief, id: 'm2', local_date: '2026-11-12', yes: 0, headcount: 0, edited: true },
+  ],
   recent: [],
 }
 
@@ -216,13 +221,27 @@ describe('MeetupPage', () => {
   const meetup: Meetup = {
     ...brief,
     notes: 'Bring snacks',
-    group: { id: GROUP_ID, name: 'Thursday Crew', time_zone: 'UTC', willing_to_split: true },
+    group: {
+      id: GROUP_ID,
+      name: 'Thursday Crew',
+      time_zone: 'UTC',
+      willing_to_split: true,
+      plus_one_limit: 0,
+    },
     my_role: 'member',
-    rsvps: [{ person: ben, response: 'yes' }],
+    rsvps: [{ person: ben, response: 'yes', guests: 0, moods: ['chill'] }],
     no_answer: [ann],
+    my_guests: 0,
+    my_moods: [],
   }
+  const moods = [
+    { id: 'chill', name: 'Chill', description: 'Relaxed', taggable: true },
+    { id: 'brain', name: 'Brain-burner', description: 'Heavy', taggable: true },
+    { id: 'no_preference', name: 'No preference', description: 'Anything', taggable: false },
+  ]
   const games: MeetupGames = {
     confirmed: 5,
+    guests: 0,
     willing_to_split: true,
     unknown_player_count: 1,
     games: [
@@ -254,13 +273,14 @@ describe('MeetupPage', () => {
     mockApi({
       [`GET /api/meetups/${MEETUP_ID}`]: () => Response.json(meetup),
       [`GET /api/meetups/${MEETUP_ID}/games`]: () => Response.json(games),
+      'GET /api/moods': () => Response.json(moods),
       [`PUT /api/meetups/${MEETUP_ID}/rsvp`]: async (request) => {
         answered = await request.json()
         return Response.json({
           ...meetup,
           yes: 2,
           my_response: 'yes',
-          rsvps: [...meetup.rsvps, { person: ann, response: 'yes' }],
+          rsvps: [...meetup.rsvps, { person: ann, response: 'yes', guests: 0, moods: [] }],
           no_answer: [],
         })
       },
@@ -280,7 +300,107 @@ describe('MeetupPage', () => {
 
     await userEvent.click(screen.getByText('Going'))
 
-    await waitFor(() => expect(answered).toEqual({ response: 'yes' }))
+    await waitFor(() => expect(answered).toEqual({ response: 'yes', guests: 0, moods: [] }))
     expect(await screen.findByText('Going (2)')).toBeInTheDocument()
+    // Guests are off in this group; moods show once you might come.
+    expect(screen.queryByText('Bringing anyone?')).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Chill' })).toBeInTheDocument()
+  })
+
+  it('brings guests and picks moods, with No preference on its own', async () => {
+    const sent: unknown[] = []
+    let current: Meetup = {
+      ...meetup,
+      group: { ...meetup.group, plus_one_limit: 2 },
+      my_response: 'yes',
+      rsvps: [...meetup.rsvps, { person: ann, response: 'yes', guests: 0, moods: [] }],
+      no_answer: [],
+    }
+    mockApi({
+      [`GET /api/meetups/${MEETUP_ID}`]: () => Response.json(current),
+      [`GET /api/meetups/${MEETUP_ID}/games`]: () => Response.json(games),
+      'GET /api/moods': () => Response.json(moods),
+      [`PUT /api/meetups/${MEETUP_ID}/rsvp`]: async (request) => {
+        const body = (await request.json()) as { guests: number; moods: string[] }
+        sent.push(body)
+        current = {
+          ...current,
+          my_guests: body.guests,
+          my_moods: body.moods,
+          rsvps: [
+            meetup.rsvps[0],
+            { person: ann, response: 'yes', guests: body.guests, moods: body.moods },
+          ],
+        }
+        return Response.json(current)
+      },
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/meetups/:meetupId" element={<MeetupPage />} />
+      </Routes>,
+      { route: `/meetups/${MEETUP_ID}` },
+    )
+
+    await userEvent.click((await screen.findAllByLabelText('Bringing anyone?'))[0])
+    await userEvent.click(await screen.findByRole('option', { name: 'Me + 1' }))
+    await waitFor(() => expect(sent).toHaveLength(1))
+    expect(await screen.findByText('Going (2 + 1 guest)')).toBeInTheDocument()
+    expect(screen.getByText('Sam +1')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Brain-burner' }))
+    await waitFor(() => expect(sent).toHaveLength(2))
+    await userEvent.click(screen.getByRole('checkbox', { name: 'No preference' }))
+    await waitFor(() => expect(sent).toHaveLength(3))
+
+    expect(sent).toEqual([
+      { response: 'yes', guests: 1, moods: [] },
+      { response: 'yes', guests: 1, moods: ['brain'] },
+      { response: 'yes', guests: 1, moods: ['no_preference'] },
+    ])
+    // Ben's Chill and Sam's No preference, from everyone who might come.
+    expect(await screen.findByText('Chill · No preference', { exact: false })).toHaveTextContent(
+      /^In the mood for: Chill · No preference$/,
+    )
+  })
+})
+
+describe('Calendar feed', () => {
+  beforeEach(() => signIn())
+
+  it('makes a link to subscribe to', async () => {
+    let feed: { token: string; created_at: string } | null = null
+    mockApi({
+      'GET /api/groups': () =>
+        Response.json({
+          invites: [],
+          groups: [
+            {
+              id: GROUP_ID,
+              name: 'Thursday Crew',
+              description: null,
+              my_role: 'member',
+              member_count: 3,
+              next_meetup: brief,
+            },
+          ],
+        }),
+      'GET /api/me/calendar-feed': () => Response.json(feed),
+      'POST /api/me/calendar-feed': () => {
+        feed = { token: 'secret-token', created_at: '2026-11-04T00:00:00Z' }
+        return Response.json(feed, { status: 201 })
+      },
+    })
+    renderWithProviders(<GroupsPage />)
+
+    expect(await screen.findByText(/1 going/)).toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Get a calendar link' }))
+
+    const link = await screen.findByLabelText('Calendar link')
+    expect(link).toHaveValue(`${window.location.origin}/api/calendar/secret-token.ics`)
+    expect(screen.getByRole('link', { name: 'Open in calendar app' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^webcal:\/\/.*\/api\/calendar\/secret-token\.ics$/),
+    )
   })
 })

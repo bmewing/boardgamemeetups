@@ -71,7 +71,7 @@ function MeetupRow({ meetup }: { meetup: MeetupBrief }) {
           <Text size="sm" c="dimmed" lineClamp={1}>
             {cancelled
               ? 'Cancelled'
-              : `${meetup.yes} going${meetup.maybe ? ` · ${meetup.maybe} maybe` : ''}${meetup.location ? ` · ${meetup.location}` : ''}`}
+              : `${meetup.headcount} going${meetup.maybe ? ` · ${meetup.maybe} maybe` : ''}${meetup.location ? ` · ${meetup.location}` : ''}`}
           </Text>
         </Stack>
         <Group gap={4} wrap="nowrap">
@@ -390,9 +390,19 @@ function SettingsTab({ group }: { group: GroupData }) {
   const [startTime, setStartTime] = useState(toInputTime(group.start_time))
   const [duration, setDuration] = useState(group.duration_minutes)
   const [location, setLocation] = useState(group.location ?? '')
+  const [plusOnes, setPlusOnes] = useState(group.plus_one_limit)
 
   const save = (e: FormEvent) => {
     e.preventDefault()
+    const fewerGuests = plusOnes < group.plus_one_limit
+    if (
+      fewerGuests &&
+      !window.confirm(
+        `Lower the guest limit to ${plusOnes}? Anyone bringing more to an upcoming date will be cut down to ${plusOnes}.`,
+      )
+    ) {
+      return
+    }
     update.mutate({
       name,
       description,
@@ -402,6 +412,7 @@ function SettingsTab({ group }: { group: GroupData }) {
       start_time: fromInputTime(startTime),
       duration_minutes: duration,
       location,
+      plus_one_limit: plusOnes,
     })
   }
 
@@ -428,6 +439,16 @@ function SettingsTab({ group }: { group: GroupData }) {
             description="Then games that seat some of the people coming (leaving at least two for another table) are suggested too."
             checked={split}
             onChange={(e) => setSplit(e.currentTarget.checked)}
+          />
+          <NumberInput
+            label="Guests each member can bring"
+            description="0 means no guests. Guests count toward how many are playing."
+            min={0}
+            max={10}
+            clampBehavior="strict"
+            allowDecimal={false}
+            value={plusOnes}
+            onChange={(v) => setPlusOnes(typeof v === 'number' ? v : 0)}
           />
           <Title order={4}>When you meet</Title>
           <ScheduleEditor value={schedule} onChange={setSchedule} />
