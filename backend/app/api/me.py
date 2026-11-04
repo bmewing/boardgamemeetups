@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.auth import TIME_ZONES, CurrentUser
 from app.db import SessionDep
+from app.email import EmailKind
 from app.groups import hand_over_groups
 from app.models import CollectionVisibility, User
 
@@ -54,6 +55,7 @@ class UserRead(BaseModel):
     bgg_username: str | None
     bgg_pulled_at: datetime | None
     collection_visibility: CollectionVisibility
+    email_opt_outs: list[EmailKind]  # kinds of email turned off
 
 
 class UserUpdate(BaseModel):
@@ -61,6 +63,7 @@ class UserUpdate(BaseModel):
     time_zone: TimeZone | None = None
     bgg_username: BggUsername = None
     collection_visibility: CollectionVisibility | None = None
+    email_opt_outs: list[EmailKind] | None = None
 
 
 @router.get("")
@@ -83,7 +86,9 @@ async def update_me(changes: UserUpdate, user: CurrentUser, session: SessionDep)
             raise NAME_TAKEN
     for field, value in changes.model_dump(exclude_unset=True).items():
         # bgg_username may be cleared; the other fields are required on the user.
-        if value is not None or field == "bgg_username":
+        if field == "email_opt_outs" and value is not None:
+            user.email_opt_outs = sorted(set(value))
+        elif value is not None or field == "bgg_username":
             setattr(user, field, value)
     try:
         await session.commit()

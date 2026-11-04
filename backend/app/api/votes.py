@@ -16,12 +16,14 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
 from app.api.meetups import _meetup
 from app.auth import CurrentUser
 from app.db import SessionDep
+from app.email import MailerDep
 from app.groups import RUNS_GROUP, player_range, require_runner, table_fit
 from app.models import (
     BringAssignment,
@@ -345,10 +347,15 @@ async def unvote(
 
 @router.post("/meetups/{meetup_id}/lock")
 async def lock_pick(
-    meetup_id: uuid.UUID, body: LockIn, user: CurrentUser, session: SessionDep
+    meetup_id: uuid.UUID,
+    body: LockIn,
+    user: CurrentUser,
+    session: SessionDep,
+    mailer: MailerDep,
 ) -> VoteRead:
     """Choose the game or games to play, and stop the voting. A picked game with exactly one
-    owner going is tagged as theirs to bring."""
+    owner going is tagged as theirs to bring. Members who said yes or maybe are emailed the
+    pick."""
     meetup, group, me = await _meetup(session, meetup_id, user)
     require_runner(me)
     _open(meetup)
@@ -377,7 +384,9 @@ async def lock_pick(
                 )
             )
     await session.commit()
-    return await vote_state(session, meetup, group, me, user)
+    result = await vote_state(session, meetup, group, me, user)
+    await notify.pick_locked(session, mailer, meetup, group, user)
+    return result
 
 
 @router.post("/meetups/{meetup_id}/unlock")
@@ -411,9 +420,15 @@ async def _picked(session: AsyncSession, meetup: Meetup, game_id: int) -> None:
 
 @router.put("/meetups/{meetup_id}/bring/{game_id}")
 async def bring_game(
-    meetup_id: uuid.UUID, game_id: int, body: BringIn, user: CurrentUser, session: SessionDep
+    meetup_id: uuid.UUID,
+    game_id: int,
+    body: BringIn,
+    user: CurrentUser,
+    session: SessionDep,
+    mailer: MailerDep,
 ) -> VoteRead:
-    """Claim a picked game to bring, or (owner or admin) hand it to another owner going."""
+    """Claim a picked game to bring, or (owner or admin) hand it to another owner going,
+    who is emailed about it."""
     meetup, group, me = await _meetup(session, meetup_id, user)
     await _picked(session, meetup, game_id)
     bringer = body.user_id or user.id
@@ -424,6 +439,11 @@ async def bring_game(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "Only someone going who owns it can bring it."
         )
+    previous = await session.scalar(
+        select(BringAssignment.user_id).where(
+            BringAssignment.meetup_id == meetup.id, BringAssignment.game_id == game_id
+        )
+    )
     await session.execute(
         insert(BringAssignment)
         .values(meetup_id=meetup.id, game_id=game_id, user_id=bringer)
@@ -433,7 +453,13 @@ async def bring_game(
         )
     )
     await session.commit()
-    return await vote_state(session, meetup, group, me, user)
+    result = await vote_state(session, meetup, group, me, user)
+    if bringer != previous:
+        game = await session.get(Game, game_id)
+        bringer_user = await session.get(User, bringer)
+        if game is not None and bringer_user is not None:
+            await notify.bringing(session, mailer, meetup, group, game, bringer_user, user)
+    return result
 
 
 @router.delete("/meetups/{meetup_id}/bring/{game_id}")

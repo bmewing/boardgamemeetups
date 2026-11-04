@@ -1,5 +1,5 @@
 import time
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from app.auth import get_jwks_client
 from app.config import get_settings
 from app.db import get_session
+from app.email import Email, get_mailer
 from app.main import app
 from app.models import Base
 
@@ -96,6 +97,31 @@ def make_token(signing_key: rsa.RSAPrivateKey) -> TokenFactory:
         return jwt.encode(payload, key or signing_key, algorithm="RS256", headers={"kid": TEST_KID})
 
     return factory
+
+
+class Outbox:
+    """Stands in for Resend: keeps what would have been sent."""
+
+    def __init__(self) -> None:
+        self.sent: list[Email] = []
+        self.failing = False
+
+    async def send(self, emails: Sequence[Email]) -> bool:
+        if self.failing:
+            return False
+        self.sent.extend(emails)
+        return True
+
+    def to(self, address: str) -> list[Email]:
+        return [email for email in self.sent if email.to == address]
+
+
+@pytest.fixture(autouse=True)
+def outbox() -> Outbox:
+    """No test ever sends a real email."""
+    box = Outbox()
+    app.dependency_overrides[get_mailer] = lambda: box
+    return box
 
 
 @pytest.fixture

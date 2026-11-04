@@ -11,6 +11,7 @@ from sqlalchemy import ColumnElement, and_, delete, exists, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonPick, PersonRead, SharedAnswers, find_person
 from app.api.games import GameSummary
@@ -18,6 +19,7 @@ from app.api.me import TimeZone
 from app.api.rollups import RollupRead
 from app.auth import CurrentUser
 from app.db import SessionDep
+from app.email import MailerDep
 from app.friends import has_blocked
 from app.groups import membership, require_owner, require_runner
 from app.models import (
@@ -48,6 +50,8 @@ Location = Annotated[str, StringConstraints(strip_whitespace=True, max_length=20
 Duration = Annotated[int, Field(ge=15, le=24 * 60)]
 PlusOneLimit = Annotated[int, Field(ge=0, le=10)]
 RECENT_DATES = 3
+# Group settings that move the scheduled dates.
+DATE_DEFAULTS = {"schedule", "start_time", "location", "time_zone"}
 
 
 class MeetupBrief(BaseModel):
@@ -392,12 +396,21 @@ async def read_group(group_id: uuid.UUID, user: CurrentUser, session: SessionDep
 
 @router.patch("/groups/{group_id}")
 async def update_group(
-    group_id: uuid.UUID, changes: GroupUpdate, user: CurrentUser, session: SessionDep
+    group_id: uuid.UUID,
+    changes: GroupUpdate,
+    user: CurrentUser,
+    session: SessionDep,
+    mailer: MailerDep,
 ) -> GroupRead:
-    """Change the group's details or schedule. Untouched future dates follow along."""
+    """Change the group's details or schedule. Untouched future dates follow along, and
+    members get one email listing the dates that moved, if any did."""
     group, me = await membership(session, group_id, user)
     require_runner(me)
     sent = changes.model_fields_set
+    moves_dates = bool(sent & DATE_DEFAULTS)
+    if moves_dates:
+        await sync_meetups(session, group)  # compare against the dates as they stand
+        before = await notify.upcoming_dates(session, group)
     for field in ("name", "time_zone", "willing_to_split", "start_time", "duration_minutes"):
         value = getattr(changes, field)
         if field in sent and value is not None:
@@ -414,7 +427,12 @@ async def update_group(
         group.plus_one_limit = changes.plus_one_limit
         await _trim_guests(session, group)
     await session.commit()
-    return await read_group(group.id, user, session)
+    if not moves_dates:
+        return await read_group(group.id, user, session)
+    await sync_meetups(session, group)
+    result = await read_group(group.id, user, session)
+    await notify.schedule_changed(session, mailer, group, user, before)
+    return result
 
 
 @router.delete("/groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -427,7 +445,11 @@ async def delete_group(group_id: uuid.UUID, user: CurrentUser, session: SessionD
 
 @router.post("/groups/{group_id}/invites", status_code=status.HTTP_201_CREATED)
 async def invite_to_group(
-    group_id: uuid.UUID, body: PersonPick, user: CurrentUser, session: SessionDep
+    group_id: uuid.UUID,
+    body: PersonPick,
+    user: CurrentUser,
+    session: SessionDep,
+    mailer: MailerDep,
 ) -> InviteResult:
     """Invite someone picked from the search, or any email address. They join only if they
     accept. Someone who has blocked you looks the same as nobody using that email, and
@@ -444,10 +466,11 @@ async def invite_to_group(
         if already is not None:
             raise HTTPException(status.HTTP_409_CONFLICT, "They're already in this group.")
     email = (body.email or (invitee.email if invitee else None) or "").lower()
-    await session.execute(
+    added = await session.scalar(
         insert(GroupInvite)
         .values(id=uuid.uuid4(), group_id=group.id, email=email, invited_by_id=user.id)
         .on_conflict_do_nothing(index_elements=[GroupInvite.group_id, GroupInvite.email])
+        .returning(GroupInvite.id)
     )
     await session.commit()
     invite = await session.scalar(
@@ -455,7 +478,10 @@ async def invite_to_group(
     )
     assert invite is not None
     on_app = invitee is not None and not await has_blocked(session, invitee.id, user.id)
-    return InviteResult(invite=await _invite_read(session, invite, user), on_app=on_app)
+    result = InviteResult(invite=await _invite_read(session, invite, user), on_app=on_app)
+    if added is not None:  # asking twice doesn't email twice
+        await notify.group_invite(session, mailer, group, user, email, invitee)
+    return result
 
 
 async def _invite_read(session: AsyncSession, invite: GroupInvite, viewer: User) -> GroupInviteRead:
