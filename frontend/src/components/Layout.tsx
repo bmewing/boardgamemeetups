@@ -2,6 +2,7 @@ import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
 import { Anchor, AppShell, Container, Group, Image, Title } from '@mantine/core'
 import { Link, NavLink, Outlet } from 'react-router'
 
+import { useResumeInvite } from '../auth/pendingInvite'
 import { UserMenu } from './UserMenu'
 
 function PoweredByBgg() {
@@ -23,6 +24,7 @@ function PoweredByBgg() {
 
 export function Layout() {
   const { isAuthenticated } = useKindeAuth()
+  useResumeInvite()
 
   return (
     <AppShell header={{ height: 56 }} footer={{ height: 44 }} padding="md">
