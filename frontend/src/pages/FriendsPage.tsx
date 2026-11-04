@@ -1,17 +1,5 @@
-import {
-  Alert,
-  Button,
-  Card,
-  Center,
-  Group,
-  Loader,
-  Menu,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core'
-import { type FormEvent, type ReactNode, useState } from 'react'
+import { Alert, Button, Card, Center, Loader, Menu, Stack, Text, Title } from '@mantine/core'
+import type { ReactNode } from 'react'
 
 import {
   FriendRequestError,
@@ -21,6 +9,7 @@ import {
   useSendFriendRequest,
 } from '../api/friends'
 import { InviteLinks } from '../components/InviteLinks'
+import { PersonPicker } from '../components/PersonPicker'
 import { PersonRow } from '../components/PersonRow'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -34,37 +23,22 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-function AddByEmail() {
-  const [email, setEmail] = useState('')
+function AddFriend({ friendIds }: { friendIds: Record<string, string> }) {
   const send = useSendFriendRequest()
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    if (email.trim()) send.mutate(email.trim())
-  }
 
   const result = send.data
   const notFound = send.error instanceof FriendRequestError && send.error.notFound
   return (
     <Stack gap="sm">
-      <form onSubmit={submit}>
-        <Group align="flex-end" gap="xs" wrap="nowrap">
-          <TextInput
-            label="Their email address"
-            description="The exact address they sign in with."
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.currentTarget.value)
-              send.reset()
-            }}
-            style={{ flex: 1 }}
-          />
-          <Button type="submit" loading={send.isPending}>
-            Send request
-          </Button>
-        </Group>
-      </form>
+      <PersonPicker
+        label="Find someone"
+        description="Type their username, or the full email address they sign in with."
+        actionLabel="Send request"
+        busy={send.isPending}
+        unavailable={friendIds}
+        onTyping={() => send.reset()}
+        onPick={(pick) => send.mutate(pick)}
+      />
       {result && (
         <Alert color="green">
           {result.relation === 'friends'
@@ -94,7 +68,11 @@ export function FriendsPage() {
     <Stack>
       <Title order={2}>Friends</Title>
       <Section title="Add a friend">
-        <AddByEmail />
+        <AddFriend
+          friendIds={Object.fromEntries(
+            (friends.data?.friends ?? []).map((f) => [f.person.id, 'Friend']),
+          )}
+        />
       </Section>
 
       {friends.isPending && (

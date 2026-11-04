@@ -319,7 +319,7 @@ export interface paths {
         put?: never;
         /**
          * Send Friend Request
-         * @description Ask someone to be friends by their exact email address (any case).
+         * @description Ask someone to be friends: picked from the search, or by exact email (any case).
          *
          *     If they already asked you, this accepts. Someone who has blocked you looks the same as
          *     nobody having that email.
@@ -503,6 +503,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/people/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search People
+         * @description People to suggest as you type: names starting with what you typed (or with a word
+         *     in the name that does), friends first. An email only matches when typed in full, so
+         *     suggestions never give one away. People who have blocked you, or whom you've blocked,
+         *     never appear.
+         */
+        get: operations["search_people_api_people_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/people/{user_id}": {
         parameters: {
             query?: never;
@@ -529,6 +552,255 @@ export interface paths {
         };
         /** List Person Games */
         get: operations["list_person_games_api_people__user_id__games_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Groups */
+        get: operations["list_groups_api_groups_get"];
+        put?: never;
+        /** Create Group */
+        post: operations["create_group_api_groups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Group
+         * @description The group, its members and dates. Opening it tops up the scheduled dates.
+         */
+        get: operations["read_group_api_groups__group_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Group */
+        delete: operations["delete_group_api_groups__group_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Group
+         * @description Change the group's details or schedule. Untouched future dates follow along.
+         */
+        patch: operations["update_group_api_groups__group_id__patch"];
+        trace?: never;
+    };
+    "/api/groups/{group_id}/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Invite To Group
+         * @description Invite someone picked from the search, or any email address. They join only if they
+         *     accept. Someone who has blocked you looks the same as nobody using that email, and
+         *     never sees the invite.
+         */
+        post: operations["invite_to_group_api_groups__group_id__invites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{group_id}/invites/{invite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel Group Invite */
+        delete: operations["cancel_group_invite_api_groups__group_id__invites__invite_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/group-invites/{invite_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Group Invite
+         * @description Join the group. From now on its members see your games (never your notes).
+         */
+        post: operations["accept_group_invite_api_group_invites__invite_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/group-invites/{invite_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Group Invite */
+        post: operations["decline_group_invite_api_group_invites__invite_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{group_id}/members/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Member
+         * @description Leave (your own id), or remove someone. Admins can remove members, not other admins;
+         *     the owner can remove anyone. Their answers for dates still to come go with them.
+         */
+        delete: operations["remove_member_api_groups__group_id__members__user_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Change Member Role
+         * @description Only the owner makes admins, turns them back into members, or hands the group over.
+         */
+        patch: operations["change_member_role_api_groups__group_id__members__user_id__patch"];
+        trace?: never;
+    };
+    "/api/groups/{group_id}/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Group Games
+         * @description Every game a member owns, with who owns it and what each member has said about it.
+         *
+         *     Expansions are listed under their base game when a member owns that too.
+         */
+        get: operations["list_group_games_api_groups__group_id__games_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{group_id}/meetups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Meetup */
+        post: operations["add_meetup_api_groups__group_id__meetups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Meetup */
+        get: operations["read_meetup_api_meetups__meetup_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Meetup
+         * @description Remove a date added on its own. Scheduled dates are cancelled instead, so the
+         *     schedule doesn't bring them back.
+         */
+        delete: operations["delete_meetup_api_meetups__meetup_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Meetup
+         * @description Move, change or cancel one date. A scheduled date changed this way is left alone
+         *     by later schedule changes (notes alone don't count).
+         */
+        patch: operations["update_meetup_api_meetups__meetup_id__patch"];
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/rsvp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rsvp */
+        put: operations["rsvp_api_meetups__meetup_id__rsvp_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Meetup Games
+         * @description Games the people coming could play: owned and marked "will bring" by someone who said
+         *     yes, and playable by that many people, all together or (if the group is willing to
+         *     split) at a table that leaves nobody on their own.
+         */
+        get: operations["list_meetup_games_api_meetups__meetup_id__games_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -591,12 +863,53 @@ export interface components {
          * @enum {string}
          */
         CollectionVisibility: "private" | "friends" | "public";
+        /**
+         * DayOfMonth
+         * @description Day X of each month. Months without that day (say the 31st) are skipped.
+         */
+        DayOfMonth: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "monthly_day";
+            /** Day */
+            day: number;
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
+        };
         /** DetailsProgress */
         DetailsProgress: {
             /** Filled */
             filled: number;
             /** Remaining */
             remaining: number;
+        };
+        /** EveryNWeeks */
+        EveryNWeeks: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "weekly";
+            /**
+             * Every Weeks
+             * @default 1
+             */
+            every_weeks: number;
+            /**
+             * Weekday
+             * @description 0 is Monday, 6 is Sunday
+             */
+            weekday: number;
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
         };
         /** FieldChangeRead */
         FieldChangeRead: {
@@ -677,6 +990,17 @@ export interface components {
             /** Candidates */
             candidates: components["schemas"]["CandidateRead"][];
         };
+        /** FittingGame */
+        FittingGame: {
+            game: components["schemas"]["GameSummary"];
+            /** Bringers */
+            bringers: components["schemas"]["PersonRead"][];
+            /**
+             * Fit
+             * @enum {string}
+             */
+            fit: "together" | "split";
+        };
         /** FriendRead */
         FriendRead: {
             person: components["schemas"]["PersonRead"];
@@ -685,11 +1009,6 @@ export interface components {
              * Format: date-time
              */
             since: string;
-        };
-        /** FriendRequestIn */
-        FriendRequestIn: {
-            /** Email */
-            email: string;
         };
         /** FriendsRead */
         FriendsRead: {
@@ -805,6 +1124,176 @@ export interface components {
             /** Base Game Ids */
             base_game_ids: number[];
         };
+        /** GroupBrief */
+        GroupBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Time Zone */
+            time_zone: string;
+            /** Willing To Split */
+            willing_to_split: boolean;
+        };
+        /** GroupCreate */
+        GroupCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Willing To Split
+             * @default false
+             */
+            willing_to_split: boolean;
+            /** Time Zone */
+            time_zone?: string | null;
+        };
+        /** GroupGameRead */
+        GroupGameRead: {
+            game: components["schemas"]["GameSummary"];
+            /** Owners */
+            owners: components["schemas"]["PersonRead"][];
+            /** Expansions */
+            expansions: components["schemas"]["GameBrief"][];
+            /** Answers */
+            answers: components["schemas"]["MemberAnswers"][];
+        };
+        /** GroupInviteForMe */
+        GroupInviteForMe: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Group Id
+             * Format: uuid
+             */
+            group_id: string;
+            /** Group Name */
+            group_name: string;
+            /** Group Description */
+            group_description: string | null;
+            /** Member Count */
+            member_count: number;
+            invited_by: components["schemas"]["PersonRead"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * GroupInviteRead
+         * @description Who's invited: the person if they're on the app, otherwise the email typed in. A
+         *     person's email is never shown, even when that's what the invite was sent to.
+         */
+        GroupInviteRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            person: components["schemas"]["PersonRead"] | null;
+            /** Email */
+            email: string | null;
+            invited_by: components["schemas"]["PersonRead"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** GroupRead */
+        GroupRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Time Zone */
+            time_zone: string;
+            /** Willing To Split */
+            willing_to_split: boolean;
+            /** Schedule */
+            schedule: (components["schemas"]["EveryNWeeks"] | components["schemas"]["NthWeekdayOfMonth"] | components["schemas"]["DayOfMonth"]) | null;
+            /**
+             * Start Time
+             * Format: time
+             */
+            start_time: string;
+            /** Duration Minutes */
+            duration_minutes: number;
+            /** Location */
+            location: string | null;
+            my_role: components["schemas"]["GroupRole"];
+            /** Members */
+            members: components["schemas"]["MemberRead"][];
+            /** Invites */
+            invites: components["schemas"]["GroupInviteRead"][];
+            /** Upcoming */
+            upcoming: components["schemas"]["MeetupBrief"][];
+            /** Recent */
+            recent: components["schemas"]["MeetupBrief"][];
+        };
+        /**
+         * GroupRole
+         * @enum {string}
+         */
+        GroupRole: "owner" | "admin" | "member";
+        /** GroupSummary */
+        GroupSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            my_role: components["schemas"]["GroupRole"];
+            /** Member Count */
+            member_count: number;
+            next_meetup: components["schemas"]["MeetupBrief"] | null;
+        };
+        /**
+         * GroupUpdate
+         * @description Fields to change; anything left out keeps its value. A null schedule turns it off.
+         */
+        GroupUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Time Zone */
+            time_zone?: string | null;
+            /** Willing To Split */
+            willing_to_split?: boolean | null;
+            /** Schedule */
+            schedule?: (components["schemas"]["EveryNWeeks"] | components["schemas"]["NthWeekdayOfMonth"] | components["schemas"]["DayOfMonth"]) | null;
+            /** Start Time */
+            start_time?: string | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Location */
+            location?: string | null;
+        };
+        /** GroupsRead */
+        GroupsRead: {
+            /** Groups */
+            groups: components["schemas"]["GroupSummary"][];
+            /** Invites */
+            invites: components["schemas"]["GroupInviteForMe"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -896,11 +1385,195 @@ export interface components {
         InvitePreview: {
             inviter: components["schemas"]["PersonRead"];
         };
+        /** InviteResult */
+        InviteResult: {
+            invite: components["schemas"]["GroupInviteRead"];
+            /** On App */
+            on_app: boolean;
+        };
         /**
          * MatchStatus
          * @enum {string}
          */
         MatchStatus: "matched" | "review" | "unmatched";
+        /** MeetupBrief */
+        MeetupBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /**
+             * Local Time
+             * Format: time
+             */
+            local_time: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Duration Minutes */
+            duration_minutes: number;
+            /** Location */
+            location: string | null;
+            status: components["schemas"]["MeetupStatus"];
+            /** Scheduled */
+            scheduled: boolean;
+            /** Edited */
+            edited: boolean;
+            /** Yes */
+            yes: number;
+            /** Maybe */
+            maybe: number;
+            /** No */
+            no: number;
+            my_response: components["schemas"]["RsvpResponse"] | null;
+        };
+        /**
+         * MeetupCreate
+         * @description A date of its own. Time, length and place default to the group's.
+         */
+        MeetupCreate: {
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /** Local Time */
+            local_time?: string | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Location */
+            location?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** MeetupGames */
+        MeetupGames: {
+            /** Confirmed */
+            confirmed: number;
+            /** Willing To Split */
+            willing_to_split: boolean;
+            /** Games */
+            games: components["schemas"]["FittingGame"][];
+            /** Unknown Player Count */
+            unknown_player_count: number;
+        };
+        /** MeetupRead */
+        MeetupRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /**
+             * Local Time
+             * Format: time
+             */
+            local_time: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Duration Minutes */
+            duration_minutes: number;
+            /** Location */
+            location: string | null;
+            status: components["schemas"]["MeetupStatus"];
+            /** Scheduled */
+            scheduled: boolean;
+            /** Edited */
+            edited: boolean;
+            /** Yes */
+            yes: number;
+            /** Maybe */
+            maybe: number;
+            /** No */
+            no: number;
+            my_response: components["schemas"]["RsvpResponse"] | null;
+            /** Notes */
+            notes: string | null;
+            group: components["schemas"]["GroupBrief"];
+            my_role: components["schemas"]["GroupRole"];
+            /** Rsvps */
+            rsvps: components["schemas"]["RsvpRead"][];
+            /** No Answer */
+            no_answer: components["schemas"]["PersonRead"][];
+        };
+        /**
+         * MeetupStatus
+         * @enum {string}
+         */
+        MeetupStatus: "scheduled" | "cancelled";
+        /** MeetupUpdate */
+        MeetupUpdate: {
+            /** Local Date */
+            local_date?: string | null;
+            /** Local Time */
+            local_time?: string | null;
+            /** Duration Minutes */
+            duration_minutes?: number | null;
+            /** Location */
+            location?: string | null;
+            /** Notes */
+            notes?: string | null;
+            status?: components["schemas"]["MeetupStatus"] | null;
+        };
+        /** MemberAnswers */
+        MemberAnswers: {
+            ownership: components["schemas"]["Ownership"] | null;
+            /** Wishlist Priority */
+            wishlist_priority: number | null;
+            /** Want To Play */
+            want_to_play: boolean;
+            /** Rating */
+            rating: number | null;
+            /** Weight Vote */
+            weight_vote: number | null;
+            playtime_feel: components["schemas"]["PlaytimeFeel"] | null;
+            /** Can Teach */
+            can_teach: boolean;
+            /** Teach Minutes */
+            teach_minutes: number | null;
+            /** Plays */
+            plays: number;
+            /** Will Bring */
+            will_bring: boolean;
+            /** Player Counts */
+            player_counts: components["schemas"]["PlayerCountRead"][];
+            /** Moods */
+            moods: string[];
+            person: components["schemas"]["PersonRead"];
+        };
+        /** MemberRead */
+        MemberRead: {
+            person: components["schemas"]["PersonRead"];
+            role: components["schemas"]["GroupRole"];
+            /**
+             * Joined At
+             * Format: date-time
+             */
+            joined_at: string;
+        };
+        /**
+         * MemberUpdate
+         * @description `owner` hands the group over; the current owner becomes an admin.
+         */
+        MemberUpdate: {
+            role: components["schemas"]["GroupRole"];
+        };
         /** MissingBaseGamesRead */
         MissingBaseGamesRead: {
             /** Suggestions */
@@ -923,11 +1596,49 @@ export interface components {
             /** Taggable */
             taggable: boolean;
         };
+        /** NthWeekdayOfMonth */
+        NthWeekdayOfMonth: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "monthly_weekday";
+            /**
+             * Nth
+             * @enum {integer}
+             */
+            nth: 1 | 2 | 3 | 4 | -1;
+            /**
+             * Weekday
+             * @description 0 is Monday, 6 is Sunday
+             */
+            weekday: number;
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
+        };
         /**
          * Ownership
          * @enum {string}
          */
         Ownership: "owned" | "preordered" | "previously_owned";
+        /** PersonMatch */
+        PersonMatch: {
+            person: components["schemas"]["PersonRead"];
+            relation: components["schemas"]["Relation"];
+        };
+        /**
+         * PersonPick
+         * @description Someone picked from the search (`user_id`), or an email typed in full.
+         */
+        PersonPick: {
+            /** User Id */
+            user_id?: string | null;
+            /** Email */
+            email?: string | null;
+        };
         /** PersonProfile */
         PersonProfile: {
             person: components["schemas"]["PersonRead"];
@@ -982,12 +1693,22 @@ export interface components {
             person: components["schemas"]["PersonRead"];
             relation: components["schemas"]["Relation"];
         };
+        /** RsvpIn */
+        RsvpIn: {
+            response: components["schemas"]["RsvpResponse"];
+        };
+        /** RsvpRead */
+        RsvpRead: {
+            person: components["schemas"]["PersonRead"];
+            response: components["schemas"]["RsvpResponse"];
+        };
         /**
-         * SharedGameRead
-         * @description Someone's answers about a game, as others see them: everything but their notes.
+         * RsvpResponse
+         * @enum {string}
          */
+        RsvpResponse: "yes" | "maybe" | "no";
+        /** SharedGameRead */
         SharedGameRead: {
-            game: components["schemas"]["GameSummary"];
             ownership: components["schemas"]["Ownership"] | null;
             /** Wishlist Priority */
             wishlist_priority: number | null;
@@ -1010,6 +1731,7 @@ export interface components {
             player_counts: components["schemas"]["PlayerCountRead"][];
             /** Moods */
             moods: string[];
+            game: components["schemas"]["GameSummary"];
         };
         /** SkippedRead */
         SkippedRead: {
@@ -1657,7 +2379,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FriendRequestIn"];
+                "application/json": components["schemas"]["PersonPick"];
             };
         };
         responses: {
@@ -1979,6 +2701,37 @@ export interface operations {
             };
         };
     };
+    search_people_api_people_search_get: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonMatch"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_person_api_people__user_id__get: {
         parameters: {
             query?: never;
@@ -2028,6 +2781,572 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SharedGameRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_groups_api_groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupsRead"];
+                };
+            };
+        };
+    };
+    create_group_api_groups_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_group_api_groups__group_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_group_api_groups__group_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_group_api_groups__group_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invite_to_group_api_groups__group_id__invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonPick"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_group_invite_api_groups__group_id__invites__invite_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+                invite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_group_invite_api_group_invites__invite_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_group_invite_api_group_invites__invite_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_member_api_groups__group_id__members__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_member_role_api_groups__group_id__members__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_group_games_api_groups__group_id__games_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupGameRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_meetup_api_groups__group_id__meetups_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeetupCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_meetup_api_meetups__meetup_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_meetup_api_meetups__meetup_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_meetup_api_meetups__meetup_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeetupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rsvp_api_meetups__meetup_id__rsvp_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RsvpIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_meetup_games_api_meetups__meetup_id__games_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetupGames"];
                 };
             };
             /** @description Validation Error */

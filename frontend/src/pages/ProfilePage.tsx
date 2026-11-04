@@ -9,7 +9,6 @@ import {
   Loader,
   Modal,
   SegmentedControl,
-  Select,
   Stack,
   Text,
   TextInput,
@@ -17,22 +16,16 @@ import {
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
-import { useMemo } from 'react'
 
 import type { UserProfile } from '../api/client'
 import { useDeleteMe, useMe, useUpdateMe } from '../api/me'
+import { TimeZoneSelect } from '../components/TimeZoneSelect'
 
 const VISIBILITY_OPTIONS = [
   { value: 'private', label: 'Only me' },
   { value: 'friends', label: 'Friends' },
   { value: 'public', label: 'Everyone' },
 ]
-
-const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-function timeZoneOptions(current: string) {
-  return Array.from(new Set([current, browserTimeZone, ...Intl.supportedValuesOf('timeZone')]))
-}
 
 type ProfileFormValues = Pick<
   UserProfile,
@@ -56,7 +49,6 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
       display_name: (value) => (value.trim() ? null : 'Enter a display name'),
     },
   })
-  const zones = useMemo(() => timeZoneOptions(profile.time_zone), [profile.time_zone])
 
   const save = (values: ProfileFormValues) =>
     update.mutate(values, {
@@ -70,28 +62,17 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   return (
     <form onSubmit={form.onSubmit(save)}>
       <Stack>
-        <TextInput label="Display name" maxLength={80} {...form.getInputProps('display_name')} />
-        <Select
-          label="Time zone"
-          data={zones}
-          searchable
-          allowDeselect={false}
-          description={
-            form.values.time_zone !== browserTimeZone ? (
-              <>
-                Your browser is set to {browserTimeZone}.{' '}
-                <Button
-                  variant="transparent"
-                  size="compact-xs"
-                  p={0}
-                  onClick={() => form.setFieldValue('time_zone', browserTimeZone)}
-                >
-                  Use it
-                </Button>
-              </>
-            ) : undefined
-          }
-          {...form.getInputProps('time_zone')}
+        <TextInput
+          label="Display name"
+          description="Your username: friends find you by it, so no one else can have it."
+          maxLength={80}
+          {...form.getInputProps('display_name')}
+        />
+        <TimeZoneSelect
+          value={form.values.time_zone}
+          onChange={(zone) => form.setFieldValue('time_zone', zone)}
+          description="New groups you make start in this time zone."
+          error={form.errors.time_zone}
         />
         <TextInput
           label="BoardGameGeek username"

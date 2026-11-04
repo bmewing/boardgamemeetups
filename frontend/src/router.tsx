@@ -8,8 +8,11 @@ import { FileImportPage } from './pages/FileImportPage'
 import { FriendsPage } from './pages/FriendsPage'
 import { GamePage } from './pages/GamePage'
 import { GamesPage } from './pages/GamesPage'
+import { GroupPage } from './pages/GroupPage'
+import { GroupsPage } from './pages/GroupsPage'
 import { HomePage } from './pages/HomePage'
 import { InvitePage } from './pages/InvitePage'
+import { MeetupPage } from './pages/MeetupPage'
 import { PersonPage } from './pages/PersonPage'
 import { ProfilePage } from './pages/ProfilePage'
 
@@ -63,6 +66,30 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <PersonPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'groups',
+        element: (
+          <RequireAuth>
+            <GroupsPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'groups/:groupId',
+        element: (
+          <RequireAuth>
+            <GroupPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'meetups/:meetupId',
+        element: (
+          <RequireAuth>
+            <MeetupPage />
           </RequireAuth>
         ),
       },

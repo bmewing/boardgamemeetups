@@ -1,5 +1,5 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from './client'
 import { detailOf } from './collection'
@@ -12,6 +12,8 @@ export type Relation = components['schemas']['Relation']
 export type PersonProfile = components['schemas']['PersonProfile']
 export type SharedGame = components['schemas']['SharedGameRead']
 export type InviteLink = components['schemas']['InviteLinkRead']
+export type PersonPick = components['schemas']['PersonPick']
+export type PersonMatch = components['schemas']['PersonMatch']
 
 const FRIENDS_KEY = ['friends'] as const
 const BLOCKS_KEY = ['blocks'] as const
@@ -50,10 +52,8 @@ function useRefreshFriends() {
 export function useSendFriendRequest() {
   const refresh = useRefreshFriends()
   return useMutation({
-    mutationFn: async (email: string) => {
-      const { data, error, response } = await api.POST('/api/friends/requests', {
-        body: { email },
-      })
+    mutationFn: async (pick: PersonPick) => {
+      const { data, error, response } = await api.POST('/api/friends/requests', { body: pick })
       if (error) {
         throw new FriendRequestError(
           detailOf(error, 'Could not send the request'),
@@ -63,6 +63,22 @@ export function useSendFriendRequest() {
       return data
     },
     onSuccess: refresh,
+  })
+}
+
+/** Suggestions as you type a name (or a full email). Empty until 2 letters are typed. */
+export function usePeopleSearch(query: string) {
+  const q = query.trim()
+  return useQuery({
+    queryKey: ['people', 'search', q],
+    enabled: q.length >= 2,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/people/search', { params: { query: { q } } })
+      if (error) throw new Error('Search failed')
+      return data
+    },
   })
 }
 
