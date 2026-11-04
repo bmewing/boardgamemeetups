@@ -12,6 +12,7 @@ import { GroupPage } from './pages/GroupPage'
 import { GroupsPage } from './pages/GroupsPage'
 import { HomePage } from './pages/HomePage'
 import { InvitePage } from './pages/InvitePage'
+import { PrivacyPage, TermsPage } from './pages/LegalPages'
 import { MeetupPage } from './pages/MeetupPage'
 import { PersonPage } from './pages/PersonPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -96,6 +97,9 @@ export const router = createBrowserRouter([
       },
       // Open to anyone with the link: it says who sent it before they sign up.
       { path: 'invite/:token', element: <InvitePage /> },
+      // Open to anyone: sign-in providers link to these.
+      { path: 'terms', element: <TermsPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
       // From a link in an email: works without signing in.
       { path: 'unsubscribe/:token', element: <UnsubscribePage /> },
       {
