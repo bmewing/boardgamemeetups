@@ -9,4 +9,5 @@ export const profile: UserProfile = {
   bgg_username: null,
   bgg_pulled_at: null,
   collection_visibility: 'friends',
+  email_opt_outs: [],
 }

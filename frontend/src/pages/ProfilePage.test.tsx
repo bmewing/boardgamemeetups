@@ -50,6 +50,31 @@ describe('ProfilePage', () => {
     )
   })
 
+  it('turns a kind of email off and back on', async () => {
+    const sent: unknown[] = []
+    let current = profile
+    mockApi({
+      'GET /api/me': () => Response.json(current),
+      'PATCH /api/me': async (request) => {
+        const body = (await request.json()) as { email_opt_outs: typeof profile.email_opt_outs }
+        sent.push(body)
+        current = { ...current, ...body }
+        return Response.json(current)
+      },
+    })
+    renderWithProviders(<ProfilePage />)
+    const reminders = await screen.findByRole('switch', { name: /Reminders/ })
+    expect(reminders).toBeChecked()
+
+    await userEvent.click(reminders)
+    await waitFor(() => expect(reminders).not.toBeChecked())
+    await waitFor(() => expect(reminders).toBeEnabled())
+    await userEvent.click(reminders)
+    await waitFor(() => expect(reminders).toBeChecked())
+
+    expect(sent).toEqual([{ email_opt_outs: ['rsvp_reminder'] }, { email_opt_outs: [] }])
+  })
+
   it('deletes the account after confirmation and signs out', async () => {
     let deleted = false
     mockApi({
