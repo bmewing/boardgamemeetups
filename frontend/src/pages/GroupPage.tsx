@@ -39,7 +39,9 @@ import {
   useUpdateGroup,
 } from '../api/groups'
 import { useMe } from '../api/me'
+import { useMoods } from '../api/collection'
 import { GameCard } from '../components/GameCard'
+import { RollupFacts } from '../components/Rollup'
 import {
   formatDuration,
   formatShortDate,
@@ -313,6 +315,11 @@ function MembersTab({ group }: { group: GroupData }) {
 
 function GamesTab({ group }: { group: GroupData }) {
   const games = useGroupGames(group.id)
+  const moods = useMoods()
+  const moodNames = useMemo(
+    () => new Map((moods.data ?? []).map((m) => [m.id, m.name])),
+    [moods.data],
+  )
   const [players, setPlayers] = useState<number | null>(null)
   const [name, setName] = useState('')
 
@@ -365,6 +372,7 @@ function GamesTab({ group }: { group: GroupData }) {
                   With {row.expansions.map((e) => e.name).join(', ')}
                 </Text>
               )}
+              <RollupFacts rollup={row.rollup} moodNames={moodNames} />
               {rated.length > 0 && (
                 <Text size="xs" c="dimmed">
                   Ratings: {rated.map((a) => `${a.person.display_name} ${a.rating}`).join(' · ')}

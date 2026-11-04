@@ -120,6 +120,18 @@ describe('GameAnswersEditor on My games', () => {
     expect(screen.getByLabelText('Can teach')).toBeChecked()
   })
 
+  it('counts owners as teachers until they untick it', async () => {
+    const saved = serve(azul({ can_teach: null }))
+    renderWithProviders(<CollectionPage />)
+
+    const box = await screen.findByLabelText('Can teach')
+    expect(box).toBeChecked()
+    await userEvent.click(box)
+
+    await waitFor(() => expect(saved).toEqual([{ can_teach: false }]))
+    expect(screen.getByLabelText('Can teach')).not.toBeChecked()
+  })
+
   it('offers only taggable moods, and "will bring" only for games you own', async () => {
     const saved = serve(azul({ ownership: null, want_to_play: true }))
     renderWithProviders(<CollectionPage />)

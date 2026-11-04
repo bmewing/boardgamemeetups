@@ -31,6 +31,7 @@ import {
   isWanted,
   OWNERSHIP_LABELS,
   plural,
+  teaches,
   WISHLIST_LABELS,
 } from '../components/userGameFields'
 
@@ -42,7 +43,7 @@ function TheirAnswers({ row }: { row: SharedGame }) {
     row.wishlist_priority !== null && `Wishlist: ${WISHLIST_LABELS[row.wishlist_priority]}`,
     row.want_to_play && 'Wants to play',
     row.rating !== null && `Rated ${row.rating}`,
-    row.can_teach && `Can teach${row.teach_minutes ? ` (${row.teach_minutes} min)` : ''}`,
+    teaches(row) && `Can teach${row.teach_minutes ? ` (${row.teach_minutes} min)` : ''}`,
     row.plays > 0 && plural(row.plays, 'play'),
   ].filter((b): b is string => Boolean(b))
   if (badges.length === 0) return null
