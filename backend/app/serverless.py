@@ -7,6 +7,7 @@ same `/api/...` paths as in local development.
 
 import asyncio
 import base64
+import re
 from contextlib import AbstractAsyncContextManager
 from typing import Any
 
@@ -17,6 +18,7 @@ from app.main import app
 # Hop-by-hop or recomputed headers that must not be replayed into the ASGI request.
 DROPPED_HEADERS = {"content-length", "transfer-encoding", "connection", "host"}
 TEXT_TYPES = ("text/", "application/json", "application/problem+json")
+BASE64 = re.compile(r"[A-Za-z0-9+/]+={0,2}")
 
 # A warm function container handles one request at a time and keeps this module loaded, so
 # one event loop and one app lifespan are reused across invocations.
@@ -56,11 +58,20 @@ async def handle(event: dict[str, Any]) -> dict[str, Any]:
         },
     }
     if response.content:
-        if content_type.startswith(TEXT_TYPES):
-            result["body"] = response.text
+        text = response.text if content_type.startswith(TEXT_TYPES) else None
+        if text is not None and not _looks_like_base64(text):
+            result["body"] = text
         else:
             result["body"] = base64.b64encode(response.content).decode()
     return result
+
+
+def _looks_like_base64(text: str) -> bool:
+    """DigitalOcean decodes a JSON body that happens to be valid base64, so a bare `null`
+    reaches the browser as three garbage bytes. Bodies like that are sent encoded instead,
+    and its decoding gives back the original. Anything with braces, quotes or spaces (every
+    JSON object, array or string) isn't valid base64 and goes as it is."""
+    return len(text) % 4 == 0 and BASE64.fullmatch(text) is not None
 
 
 async def _start_app() -> None:
