@@ -1,6 +1,6 @@
 # Board Game Group App — Build Plan
 
-A web app for organizing board game meetups. Users log in, import their game collections (matched to BoardGameGeek IDs), rate games, say which player counts they think work best, and keep a wishlist. They add friends, form persistent groups (with a recurring schedule) or create one-off meetups. Invitees RSVP and pick a "mood". The meetup page recommends games from the attendees' combined libraries; the group votes, and whoever owns the winning game is tagged to bring it.
+A web app for organizing board game meetups. Users log in, import their game collections (matched to BoardGameGeek IDs), rate games, say which player counts they think work best, and keep a wishlist. They add friends and form groups, which meet on a recurring schedule, on dates added one at a time, or both. Members RSVP and pick a "mood". The meetup page recommends games from the attendees' combined libraries; the group votes, and whoever owns the winning game is tagged to bring it.
 
 ## Decisions
 
@@ -11,7 +11,7 @@ A web app for organizing board game meetups. Users log in, import their game col
   - React build as a **static site** at `/`
   - The FastAPI app as **one DigitalOcean function** (`core/app`, Python 3.13) behind `/api`, via an adapter (`backend/app/serverless.py`)
   - Expected cost is about **$3/mo**: the account's 3 free static-site apps are already used, and Functions usage should stay in its free allowance
-- **Groups:** both persistent groups (with a recurring schedule; each occurrence editable on its own) and ad-hoc meetups
+- **Groups:** every meetup belongs to a group. A group can have a recurring schedule (each date editable on its own) and one-off dates
 
 ## Considerations beyond the core features
 
@@ -123,7 +123,7 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 
 ### Phase 6 — Friends & invites ✅
 - [x] `friendships`: one row per pair, stored as (smaller user id, larger user id) so two crossing requests can't make two rows, plus the requester and status (pending / accepted)
-- [x] Find friends by **exact email only** (any case), not display name, so nobody can list everyone on the app. No match offers an invite link instead
+- [x] Find friends by **exact email only** (any case), not display name, so nobody can list everyone on the app. No match offers an invite link instead (Phase 7 replaced this with username suggestions as you type)
 - [x] Send, accept, decline, cancel, remove. Declining deletes the request quietly; the sender isn't told
 - [x] `user_blocks` (blocker, blocked): hides you from their email search, drops their requests, and ends any friendship. Unblock from the Friends page
 - [x] Invite links as stored rows (`invite_links`: random token, owner, expiry, turned-off time, use count), not signed tokens, so a link that gets passed around can be turned off. Phase 7 adds a group to the same table
@@ -132,28 +132,33 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - [x] Person page: their collection and wishlist, read only, as their visibility allows: *private* = only you, *friends* = friends, *public* = anyone signed in. **Notes are never shown to anyone else**
 - **Done when:** two test accounts can befriend each other via search and via invite link (met 2026-11-03, in production)
 
-### Phase 7 — Groups (persistent + recurring)
-- [ ] `groups` (name, description, owner) + `group_members` (role: owner/admin/member)
-- [ ] Add/remove members (from friends or invite link)
-- [ ] Recurrence on group: RRULE (weekly / every N weeks / monthly nth weekday), default start time, duration, location, time zone. Use `python-dateutil`
-- [ ] Occurrences materialized as `meetups` rows for a rolling window (e.g. next 8 weeks), generated lazily when the group is viewed and when the schedule changes
-- [ ] Each occurrence editable on its own (date/time/place/notes, or cancelled); flag `is_overridden` so schedule changes regenerate only untouched future occurrences
-- [ ] Group page: members, upcoming occurrences, schedule editor
-- [ ] Group library: every member's games with the group's combined view and each member's answers by name (see "Group roll-ups" under Phase 9)
-- **Done when:** a weekly group shows the next 8 dates; moving one date leaves the others alone; changing the rule to biweekly updates only untouched future dates
+### Phase 7 — Groups, schedules, meetups & RSVP
+Every meetup belongs to a group, so meetups and RSVPs move here from Phase 8.
 
-### Phase 8 — Meetups, RSVP & mood
-- [ ] `meetups` (title, host, optional group_id, start, end/duration, time zone, location name + address, max seats, notes, status: scheduled/cancelled/done)
-- [ ] Ad-hoc meetup creation: pick friends and/or a group's members
-- [ ] `meetup_invites` (meetup, user, status: invited/yes/no/maybe, plus_ones, mood, rsvp_at)
-- [ ] RSVP moods come from the Phase 4 `moods` list, plus the meetup-only *Something new, Old favorite, No preference*
-- [ ] RSVP UI: one tap yes/no/maybe + mood picker; can change until the vote locks
-- [ ] Headcount summary (confirmed + plus-ones vs. max seats; waitlist if over)
-- [ ] Address only visible to invitees; .ics download
-- **Done when:** host creates a meetup, 3 test users RSVP with moods, headcount is correct
+- [ ] `groups` (name, description, owner, time zone, willing to split into tables, schedule and its default time/length/place) + `group_members` (role: owner / admin / member). Whoever creates a group owns it
+- [ ] Join only by accepting an invite. Owners and admins invite anyone by email (`group_invites`); an email nobody uses yet waits until someone signs up with it (the owner sends them the app's address themselves until Phase 11 emails). Someone who has blocked you is never shown your invite. Joining shares your games (not notes) with the members
+- [ ] Roles: the owner can do everything, including making members admins (and back), handing over ownership, and deleting the group. Admins can do everything else: edit the group and its schedule, add, edit or cancel dates, invite, and remove members (not other admins). Members see everything, RSVP and can leave. The owner can't leave without handing the group over; deleting your account hands it to the longest-serving admin, then member
+- [ ] Time zone: the owner's at creation, stored on the group. Dates are kept as the local date and time there, so a 7 pm meetup stays 7 pm across daylight saving
+- [ ] Schedules (optional): every N weeks on a weekday, the Nth (or last) weekday of each month, or day X of each month (months without that day are skipped). Built with `python-dateutil`'s rrule
+- [ ] The next 8 scheduled dates exist as `meetups` rows, topped up whenever the group page opens and when the schedule changes. Each row remembers the rule date it came from (`slot_date`). When the schedule changes, untouched future dates that still fit take the new time and place, ones that no longer fit go, and new ones are added; dates edited by hand, cancelled dates and past dates are never touched
+- [ ] One-off dates can be added any time, with or without a schedule
+- [ ] `meetups` (group, date, start time, length, place, notes, status: scheduled / cancelled; `slot_date`, `is_overridden`)
+- [ ] `meetup_rsvps` (meetup, member, yes / no / maybe), changeable any time for now
+- [ ] Games that fit a meetup: games owned and marked "will bring" by the members who said yes. With C confirmed, a group that plays one game together sees games that seat exactly C. A group willing to split also sees games that seat a table of 2 to C−2, so nobody is left alone (5 confirmed: tables of 2, 3 or 5, not 4)
+- [ ] Group library: every member's owned games with who owns them, expansions under their base game, and each member's answers by name. The combined numbers come with Phase 9
+- [ ] Display names are unique usernames (ignoring case; existing clashes become "Name 2"; first sign-in picks a free one). Adding a friend or inviting to a group takes a username picked from suggestions as you type, or any email. Suggestions match the start of a name or of a word in it, from 2 letters, up to 8, friends first. An email only matches when typed in full, and admins see invitees' names, never their emails. People who have blocked you, or whom you've blocked, never appear
+- [ ] Pages: Groups (yours, invites waiting for you), a group (dates, members, library, settings), a meetup (RSVP, who's coming, games that fit). Groups goes in the header
+- **Done when:** a weekly group shows the next 8 dates; moving one date leaves the others alone; changing the rule to biweekly updates only untouched future dates; members RSVP and the games shown follow the confirmed count and the split setting
+
+### Phase 8 — Moods, capacity & calendar
+- [ ] RSVP moods from the Phase 4 `moods` list, plus the meetup-only *Something new, Old favorite, No preference*
+- [ ] Plus-ones, a host's max seats, and a waitlist when over
+- [ ] Lock RSVPs when the vote locks (Phase 10)
+- [ ] Address only visible to members; .ics download
+- **Done when:** 3 test users RSVP with moods and plus-ones, and the headcount and waitlist are correct
 
 ### Phase 9 — Recommendations
-- [ ] Candidate pool = games owned by confirmed attendees and marked "will bring" (expansions folded into base, widening its player range)
+- [ ] Candidate pool = games owned by confirmed attendees and marked "will bring" (expansions folded into base, widening its player range); Phase 7 already filters it by headcount and the split setting
 - [ ] Hard filters: player count fits the confirmed headcount; playtime (plus teach time when someone attending is new to it) fits the meetup duration
 - [ ] Group roll-ups, computed per query over the people in scope (group members for the library, confirmed attendees for a meetup); groups are small, so nothing is stored:
   - rating: average pulled toward BGG's rating when few have rated, `(sum + 2 × bgg_rating) / (n + 2)`; also show the lowest rating, and treat 3 or below as a soft veto
