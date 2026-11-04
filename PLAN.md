@@ -88,7 +88,7 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
   - `weight_vote` (1–5, BGG's Light … Heavy scale)
   - `playtime_feel` (shorter / just right / longer vs. the listed time)
   - `can_teach`, and `teach_minutes`, required when `can_teach` is set
-  - `plays` (count; imported from BGG `numplays`, then added to by the Phase 10 play log)
+  - `plays` (count; imported from BGG `numplays`, then added to by the Phase 10 play log, one per logged play)
   - `will_bring` (owned copies only, default yes; no for a copy that's lent out or stays home)
   - `notes`, `source` (bgg / file / manual), timestamps; the last applied pull is `users.bgg_pulled_at`
 - [x] `user_game_player_counts` (user, game, count, vote: best / recommended / not recommended), the same answers as BGG's poll so group votes add straight onto `games.player_count_votes`
@@ -175,7 +175,7 @@ Decided 2026-11-04: only yes answers count, game length is shown but never filte
   - rating: average pulled toward BGG's rating when few have rated, `(sum + 2 × bgg_rating) / (n + 2)`; also show the lowest rating, and treat 3 or below as a soft veto
   - player count: group votes added onto BGG's poll counts, group votes weighted higher; read off at the headcount
   - weight: group average blended with BGG's weight the same way as rating (shown only)
-  - length (shown only, to inform the vote): BGG's playing time adjusted by the net shorter/longer answers, plus teach time when someone new is coming; replaced by the median logged duration once Phase 10 plays exist
+  - length (shown only, to inform the vote): BGG's playing time adjusted by the net shorter/longer answers, plus teach time when someone new is coming (Phase 10 doesn't record play length, so this stays the estimate)
   - moods: who tagged the game with which mood (members' own tags only)
   - teaching: who's new to it (doesn't own it and never did, `plays` = 0, and hasn't rated it, since a rating means they've played), who can teach, and their teach time. Owners count as able to teach until they untick it (`can_teach` is null until answered; existing "no" answers were reset to unanswered)
   - owners willing to bring it; wishlist and want-to-play counts
@@ -191,15 +191,22 @@ Decided 2026-11-04: only yes answers count, game length is shown but never filte
 - [x] Meetup page: the games that fit, ranked, top 10 with "Show all"; attendees' RSVP moods shown above. Recompute on RSVP change
 - [x] Group's Games tab: the combined numbers (group rating and lowest, best player counts, moods, who can teach)
 - [x] Unit tests with fixture attendees/libraries for scoring edge cases
-- **Done when:** recs change sensibly as people RSVP and switch moods, and each rec explains itself
+- **Done when:** recs change sensibly as people RSVP and switch moods, and each rec explains itself (not yet met by hand: deployed 2026-11-04 and covered by automated tests; checked in production with one person going)
 
 ### Phase 10 — Voting, bring assignment & play log
-- [ ] `meetup_nominations` (from recs or any attendee-owned game) + `meetup_votes` (approval voting: vote for any number)
-- [ ] Live tally; host "locks" the pick(s), and more than one pick is allowed
-- [ ] Lock RSVPs when the pick locks (moved from Phase 8)
-- [ ] Bring assignment: default to the attending owner (if several, the host picks or the first volunteer claims it); `bring_assignments` table
-- [ ] After the meetup: "what did we play?" log → `plays` table (feeds recently-played)
-- **Done when:** a full meetup cycle runs: RSVP → recs → vote → lock → owner tagged → play logged
+Decided 2026-11-04: owners and admins lock the pick and log what was played; RSVPs stay open after the lock; the play log records who played and who won, never scores or length.
+
+- [x] `meetup_nominations` + `meetup_votes` (approval voting: vote for any number). Members who said yes nominate and vote. A game can be nominated from the recommendations or from anything someone going owns, including games they marked "won't bring"
+- [x] Live tally, refreshed every few seconds while the page is open (the API is a function, so it can't push updates)
+- [x] Owners and admins lock the pick(s), and more than one pick is allowed. Locking stops voting and new nominations; they can unlock it. RSVPs stay open both ways after the lock. If the headcount changes so a picked game no longer fits, the page says so
+- [x] Bring assignment (`bring_assignments`): one owner going is tagged automatically; with several, the first to tap "I'll bring it" claims it, and owners and admins can reassign it. If whoever's bringing it drops out, the tag clears and the game is flagged for someone else to claim
+- [x] Play log (`plays` + `play_players`), filled in by an owner or admin once the date has passed:
+  - which games were actually played (one or more), and who actually came to the meetup
+  - for each game, who played it and the result: who won (one or more people, for ties) for a competitive game, or won/lost for a co-op game. Co-op is preset from BGG's "Cooperative Game" mechanic, and whoever logs it can change it. No scores and no play length
+  - each player's `user_games.plays` goes up by one (a row is added for a game they hadn't recorded)
+- [x] Unlogged dates: a week after a date with a locked pick and no log, it counts as played as picked, by the members who said yes, with no result. This is filled in the next time the group is looked at (like topping up the schedule), since nothing runs on a timer until Phase 11. A date with no locked pick and no log records nothing
+- [x] Recently played: a game played at either of the group's last two meetups moves down the recommendations, with a "Played last time" chip (`RECENTLY_PLAYED` in `app/recommend_config.py`)
+- **Done when:** a full meetup cycle runs: RSVP → recs → vote → lock → owner tagged → play logged (and an unlogged date fills itself in after a week)
 
 ### Phase 11 — Notifications
 - [ ] Email service wrapper (Resend) with templates
