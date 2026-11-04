@@ -157,6 +157,12 @@ class Meetup(Base):
     slot_date: Mapped[date | None] = mapped_column(Date)
     # Changed by hand, so schedule changes leave it alone.
     is_overridden: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # When the owner or an admin locked the pick: voting and nominating stop.
+    picks_locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # When what was played was logged; `log_assumed` when it was filled in a week later
+    # from the pick and the yes answers because nobody logged it.
+    logged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    log_assumed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
