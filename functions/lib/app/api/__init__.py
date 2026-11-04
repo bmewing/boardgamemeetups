@@ -9,6 +9,7 @@ from app.api import (
     health,
     me,
     meetups,
+    notifications,
     play_log,
     votes,
 )
@@ -24,3 +25,4 @@ api_router.include_router(meetups.router)
 api_router.include_router(calendar.router)
 api_router.include_router(votes.router)
 api_router.include_router(play_log.router)
+api_router.include_router(notifications.router)

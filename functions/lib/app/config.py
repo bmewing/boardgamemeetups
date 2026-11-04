@@ -28,6 +28,19 @@ class Settings(BaseSettings):
     # Where the web app lives, for links back to it from calendar events. Blank: no links.
     app_url: str = ""
 
+    # Resend API key with sending access (secret). Blank: emails are logged, not sent.
+    resend_api_key: str = ""
+    email_from: str = "Board Game Group <notifications@bggroup.app>"
+    # Where replies to any email go (forwarded to whoever runs the app).
+    email_reply_to: str = "admin@bggroup.app"
+
+    @property
+    def api_url(self) -> str:
+        """Where the API is reached from outside, for links straight to it. In production
+        App Platform serves the function under /api/core/app; locally the dev server
+        proxies /api from the app's own address."""
+        return f"{self.app_url}/api/core/app" if self.serverless else self.app_url
+
     @field_validator("database_url")
     @classmethod
     def use_asyncpg_driver(cls, url: str) -> str:
