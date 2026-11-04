@@ -328,6 +328,117 @@ async def test_teaching_needs_a_teach_time(
     assert response.status_code == 422
 
 
+@pytest.fixture
+async def moods(db_session: AsyncSession) -> None:
+    db_session.add_all(
+        [
+            Mood(id="zz_chill", name="Chill", description="", taggable=True, sort_order=1),
+            Mood(id="zz_laughs", name="Laughs", description="", taggable=True, sort_order=2),
+            Mood(id="zz_new", name="Something new", description="", taggable=False, sort_order=3),
+        ]
+    )
+    await db_session.commit()
+
+
+async def test_player_counts_replace_the_whole_list(
+    client: AsyncClient, auth: dict[str, str], manual_game: int
+) -> None:
+    url = f"/api/me/games/{manual_game}"
+    response = await client.put(
+        url,
+        json={
+            "player_counts": [
+                {"players": 4, "vote": "recommended"},
+                {"players": 3, "vote": "best"},
+            ]
+        },
+        headers=auth,
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["player_counts"] == [
+        {"players": 3, "vote": "best"},
+        {"players": 4, "vote": "recommended"},
+    ]
+    assert response.json()["source"] == "manual"
+
+    # 3 changes its vote, 4 goes blank, 5 is new; other fields are left alone.
+    response = await client.put(
+        url,
+        json={
+            "rating": 6,
+            "player_counts": [
+                {"players": 3, "vote": "recommended"},
+                {"players": 5, "vote": "not_recommended"},
+            ],
+        },
+        headers=auth,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["player_counts"] == [
+        {"players": 3, "vote": "recommended"},
+        {"players": 5, "vote": "not_recommended"},
+    ]
+
+    response = await client.put(url, json={"notes": "Fun."}, headers=auth)
+    assert len(response.json()["player_counts"]) == 2
+    assert response.json()["rating"] == 6
+
+    response = await client.put(url, json={"player_counts": []}, headers=auth)
+    assert response.json()["player_counts"] == []
+
+
+@pytest.mark.parametrize(
+    "player_counts",
+    [
+        None,
+        [{"players": 0, "vote": "best"}],
+        [{"players": 3, "vote": "great"}],
+        [{"players": 3, "vote": "best"}, {"players": 3, "vote": "recommended"}],
+    ],
+)
+async def test_player_counts_must_make_sense(
+    client: AsyncClient, auth: dict[str, str], manual_game: int, player_counts: Any
+) -> None:
+    response = await client.put(
+        f"/api/me/games/{manual_game}", json={"player_counts": player_counts}, headers=auth
+    )
+
+    assert response.status_code == 422
+    assert await my_games(client, auth) == {}
+
+
+async def test_moods_replace_the_whole_list(
+    client: AsyncClient, auth: dict[str, str], manual_game: int, moods: None
+) -> None:
+    url = f"/api/me/games/{manual_game}"
+    response = await client.put(
+        url, json={"moods": ["zz_laughs", "zz_chill", "zz_laughs"]}, headers=auth
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["moods"] == ["zz_chill", "zz_laughs"]
+
+    response = await client.put(url, json={"moods": ["zz_laughs"]}, headers=auth)
+    assert response.json()["moods"] == ["zz_laughs"]
+
+    response = await client.put(url, json={"moods": []}, headers=auth)
+    assert response.json()["moods"] == []
+
+
+@pytest.mark.parametrize("mood", ["zz_new", "zz_nonexistent"])
+async def test_only_taggable_moods_go_on_a_game(
+    client: AsyncClient, auth: dict[str, str], manual_game: int, moods: None, mood: str
+) -> None:
+    response = await client.put(
+        f"/api/me/games/{manual_game}", json={"moods": ["zz_chill", mood]}, headers=auth
+    )
+
+    assert response.status_code == 422
+    assert mood in response.json()["detail"]
+    assert await my_games(client, auth) == {}
+
+
 async def test_unknown_games_cant_be_added(client: AsyncClient, auth: dict[str, str]) -> None:
     response = await client.put("/api/me/games/990199999", json={"rating": 5}, headers=auth)
 

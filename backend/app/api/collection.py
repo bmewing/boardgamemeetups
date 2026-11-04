@@ -50,11 +50,19 @@ from app.models import (
     Source,
     User,
     UserGame,
+    UserGameMood,
+    UserGamePlayerCount,
 )
 
 router = APIRouter(tags=["collection"])
 
 GameId = Annotated[int, Path(ge=1)]
+MoodId = Annotated[str, Field(min_length=1, max_length=32)]
+# Well past any real game; only there to bound a request.
+MAX_PLAYERS = 100
+MAX_MOODS = 50
+# Sent as whole lists and stored in their own tables, not as UserGame columns.
+LIST_FIELDS = ("player_counts", "moods")
 
 
 class PlayerCountRead(BaseModel):
@@ -95,8 +103,17 @@ class UserGameRead(BaseModel):
         )
 
 
+class PlayerCountIn(BaseModel):
+    players: Annotated[int, Field(ge=1, le=MAX_PLAYERS)]
+    vote: PlayerCountVote
+
+
 class UserGameUpdate(BaseModel):
-    """Fields to change; anything left out keeps its value. Null clears a field."""
+    """Fields to change; anything left out keeps its value. Null clears a field.
+
+    `player_counts` and `moods` replace the whole list when sent: a count or mood left out
+    is blank, and an empty list clears them all.
+    """
 
     ownership: Ownership | None = None
     wishlist_priority: WishlistPriority | None = None
@@ -109,12 +126,21 @@ class UserGameUpdate(BaseModel):
     plays: Plays | None = None
     will_bring: bool | None = None
     notes: Notes | None = None
+    player_counts: Annotated[list[PlayerCountIn], Field(max_length=MAX_PLAYERS)] | None = None
+    moods: Annotated[list[MoodId], Field(max_length=MAX_MOODS)] | None = None
 
     @model_validator(mode="after")
-    def booleans_and_counts_cannot_be_null(self) -> Self:
-        for name in ("want_to_play", "can_teach", "plays", "will_bring"):
+    def booleans_counts_and_lists_cannot_be_null(self) -> Self:
+        for name in ("want_to_play", "can_teach", "plays", "will_bring", *LIST_FIELDS):
             if name in self.model_fields_set and getattr(self, name) is None:
                 raise ValueError(f"{name} can't be null")
+        return self
+
+    @model_validator(mode="after")
+    def one_vote_per_player_count(self) -> Self:
+        counts = [pc.players for pc in self.player_counts or []]
+        if len(counts) != len(set(counts)):
+            raise ValueError("Each player count can only have one vote")
         return self
 
 
@@ -240,6 +266,36 @@ async def list_my_games(user: CurrentUser, session: SessionDep) -> list[UserGame
     return [UserGameRead.build(row, game) for row, game in rows]
 
 
+async def _check_taggable(session: AsyncSession, mood_ids: list[str]) -> None:
+    taggable = set(
+        await session.scalars(select(Mood.id).where(Mood.id.in_(mood_ids), Mood.taggable.is_(True)))
+    )
+    if wrong := sorted(set(mood_ids) - taggable):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            f"These moods can't be put on a game: {', '.join(wrong)}",
+        )
+
+
+def _replace_player_counts(
+    current: list[UserGamePlayerCount], wanted: list[PlayerCountIn]
+) -> list[UserGamePlayerCount]:
+    """The new list, reusing rows for counts kept so their keys aren't deleted and re-added."""
+    by_players = {pc.players: pc for pc in current}
+    result = []
+    for pc in wanted:
+        row = by_players.get(pc.players) or UserGamePlayerCount(players=pc.players)
+        row.vote = pc.vote
+        result.append(row)
+    return result
+
+
+def _replace_moods(current: list[UserGameMood], wanted: list[str]) -> list[UserGameMood]:
+    by_id = {m.mood_id: m for m in current}
+    # dict.fromkeys drops repeats and keeps the order.
+    return [by_id.get(i) or UserGameMood(mood_id=i) for i in dict.fromkeys(wanted)]
+
+
 @router.put("/me/games/{game_id}")
 async def update_my_game(
     game_id: GameId, changes: UserGameUpdate, user: CurrentUser, session: SessionDep
@@ -249,20 +305,37 @@ async def update_my_game(
     if game is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Game not found")
     row = await session.get(UserGame, (user.id, game_id))
-    updates = changes.model_dump(exclude_unset=True)
+    updates = changes.model_dump(exclude_unset=True, exclude=set(LIST_FIELDS))
     merged = {name: collection.current_value(row, name) for name in collection.FIELD_TYPES}
     merged |= updates
     if merged["can_teach"] and merged["teach_minutes"] is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "Say how long the teach takes to mark it"
         )
+    if changes.moods:
+        await _check_taggable(session, changes.moods)
     if row is None:
-        row = UserGame(user_id=user.id, game_id=game_id, source=Source.MANUAL, **merged)
+        # Empty lists set up front, or reading them after the flush below would lazy-load.
+        row = UserGame(
+            user_id=user.id,
+            game_id=game_id,
+            source=Source.MANUAL,
+            player_counts=[],
+            moods=[],
+            **merged,
+        )
         session.add(row)
         await collection.forget_removals(session, user.id, [game_id])
     else:
         for name, value in updates.items():
             setattr(row, name, value)
+    if changes.player_counts is not None:
+        row.player_counts = _replace_player_counts(row.player_counts, changes.player_counts)
+    if changes.moods is not None:
+        row.moods = _replace_moods(row.moods, changes.moods)
+    if not updates and changes.model_fields_set & set(LIST_FIELDS):
+        # Only the lists changed, so the row's own onupdate wouldn't fire.
+        row.updated_at = func.now()
     await session.commit()
     await session.refresh(row)
     return UserGameRead.build(row, game)
