@@ -95,3 +95,41 @@ export const toInputTime = (t: string) => t.slice(0, 5)
 export const fromInputTime = (t: string) => (t.length === 5 ? `${t}:00` : t)
 
 export const ROLE_LABELS = { owner: 'Owner', admin: 'Admin', member: 'Member' } as const
+
+export const NO_PREFERENCE = 'no_preference'
+
+/** "No preference" rules out every other mood: picking it clears the rest, and picking
+ * another mood clears it. */
+export function pickMoods(previous: string[], picked: string[]): string[] {
+  const added = picked.filter((m) => !previous.includes(m))
+  if (added.includes(NO_PREFERENCE)) return [NO_PREFERENCE]
+  return added.length > 0 ? picked.filter((m) => m !== NO_PREFERENCE) : picked
+}
+
+/** "Going (3)", or "Going (3 + 2 guests)" when people are bringing guests. */
+export function withGuests(label: string, people: number, guests: number): string {
+  const extra = guests ? ` + ${guests} ${guests === 1 ? 'guest' : 'guests'}` : ''
+  return `${label} (${people}${extra})`
+}
+
+const googleTime = (moment: Date) => moment.toISOString().replace(/[-:]|\.\d{3}/g, '')
+
+/** A link that opens Google Calendar with this date filled in, ready to save. */
+export function googleCalendarUrl(event: {
+  title: string
+  starts_at: string
+  duration_minutes: number
+  location: string | null
+  notes: string | null
+}): string {
+  const start = new Date(event.starts_at)
+  const end = new Date(start.getTime() + event.duration_minutes * 60_000)
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${googleTime(start)}/${googleTime(end)}`,
+  })
+  if (event.location) params.set('location', event.location)
+  if (event.notes) params.set('details', event.notes)
+  return `https://calendar.google.com/calendar/render?${params}`
+}

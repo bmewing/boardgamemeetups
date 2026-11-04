@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDuration, ordinal, scheduleLabel } from './meetupFormat'
+import {
+  formatDuration,
+  googleCalendarUrl,
+  ordinal,
+  pickMoods,
+  scheduleLabel,
+  withGuests,
+} from './meetupFormat'
 import { tableFit } from './tableFit'
 
 describe('tableFit', () => {
@@ -48,5 +55,40 @@ describe('scheduleLabel', () => {
     expect(formatDuration(180)).toBe('3 h')
     expect(formatDuration(150)).toBe('2 h 30 min')
     expect(formatDuration(45)).toBe('45 min')
+  })
+})
+
+describe('pickMoods', () => {
+  it('keeps No preference on its own', () => {
+    expect(pickMoods([], ['chill'])).toEqual(['chill'])
+    expect(pickMoods(['chill'], ['chill', 'no_preference'])).toEqual(['no_preference'])
+    expect(pickMoods(['no_preference'], ['no_preference', 'brain'])).toEqual(['brain'])
+    expect(pickMoods(['chill', 'brain'], ['brain'])).toEqual(['brain'])
+  })
+})
+
+describe('withGuests', () => {
+  it('adds guests to a headcount only when there are some', () => {
+    expect(withGuests('Going', 3, 0)).toBe('Going (3)')
+    expect(withGuests('Going', 3, 1)).toBe('Going (3 + 1 guest)')
+    expect(withGuests('Maybe', 1, 2)).toBe('Maybe (1 + 2 guests)')
+  })
+})
+
+describe('googleCalendarUrl', () => {
+  it('fills in the date in UTC', () => {
+    const url = new URL(
+      googleCalendarUrl({
+        title: 'Thursday Crew',
+        starts_at: '2026-11-06T01:00:00Z',
+        duration_minutes: 180,
+        location: '12 Elm St',
+        notes: null,
+      }),
+    )
+    expect(url.searchParams.get('text')).toBe('Thursday Crew')
+    expect(url.searchParams.get('dates')).toBe('20261106T010000Z/20261106T040000Z')
+    expect(url.searchParams.get('location')).toBe('12 Elm St')
+    expect(url.searchParams.has('details')).toBe(false)
   })
 })

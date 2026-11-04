@@ -26,6 +26,7 @@ import {
   useGroups,
 } from '../api/groups'
 import { useMe } from '../api/me'
+import { CalendarFeedCard } from '../components/CalendarFeedCard'
 import { formatShortDate, formatTime, ROLE_LABELS } from '../components/meetupFormat'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
 import { plural } from '../components/userGameFields'
@@ -158,7 +159,7 @@ function GroupCard({ group }: { group: GroupSummary }) {
         <Text size="sm" c="dimmed">
           {plural(group.member_count, 'member')}
           {next
-            ? ` · Next: ${formatShortDate(next.local_date)}, ${formatTime(next.local_time)} · ${next.yes} going`
+            ? ` · Next: ${formatShortDate(next.local_date)}, ${formatTime(next.local_time)} · ${next.headcount} going`
             : ' · No dates coming up'}
         </Text>
       </Stack>
@@ -206,6 +207,8 @@ export function GroupsPage() {
             ))}
           </Stack>
         ))}
+
+      {groups.data && groups.data.groups.length > 0 && <CalendarFeedCard />}
     </Stack>
   )
 }

@@ -12,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -55,7 +56,10 @@ class RsvpResponse(StrEnum):
 
 class Group(Base):
     __tablename__ = "groups"
-    __table_args__ = (CheckConstraint("duration_minutes > 0", name="duration_positive"),)
+    __table_args__ = (
+        CheckConstraint("duration_minutes > 0", name="duration_positive"),
+        CheckConstraint("plus_one_limit >= 0", name="plus_one_limit_not_negative"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(80))
@@ -70,6 +74,8 @@ class Group(Base):
     start_time: Mapped[time] = mapped_column(Time, default=time(19, 0))
     duration_minutes: Mapped[int] = mapped_column(Integer, default=180)
     location: Mapped[str | None] = mapped_column(String(200))
+    # Guests each member may bring to a date; 0 means no guests.
+    plus_one_limit: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -159,6 +165,7 @@ class Meetup(Base):
 
 class MeetupRsvp(Base):
     __tablename__ = "meetup_rsvps"
+    __table_args__ = (CheckConstraint("guests >= 0", name="guests_not_negative"),)
 
     meetup_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("meetups.id", ondelete="CASCADE"), primary_key=True
@@ -167,6 +174,25 @@ class MeetupRsvp(Base):
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
     )
     response: Mapped[RsvpResponse] = mapped_column(_string_enum(RsvpResponse))
+    # Guests coming along (yes or maybe only), up to the group's plus-one limit.
+    guests: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     responded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class MeetupRsvpMood(Base):
+    """A mood someone is in for a date they might come to (yes or maybe)."""
+
+    __tablename__ = "meetup_rsvp_moods"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["meetup_id", "user_id"],
+            ["meetup_rsvps.meetup_id", "meetup_rsvps.user_id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+    meetup_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    mood_id: Mapped[str] = mapped_column(String(32), ForeignKey("moods.id"), primary_key=True)

@@ -18,6 +18,8 @@ export type Meetup = components['schemas']['MeetupRead']
 export type MeetupUpdate = components['schemas']['MeetupUpdate']
 export type MeetupCreate = components['schemas']['MeetupCreate']
 export type RsvpResponse = components['schemas']['RsvpResponse']
+export type RsvpIn = components['schemas']['RsvpIn']
+export type Rsvp = components['schemas']['RsvpRead']
 export type MeetupGames = components['schemas']['MeetupGames']
 export type GroupGame = components['schemas']['GroupGameRead']
 export type Schedule = NonNullable<Group['schedule']>
@@ -229,10 +231,16 @@ export function useMeetup(meetupId: string) {
   })
 }
 
-function useMeetupMutation<T>(meetupId: string, send: (input: T) => Promise<Meetup>) {
+function useMeetupMutation<T>(
+  meetupId: string,
+  send: (input: T) => Promise<Meetup>,
+  scope?: string,
+) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: send,
+    // Mutations sharing a scope run one at a time, in order.
+    scope: scope ? { id: scope } : undefined,
     onSuccess: (meetup) => {
       queryClient.setQueryData(meetupKey(meetupId), meetup)
       return Promise.all([
@@ -244,15 +252,38 @@ function useMeetupMutation<T>(meetupId: string, send: (input: T) => Promise<Meet
   })
 }
 
+/** Sends your whole answer each time; changes save one at a time, in order. */
 export function useRsvp(meetupId: string) {
-  return useMeetupMutation(meetupId, async (response: RsvpResponse) => {
-    const { data, error } = await api.PUT('/api/meetups/{meetup_id}/rsvp', {
-      params: { path: { meetup_id: meetupId } },
-      body: { response },
-    })
-    if (error) throw new Error(detailOf(error, 'Could not save your answer'))
-    return data
+  return useMeetupMutation(
+    meetupId,
+    async (body: RsvpIn) => {
+      const { data, error } = await api.PUT('/api/meetups/{meetup_id}/rsvp', {
+        params: { path: { meetup_id: meetupId } },
+        body,
+      })
+      if (error) throw new Error(detailOf(error, 'Could not save your answer'))
+      return data
+    },
+    `rsvp-${meetupId}`,
+  )
+}
+
+/** Downloads the date as an .ics file. A plain link can't carry the sign-in token, so the
+ * file is fetched and then handed to the browser to save. */
+export async function downloadMeetupCalendar(meetupId: string) {
+  const { data, error, response } = await api.GET('/api/meetups/{meetup_id}/calendar.ics', {
+    params: { path: { meetup_id: meetupId } },
+    parseAs: 'blob',
   })
+  if (error || !data) throw new Error('Could not get the calendar file')
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  const name = /filename="([^"]+)"/.exec(disposition)?.[1] ?? 'meetup.ics'
+  const url = URL.createObjectURL(data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 export function useUpdateMeetup(meetupId: string) {

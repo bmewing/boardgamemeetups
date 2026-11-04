@@ -787,6 +787,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meetups/{meetup_id}/calendar.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Meetup Calendar File
+         * @description This date as a calendar file, to add to any calendar app.
+         */
+        get: operations["meetup_calendar_file_api_meetups__meetup_id__calendar_ics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meetups/{meetup_id}/games": {
         parameters: {
             query?: never;
@@ -797,10 +817,57 @@ export interface paths {
         /**
          * List Meetup Games
          * @description Games the people coming could play: owned and marked "will bring" by someone who said
-         *     yes, and playable by that many people, all together or (if the group is willing to
-         *     split) at a table that leaves nobody on their own.
+         *     yes, and playable by everyone going (guests included), all together or (if the group is
+         *     willing to split) at a table that leaves nobody on their own.
          */
         get: operations["list_meetup_games_api_meetups__meetup_id__games_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/calendar-feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Calendar Feed
+         * @description Your feed's link, or null if you haven't made one (or turned it off).
+         */
+        get: operations["read_calendar_feed_api_me_calendar_feed_get"];
+        put?: never;
+        /**
+         * Make Calendar Feed
+         * @description A new link. Any link you had stops working, so calendars subscribed to it go quiet.
+         */
+        post: operations["make_calendar_feed_api_me_calendar_feed_post"];
+        /** Turn Off Calendar Feed */
+        delete: operations["turn_off_calendar_feed_api_me_calendar_feed_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar/{token}.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Calendar Feed
+         * @description Every date in your groups that you might go to: ones you said yes or maybe to, and
+         *     ones you haven't answered. Cancelled dates stay in, marked cancelled, so calendar apps
+         *     take them off. No sign-in: the token is the key.
+         */
+        get: operations["calendar_feed_api_calendar__token__ics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -832,6 +899,16 @@ export interface components {
             ownership: components["schemas"]["Ownership"] | null;
             /** On Wishlist */
             on_wishlist: boolean;
+        };
+        /** CalendarFeedRead */
+        CalendarFeedRead: {
+            /** Token */
+            token: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** CandidateRead */
         CandidateRead: {
@@ -1137,6 +1214,8 @@ export interface components {
             time_zone: string;
             /** Willing To Split */
             willing_to_split: boolean;
+            /** Plus One Limit */
+            plus_one_limit: number;
         };
         /** GroupCreate */
         GroupCreate: {
@@ -1234,6 +1313,8 @@ export interface components {
             duration_minutes: number;
             /** Location */
             location: string | null;
+            /** Plus One Limit */
+            plus_one_limit: number;
             my_role: components["schemas"]["GroupRole"];
             /** Members */
             members: components["schemas"]["MemberRead"][];
@@ -1286,6 +1367,8 @@ export interface components {
             duration_minutes?: number | null;
             /** Location */
             location?: string | null;
+            /** Plus One Limit */
+            plus_one_limit?: number | null;
         };
         /** GroupsRead */
         GroupsRead: {
@@ -1433,6 +1516,8 @@ export interface components {
             maybe: number;
             /** No */
             no: number;
+            /** Headcount */
+            headcount: number;
             my_response: components["schemas"]["RsvpResponse"] | null;
         };
         /**
@@ -1458,6 +1543,8 @@ export interface components {
         MeetupGames: {
             /** Confirmed */
             confirmed: number;
+            /** Guests */
+            guests: number;
             /** Willing To Split */
             willing_to_split: boolean;
             /** Games */
@@ -1502,6 +1589,8 @@ export interface components {
             maybe: number;
             /** No */
             no: number;
+            /** Headcount */
+            headcount: number;
             my_response: components["schemas"]["RsvpResponse"] | null;
             /** Notes */
             notes: string | null;
@@ -1511,6 +1600,10 @@ export interface components {
             rsvps: components["schemas"]["RsvpRead"][];
             /** No Answer */
             no_answer: components["schemas"]["PersonRead"][];
+            /** My Guests */
+            my_guests: number;
+            /** My Moods */
+            my_moods: string[];
         };
         /**
          * MeetupStatus
@@ -1693,14 +1786,28 @@ export interface components {
             person: components["schemas"]["PersonRead"];
             relation: components["schemas"]["Relation"];
         };
-        /** RsvpIn */
+        /**
+         * RsvpIn
+         * @description Your whole answer. Guests and moods only go with a yes or maybe; a no clears them.
+         */
         RsvpIn: {
             response: components["schemas"]["RsvpResponse"];
+            /**
+             * Guests
+             * @default 0
+             */
+            guests: number;
+            /** Moods */
+            moods?: string[];
         };
         /** RsvpRead */
         RsvpRead: {
             person: components["schemas"]["PersonRead"];
             response: components["schemas"]["RsvpResponse"];
+            /** Guests */
+            guests: number;
+            /** Moods */
+            moods: string[];
         };
         /**
          * RsvpResponse
@@ -3329,6 +3436,37 @@ export interface operations {
             };
         };
     };
+    meetup_calendar_file_api_meetups__meetup_id__calendar_ics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_meetup_games_api_meetups__meetup_id__games_get: {
         parameters: {
             query?: never;
@@ -3347,6 +3485,95 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeetupGames"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_calendar_feed_api_me_calendar_feed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedRead"] | null;
+                };
+            };
+        };
+    };
+    make_calendar_feed_api_me_calendar_feed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarFeedRead"];
+                };
+            };
+        };
+    };
+    turn_off_calendar_feed_api_me_calendar_feed_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    calendar_feed_api_calendar__token__ics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": string;
                 };
             };
             /** @description Validation Error */

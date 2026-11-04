@@ -2,6 +2,7 @@
 
 from app.db import Base
 from app.models.bgg_throttle import BggThrottle
+from app.models.calendar import CalendarFeed
 from app.models.friend import Friendship, FriendshipStatus, InviteLink, UserBlock
 from app.models.game import Game, PlayerCountVotes
 from app.models.group import (
@@ -11,6 +12,7 @@ from app.models.group import (
     GroupRole,
     Meetup,
     MeetupRsvp,
+    MeetupRsvpMood,
     MeetupStatus,
     RsvpResponse,
 )
@@ -30,6 +32,7 @@ from app.models.user_game import (
 __all__ = [
     "Base",
     "BggThrottle",
+    "CalendarFeed",
     "CollectionVisibility",
     "Friendship",
     "FriendshipStatus",
@@ -41,6 +44,7 @@ __all__ = [
     "InviteLink",
     "Meetup",
     "MeetupRsvp",
+    "MeetupRsvpMood",
     "MeetupStatus",
     "Mood",
     "Ownership",

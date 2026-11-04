@@ -22,13 +22,13 @@ These are folded into the checklist below.
 - **Inviting people who don't have an account yet.** An invite link or email invite. Without it, nobody can bootstrap a group.
 - **Notifications:** emails for invites, RSVP reminders, the final game pick, and "you're bringing X". Resend's free tier covers this.
 - **Host role and permissions:** who can edit, cancel, lock the vote, or reassign who brings what. Optional co-hosts.
-- **Capacity:** the host's max seats, plus-ones/guests, and a waitlist.
+- **Capacity:** plus-ones/guests now (Phase 8); max seats and a waitlist later (Phase 13).
 - **Game length vs. meetup length:** a 4-hour game shouldn't be recommended for a 2-hour evening.
 - **Big groups:** with 9 people, the recommendation should be "two tables", not one game. This is v2, but the data model should allow it.
 - **Expansions:** treat them as attached to their base game, not as separate recommendations.
 - **Close the loop:** log what was actually played after a meetup. That feeds "recently played" into future recommendations.
 - **Supabase free tier pauses after a week without activity.** Fine while people use the app. Functions get no platform health checks, so if usage is sparse, add a weekly GitHub Actions ping of `/api/health`.
-- **Privacy:** the address is shown only to invitees, and users control who can see their collection (friends vs. public). Joining a group (invited, then confirmed) shares all of your game data except notes with that group's members under your name, whatever your collection visibility says. Notes stay private to you.
+- **Privacy:** the address is shown only to group members, and users control who can see their collection (friends vs. public). Joining a group (invited, then confirmed) shares all of your game data except notes with that group's members under your name, whatever your collection visibility says. Notes stay private to you.
 - **Time zones and calendar export** (.ics file / "add to calendar").
 - **Mobile-first UI:** most RSVPs and votes will happen on phones.
 - **Account deletion and data export:** basic hygiene.
@@ -150,12 +150,21 @@ Every meetup belongs to a group, so meetups and RSVPs move here from Phase 8.
 - [x] Pages: Groups (yours, invites waiting for you), a group (dates, members, library, settings), a meetup (RSVP, who's coming, games that fit). Groups goes in the header
 - **Done when:** a weekly group shows the next 8 dates; moving one date leaves the others alone; changing the rule to biweekly updates only untouched future dates; members RSVP and the games shown follow the confirmed count and the split setting (met 2026-11-04, in production)
 
-### Phase 8 — Moods, capacity & calendar
-- [ ] RSVP moods from the Phase 4 `moods` list, plus the meetup-only *Something new, Old favorite, No preference*
-- [ ] Plus-ones, a host's max seats, and a waitlist when over
-- [ ] Lock RSVPs when the vote locks (Phase 10)
-- [ ] Address only visible to members; .ics download
-- **Done when:** 3 test users RSVP with moods and plus-ones, and the headcount and waitlist are correct
+### Phase 8 — Moods, plus-ones & calendar
+Max seats and a waitlist are on the back burner (Phase 13): whoever runs a group only invites as many people as can be seated.
+
+- [x] RSVP moods (`meetup_rsvp_moods`: meetup, user, mood, like `user_game_moods`), asked only with a yes or maybe. Any number from the whole `moods` list, including the moods that can't be tagged on a game (*Something new, Old favorite*, the co-op ones from BGG's mechanics); *No preference* rules out the others
+- [x] Plus-ones: a guest count on each RSVP (yes or maybe only), up to the group's `plus_one_limit`, set by the owner and admins (0 by default, so guests are off until allowed). Lowering the limit trims existing RSVPs down to it. Guests aren't users, so they count toward the headcount but have no games or answers for Phase 9 to score
+- [x] Headcount = members who said yes + their guests. The games that fit a meetup (Phase 7) follow the headcount, not just the yes count
+- [x] Address only visible to members: already true (meetups and group details need membership; the invites waiting for you leave the location out). Add a test that keeps it so
+- [x] One meetup to your calendar: an .ics download (fetched with the sign-in token, then saved, since a plain link can't carry it) and an "Add to Google Calendar" link
+- [x] Calendar feed, self-hosted (no third party holds members' addresses): one feed per person covering all their groups, at `GET /api/calendar/{token}.ics`, which needs no sign-in
+  - `calendar_feeds` (user, random token, created, turned-off time), stored rows like `invite_links`, so a leaked link can be turned off and replaced
+  - Shows the dates the person might go to: unanswered, maybe and yes; a no drops the date. Upcoming dates plus the last 30 days. Cancelled dates stay in, marked `STATUS:CANCELLED`, so calendars remove or strike them
+  - Each event's `UID` is the meetup id, with a `SEQUENCE` taken from `updated_at` so it goes up when the date changes; times in UTC from `starts_at`
+  - Fetching the feed also tops up each group's next 8 dates, since otherwise that only happens when someone opens the group page
+  - Calendar apps refresh slowly (Google can take hours, sometimes a day), so the meetup page stays the source of truth and Phase 11's "meetup changed" email covers urgent changes. Their polling also keeps Supabase from pausing
+- **Done when:** 3 test users RSVP with moods and plus-ones, the headcount and the games that fit follow along, the plus-one limit is enforced, and a subscribed calendar shows each user's yes, maybe and unanswered dates but not their no's
 
 ### Phase 9 — Recommendations
 - [ ] Candidate pool = games owned by confirmed attendees and marked "will bring" (expansions folded into base, widening its player range); Phase 7 already filters it by headcount and the split setting
@@ -184,6 +193,7 @@ Every meetup belongs to a group, so meetups and RSVPs move here from Phase 8.
 ### Phase 10 — Voting, bring assignment & play log
 - [ ] `meetup_nominations` (from recs or any attendee-owned game) + `meetup_votes` (approval voting: vote for any number)
 - [ ] Live tally; host "locks" the pick(s), and more than one pick is allowed
+- [ ] Lock RSVPs when the pick locks (moved from Phase 8)
 - [ ] Bring assignment: default to the attending owner (if several, the host picks or the first volunteer claims it); `bring_assignments` table
 - [ ] After the meetup: "what did we play?" log → `plays` table (feeds recently-played)
 - **Done when:** a full meetup cycle runs: RSVP → recs → vote → lock → owner tagged → play logged
@@ -213,6 +223,7 @@ Every meetup belongs to a group, so meetups and RSVPs move here from Phase 8.
 
 ### Phase 13 — Post-MVP / nice-to-haves
 - [ ] Multi-table splitting for big groups (recommend 2 games that together seat everyone)
+- [ ] Max seats and a waitlist (moved from Phase 8). Open questions: who sets the seats (an optional host per meetup, or the owner and admins); whether a party that doesn't fully fit waits as a whole or takes the seats left; whether someone later in line can take a free seat ahead of a bigger party. Order the line by when each person first said yes (`responded_at` changes on every edit, so it can't be used)
 - [ ] PWA install + push notifications
 - [ ] Ranked-choice voting option
 - [ ] Group stats (most played, H-index, who brings what most)
