@@ -34,14 +34,9 @@ export function Layout() {
                 <Title order={3}>Board Game Group</Title>
               </Anchor>
               {isAuthenticated && (
-                <>
-                  <Anchor component={NavLink} to="/collection" c="inherit" fw={500}>
-                    My games
-                  </Anchor>
-                  <Anchor component={NavLink} to="/games" c="inherit" fw={500}>
-                    Search
-                  </Anchor>
-                </>
+                <Anchor component={NavLink} to="/games" c="inherit" fw={500}>
+                  Search
+                </Anchor>
               )}
             </Group>
             <UserMenu />
