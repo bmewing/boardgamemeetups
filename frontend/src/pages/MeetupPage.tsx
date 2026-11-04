@@ -48,6 +48,9 @@ import {
   withGuests,
 } from '../components/meetupFormat'
 import { MeetupForm } from '../components/MeetupForm'
+import { VotePanel } from '../components/VotePanel'
+import { useNominate, useVote } from '../api/votes'
+import { PlayLogPanel } from '../components/PlayLogPanel'
 import { ReasonChips } from '../components/Rollup'
 import { lengthLabel } from '../components/rollupFormat'
 import { plural } from '../components/userGameFields'
@@ -246,6 +249,9 @@ const TOP_GAMES = 10
 
 function FittingGames({ meetup }: { meetup: Meetup }) {
   const games = useMeetupGames(meetup.id)
+  const vote = useVote(meetup.id)
+  const nominate = useNominate(meetup.id)
+  const nominated = new Set(vote.data?.nominations.map((n) => n.game.id))
   const [showAll, setShowAll] = useState(false)
   if (meetup.status === 'cancelled') return null
   if (games.isPending) {
@@ -286,7 +292,26 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
             const length = lengthLabel(g.rollup)
             const widened = g.expansions.length > 0 && g.max_players !== g.game.max_players
             return (
-              <GameCard key={g.game.id} game={g.game}>
+              <GameCard
+                key={g.game.id}
+                game={g.game}
+                // In the footer, so tapping it doesn't also open the game's page.
+                below={
+                  vote.data?.can_vote ? (
+                    <Group>
+                      <Button
+                        size="xs"
+                        variant="light"
+                        disabled={nominated.has(g.game.id)}
+                        loading={nominate.isPending && nominate.variables === g.game.id}
+                        onClick={() => nominate.mutate(g.game.id)}
+                      >
+                        {nominated.has(g.game.id) ? 'Nominated' : 'Nominate'}
+                      </Button>
+                    </Group>
+                  ) : undefined
+                }
+              >
                 <Group gap="xs">
                   <Text size="sm">
                     Brought by {g.bringers.map((p) => p.display_name).join(', ')}
@@ -473,6 +498,8 @@ export function MeetupPage() {
         <People title="Haven't said" people={m.no_answer.map((person) => ({ person }))} />
         <MoodSummary rsvps={m.rsvps} />
       </Stack>
+      <PlayLogPanel meetup={m} members={[...m.rsvps.map((r) => r.person), ...m.no_answer]} />
+      <VotePanel meetup={m} />
       <FittingGames meetup={m} />
     </Stack>
   )

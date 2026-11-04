@@ -880,6 +880,169 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meetups/{meetup_id}/vote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Vote */
+        get: operations["read_vote_api_meetups__meetup_id__vote_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/nominations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Nominate
+         * @description Put forward a game someone going owns. You vote for what you nominate; nominating a
+         *     game that's already up just adds your vote.
+         */
+        post: operations["nominate_api_meetups__meetup_id__nominations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/nominations/{nomination_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Withdraw Nomination
+         * @description Take a game off the ballot: whoever nominated it, or the owner or an admin.
+         */
+        delete: operations["withdraw_nomination_api_meetups__meetup_id__nominations__nomination_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/nominations/{nomination_id}/vote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Vote */
+        put: operations["vote_api_meetups__meetup_id__nominations__nomination_id__vote_put"];
+        post?: never;
+        /** Unvote */
+        delete: operations["unvote_api_meetups__meetup_id__nominations__nomination_id__vote_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lock Pick
+         * @description Choose the game or games to play, and stop the voting. A picked game with exactly one
+         *     owner going is tagged as theirs to bring.
+         */
+        post: operations["lock_pick_api_meetups__meetup_id__lock_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unlock Pick
+         * @description Open the voting again. The pick and who was bringing it are cleared.
+         */
+        post: operations["unlock_pick_api_meetups__meetup_id__unlock_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/bring/{game_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Bring Game
+         * @description Claim a picked game to bring, or (owner or admin) hand it to another owner going.
+         */
+        put: operations["bring_game_api_meetups__meetup_id__bring__game_id__put"];
+        post?: never;
+        /**
+         * Stop Bringing
+         * @description No longer bringing it (yourself, or anyone for the owner or an admin).
+         */
+        delete: operations["stop_bringing_api_meetups__meetup_id__bring__game_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Log */
+        get: operations["read_log_api_meetups__meetup_id__log_get"];
+        /**
+         * Save Play Log
+         * @description Record (or correct) what was played. Each player's play count for each game goes up
+         *     by one; correcting a log takes the old one's plays back off first.
+         */
+        put: operations["save_play_log_api_meetups__meetup_id__log_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -903,6 +1066,20 @@ export interface components {
             ownership: components["schemas"]["Ownership"] | null;
             /** On Wishlist */
             on_wishlist: boolean;
+        };
+        /**
+         * BringIn
+         * @description Who brings it: yourself when left out. Someone else takes the owner or an admin.
+         */
+        BringIn: {
+            /** User Id */
+            user_id?: string | null;
+        };
+        /** BringRead */
+        BringRead: {
+            person: components["schemas"]["PersonRead"] | null;
+            /** Owners Going */
+            owners_going: components["schemas"]["PersonRead"][];
         };
         /** CalendarFeedRead */
         CalendarFeedRead: {
@@ -1490,6 +1667,40 @@ export interface components {
             /** On App */
             on_app: boolean;
         };
+        /** LockIn */
+        LockIn: {
+            /** Nomination Ids */
+            nomination_ids: string[];
+        };
+        /**
+         * LogIn
+         * @description The whole log; it replaces what was there.
+         */
+        LogIn: {
+            /** Attendees */
+            attendees: string[];
+            /** Plays */
+            plays: components["schemas"]["PlayIn"][];
+        };
+        /** LogRead */
+        LogRead: {
+            /** Logged */
+            logged: boolean;
+            /** Assumed */
+            assumed: boolean;
+            /** Logged At */
+            logged_at: string | null;
+            /** Can Log */
+            can_log: boolean;
+            /** Attendees */
+            attendees: components["schemas"]["PersonRead"][];
+            /** Plays */
+            plays: components["schemas"]["PlayRead"][];
+            /** Suggested Attendees */
+            suggested_attendees: components["schemas"]["PersonRead"][];
+            /** Suggested Games */
+            suggested_games: components["schemas"]["SuggestedGame"][];
+        };
         /**
          * MatchStatus
          * @enum {string}
@@ -1714,6 +1925,32 @@ export interface components {
             /** People */
             people: components["schemas"]["PersonRead"][];
         };
+        /** NominationIn */
+        NominationIn: {
+            /** Game Id */
+            game_id: number;
+        };
+        /** NominationRead */
+        NominationRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            game: components["schemas"]["GameSummary"];
+            nominated_by: components["schemas"]["PersonRead"] | null;
+            /** Votes */
+            votes: components["schemas"]["PersonRead"][];
+            /** My Vote */
+            my_vote: boolean;
+            /** Picked */
+            picked: boolean;
+            /** Fits Now */
+            fits_now: boolean;
+            bring: components["schemas"]["BringRead"] | null;
+            /** Can Remove */
+            can_remove: boolean;
+        };
         /** NthWeekdayOfMonth */
         NthWeekdayOfMonth: {
             /**
@@ -1775,6 +2012,31 @@ export interface components {
             display_name: string;
             /** Avatar Url */
             avatar_url: string | null;
+        };
+        /** PlayIn */
+        PlayIn: {
+            /** Game Id */
+            game_id: number;
+            /** Coop */
+            coop: boolean;
+            /** Coop Won */
+            coop_won?: boolean | null;
+            /** Players */
+            players?: string[];
+            /** Winners */
+            winners?: string[];
+        };
+        /** PlayRead */
+        PlayRead: {
+            game: components["schemas"]["GameSummary"];
+            /** Coop */
+            coop: boolean;
+            /** Coop Won */
+            coop_won: boolean | null;
+            /** Players */
+            players: components["schemas"]["PersonRead"][];
+            /** Winners */
+            winners: components["schemas"]["PersonRead"][];
         };
         /** PlayerCountIn */
         PlayerCountIn: {
@@ -1921,6 +2183,12 @@ export interface components {
          * @enum {string}
          */
         Source: "bgg" | "file" | "manual";
+        /** SuggestedGame */
+        SuggestedGame: {
+            game: components["schemas"]["GameSummary"];
+            /** Coop */
+            coop: boolean;
+        };
         /** UserGameRead */
         UserGameRead: {
             game: components["schemas"]["GameSummary"];
@@ -2031,6 +2299,23 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VoteRead */
+        VoteRead: {
+            /** Locked */
+            locked: boolean;
+            /** Locked At */
+            locked_at: string | null;
+            /** Can Vote */
+            can_vote: boolean;
+            /** Can Lock */
+            can_lock: boolean;
+            /** Headcount */
+            headcount: number;
+            /** Nominations */
+            nominations: components["schemas"]["NominationRead"][];
+            /** Nominatable */
+            nominatable: components["schemas"]["GameBrief"][];
         };
         /**
          * WholeFile
@@ -3640,6 +3925,368 @@ export interface operations {
                 };
                 content: {
                     "text/calendar": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_vote_api_meetups__meetup_id__vote_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    nominate_api_meetups__meetup_id__nominations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NominationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_nomination_api_meetups__meetup_id__nominations__nomination_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+                nomination_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vote_api_meetups__meetup_id__nominations__nomination_id__vote_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+                nomination_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unvote_api_meetups__meetup_id__nominations__nomination_id__vote_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+                nomination_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lock_pick_api_meetups__meetup_id__lock_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LockIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlock_pick_api_meetups__meetup_id__unlock_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bring_game_api_meetups__meetup_id__bring__game_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+                game_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BringIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_bringing_api_meetups__meetup_id__bring__game_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+                game_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_log_api_meetups__meetup_id__log_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_play_log_api_meetups__meetup_id__log_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogRead"];
                 };
             };
             /** @description Validation Error */
