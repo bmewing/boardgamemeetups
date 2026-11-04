@@ -1,5 +1,3 @@
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -8,31 +6,10 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Game, InviteLink
-from tests.conftest import TokenFactory, bearer
+from tests.conftest import MakePerson, Person
 
 # Far outside BGG's range, so a local database holding the real catalog can't interfere.
 GAME_ID = 990_200_001
-
-
-@dataclass
-class Person:
-    id: str
-    email: str
-    headers: dict[str, str]
-
-
-MakePerson = Callable[[str], Awaitable[Person]]
-
-
-@pytest.fixture
-def person(client: AsyncClient, make_token: TokenFactory) -> MakePerson:
-    async def make(name: str) -> Person:
-        email = f"{name.lower()}@example.com"
-        headers = bearer(make_token(f"kp_{name.lower()}", email=email, given_name=name))
-        me = (await client.get("/api/me", headers=headers)).json()
-        return Person(id=me["id"], email=email, headers=headers)
-
-    return make
 
 
 async def friends_of(client: AsyncClient, who: Person) -> dict[str, list[str]]:

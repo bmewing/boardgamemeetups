@@ -1,7 +1,8 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import { Anchor, AppShell, Container, Group, Image, Title } from '@mantine/core'
+import { Anchor, AppShell, Container, Group, Image, Indicator, Title } from '@mantine/core'
 import { Link, NavLink, Outlet } from 'react-router'
 
+import { useGroups } from '../api/groups'
 import { useResumeInvite } from '../auth/pendingInvite'
 import { UserMenu } from './UserMenu'
 
@@ -22,6 +23,25 @@ function PoweredByBgg() {
   )
 }
 
+/** Groups, with a dot when an invite is waiting for an answer. */
+function GroupsLink() {
+  const groups = useGroups()
+  const waiting = groups.data?.invites.length ?? 0
+  return (
+    <Indicator disabled={waiting === 0} color="red" size={8} offset={-2}>
+      <Anchor
+        component={NavLink}
+        to="/groups"
+        c="inherit"
+        fw={500}
+        aria-label={waiting ? `Groups (${waiting} invites waiting)` : undefined}
+      >
+        Groups
+      </Anchor>
+    </Indicator>
+  )
+}
+
 export function Layout() {
   const { isAuthenticated } = useKindeAuth()
   useResumeInvite()
@@ -36,9 +56,12 @@ export function Layout() {
                 <Title order={3}>Board Game Group</Title>
               </Anchor>
               {isAuthenticated && (
-                <Anchor component={NavLink} to="/games" c="inherit" fw={500}>
-                  Search
-                </Anchor>
+                <>
+                  <GroupsLink />
+                  <Anchor component={NavLink} to="/games" c="inherit" fw={500}>
+                    Search
+                  </Anchor>
+                </>
               )}
             </Group>
             <UserMenu />

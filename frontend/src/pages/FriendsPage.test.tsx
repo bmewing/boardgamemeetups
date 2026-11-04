@@ -44,11 +44,49 @@ describe('FriendsPage', () => {
     })
     renderWithProviders(<FriendsPage />)
 
-    await userEvent.type(await screen.findByLabelText(/Their email address/), 'ben@example.com')
+    await userEvent.type(await screen.findByLabelText(/Find someone/), 'ben@example.com')
     await userEvent.click(screen.getByRole('button', { name: 'Send request' }))
 
     expect(await screen.findByText('Request sent to Ben.')).toBeInTheDocument()
     expect(sent).toEqual({ email: 'ben@example.com' })
+  })
+
+  it('suggests people as you type and sends to the one picked', async () => {
+    let sent: unknown
+    let searched = ''
+    serve(none, {
+      'GET /api/people/search': (request) => {
+        searched = new URL(request.url).searchParams.get('q') ?? ''
+        return Response.json([{ person: ben, relation: 'none' }])
+      },
+      'POST /api/friends/requests': async (request) => {
+        sent = await request.json()
+        return Response.json({ person: ben, relation: 'outgoing' })
+      },
+    })
+    renderWithProviders(<FriendsPage />)
+
+    await userEvent.type(await screen.findByLabelText(/Find someone/), 'Be')
+    await userEvent.click(await screen.findByRole('option', { name: /Ben/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Send request' }))
+
+    expect(await screen.findByText('Request sent to Ben.')).toBeInTheDocument()
+    expect(searched).toBe('Be')
+    expect(sent).toEqual({ user_id: ben.id })
+  })
+
+  it('asks for a pick or a full email', async () => {
+    serve(none, { 'GET /api/people/search': () => Response.json([]) })
+    renderWithProviders(<FriendsPage />)
+
+    await userEvent.type(await screen.findByLabelText(/Find someone/), 'Zed')
+    await userEvent.click(screen.getByRole('button', { name: 'Send request' }))
+
+    expect(
+      await screen.findByText(
+        'Pick someone from the suggestions, or type their full email address.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('points to invite links when nobody has that email', async () => {
@@ -58,7 +96,7 @@ describe('FriendsPage', () => {
     })
     renderWithProviders(<FriendsPage />)
 
-    await userEvent.type(await screen.findByLabelText(/Their email address/), 'new@example.com')
+    await userEvent.type(await screen.findByLabelText(/Find someone/), 'new@example.com')
     await userEvent.click(screen.getByRole('button', { name: 'Send request' }))
 
     expect(await screen.findByText('No one here uses that email yet')).toBeInTheDocument()

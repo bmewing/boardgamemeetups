@@ -32,6 +32,25 @@ async def test_first_request_creates_the_user(
     assert await count_users(db_session, "kp_new") == 1
 
 
+@pytest.mark.parametrize(
+    ("sent", "stored"),
+    [("America/Chicago", "America/Chicago"), ("Mars/Olympus_Mons", "UTC"), (None, "UTC")],
+)
+async def test_a_new_account_starts_in_the_browsers_time_zone(
+    client: AsyncClient, make_token: TokenFactory, sent: str | None, stored: str
+) -> None:
+    headers = bearer(make_token("kp_zone"))
+    if sent:
+        headers["X-Time-Zone"] = sent
+
+    first = await client.get("/api/me", headers=headers)
+    # Only the first request sets it; later ones from elsewhere don't move it.
+    later = await client.get("/api/me", headers={**headers, "X-Time-Zone": "Asia/Tokyo"})
+
+    assert first.json()["time_zone"] == stored
+    assert later.json()["time_zone"] == stored
+
+
 async def test_display_name_falls_back_to_email(
     client: AsyncClient, make_token: TokenFactory
 ) -> None:

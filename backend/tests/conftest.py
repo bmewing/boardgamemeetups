@@ -1,5 +1,6 @@
 import time
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from dataclasses import dataclass
 from typing import Any
 
 import jwt
@@ -125,3 +126,24 @@ async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
 
 def bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+@dataclass
+class Person:
+    id: str
+    email: str
+    headers: dict[str, str]
+
+
+MakePerson = Callable[[str], Awaitable[Person]]
+
+
+@pytest.fixture
+def person(client: AsyncClient, make_token: TokenFactory) -> MakePerson:
+    async def make(name: str) -> Person:
+        email = f"{name.lower()}@example.com"
+        headers = bearer(make_token(f"kp_{name.lower()}", email=email, given_name=name))
+        me = (await client.get("/api/me", headers=headers)).json()
+        return Person(id=me["id"], email=email, headers=headers)
+
+    return make

@@ -1,18 +1,18 @@
 import uuid
 from datetime import datetime
 from typing import Annotated
-from zoneinfo import available_timezones
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
-from app.auth import CurrentUser
+from app.auth import TIME_ZONES, CurrentUser
 from app.db import SessionDep
-from app.models import CollectionVisibility
+from app.groups import hand_over_groups
+from app.models import CollectionVisibility, User
 
 router = APIRouter(prefix="/me", tags=["me"])
-
-TIME_ZONES = frozenset(available_timezones())
 
 
 def known_time_zone(value: str) -> str:
@@ -25,7 +25,16 @@ def blank_to_none(value: str | None) -> str | None:
     return value or None
 
 
-DisplayName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+def single_spaces(value: str) -> str:
+    return " ".join(value.split())
+
+
+# Display names double as usernames: unique, ignoring case, with single spaces.
+DisplayName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=80),
+    AfterValidator(single_spaces),
+]
 TimeZone = Annotated[str, AfterValidator(known_time_zone)]
 BggUsername = Annotated[
     str | None,
@@ -59,13 +68,28 @@ async def read_me(user: CurrentUser) -> UserRead:
     return UserRead.model_validate(user)
 
 
+NAME_TAKEN = HTTPException(status.HTTP_409_CONFLICT, "That name is taken. Try another.")
+
+
 @router.patch("")
 async def update_me(changes: UserUpdate, user: CurrentUser, session: SessionDep) -> UserRead:
+    if changes.display_name and changes.display_name.lower() != user.display_name.lower():
+        clash = await session.scalar(
+            select(User.id).where(
+                func.lower(User.display_name) == changes.display_name.lower(), User.id != user.id
+            )
+        )
+        if clash is not None:
+            raise NAME_TAKEN
     for field, value in changes.model_dump(exclude_unset=True).items():
         # bgg_username may be cleared; the other fields are required on the user.
         if value is not None or field == "bgg_username":
             setattr(user, field, value)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError as exc:  # taken in the moment since we looked
+        await session.rollback()
+        raise NAME_TAKEN from exc
     await session.refresh(user)
     return UserRead.model_validate(user)
 
@@ -73,5 +97,6 @@ async def update_me(changes: UserUpdate, user: CurrentUser, session: SessionDep)
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_me(user: CurrentUser, session: SessionDep) -> None:
     # Removes our data only; the Kinde login itself remains until deleted there.
+    await hand_over_groups(session, user)
     await session.delete(user)
     await session.commit()

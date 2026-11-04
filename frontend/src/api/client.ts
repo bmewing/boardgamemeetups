@@ -25,6 +25,8 @@ api.use({
   async onRequest({ request }) {
     const token = await getAccessToken()
     if (token) request.headers.set('Authorization', `Bearer ${token}`)
+    // Only used when the API first sees you: a new account starts in this time zone.
+    request.headers.set('X-Time-Zone', Intl.DateTimeFormat().resolvedOptions().timeZone)
     return request
   },
 })
