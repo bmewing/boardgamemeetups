@@ -713,7 +713,8 @@ export interface paths {
         };
         /**
          * List Group Games
-         * @description Every game a member owns, with who owns it and what each member has said about it.
+         * @description Every game a member owns, with who owns it, what each member has said about it, and
+         *     all of that combined (members with no answers count as new to it).
          *
          *     Expansions are listed under their base game when a member owns that too.
          */
@@ -816,9 +817,12 @@ export interface paths {
         };
         /**
          * List Meetup Games
-         * @description Games the people coming could play: owned and marked "will bring" by someone who said
-         *     yes, and playable by everyone going (guests included), all together or (if the group is
-         *     willing to split) at a table that leaves nobody on their own.
+         * @description Games the people coming could play, best suited first: owned and marked "will bring"
+         *     by someone who said yes, and playable by everyone going (guests included), all together
+         *     or (if the group is willing to split) at a table that leaves nobody on their own.
+         *
+         *     Only yes answers count toward the ranking. Maybes only give a lift to games that would
+         *     still fit if they came too. Length is shown, never used to filter or rank.
          */
         get: operations["list_meetup_games_api_meetups__meetup_id__games_get"];
         put?: never;
@@ -1077,6 +1081,17 @@ export interface components {
              * @enum {string}
              */
             fit: "together" | "split";
+            /** Min Players */
+            min_players: number | null;
+            /** Max Players */
+            max_players: number;
+            /** Expansions */
+            expansions: components["schemas"]["GameBrief"][];
+            rollup: components["schemas"]["RollupRead"];
+            /** Score */
+            score: number;
+            /** Reasons */
+            reasons: components["schemas"]["ReasonRead"][];
         };
         /** FriendRead */
         FriendRead: {
@@ -1240,6 +1255,7 @@ export interface components {
             expansions: components["schemas"]["GameBrief"][];
             /** Answers */
             answers: components["schemas"]["MemberAnswers"][];
+            rollup: components["schemas"]["RollupRead"];
         };
         /** GroupInviteForMe */
         GroupInviteForMe: {
@@ -1545,6 +1561,8 @@ export interface components {
             confirmed: number;
             /** Guests */
             guests: number;
+            /** Maybes */
+            maybes: number;
             /** Willing To Split */
             willing_to_split: boolean;
             /** Games */
@@ -1637,7 +1655,7 @@ export interface components {
             weight_vote: number | null;
             playtime_feel: components["schemas"]["PlaytimeFeel"] | null;
             /** Can Teach */
-            can_teach: boolean;
+            can_teach: boolean | null;
             /** Teach Minutes */
             teach_minutes: number | null;
             /** Plays */
@@ -1688,6 +1706,13 @@ export interface components {
             description: string;
             /** Taggable */
             taggable: boolean;
+        };
+        /** MoodTally */
+        MoodTally: {
+            /** Mood */
+            mood: string;
+            /** People */
+            people: components["schemas"]["PersonRead"][];
         };
         /** NthWeekdayOfMonth */
         NthWeekdayOfMonth: {
@@ -1775,6 +1800,16 @@ export interface components {
          * @enum {string}
          */
         PlaytimeFeel: "shorter" | "just_right" | "longer";
+        /** ReasonRead */
+        ReasonRead: {
+            /** Text */
+            text: string;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "good" | "bad" | "info";
+        };
         /**
          * Relation
          * @description How another user stands with you.
@@ -1785,6 +1820,37 @@ export interface components {
         RelationRead: {
             person: components["schemas"]["PersonRead"];
             relation: components["schemas"]["Relation"];
+        };
+        /**
+         * RollupRead
+         * @description What the people in scope think of a game, combined. Ratings and weights lean on BGG's
+         *     while only a few have answered; both are null until someone in scope has.
+         */
+        RollupRead: {
+            /** Rating */
+            rating: number | null;
+            /** Rated By */
+            rated_by: number;
+            /** Lowest Rating */
+            lowest_rating: number | null;
+            /** Weight */
+            weight: number | null;
+            /** Best At */
+            best_at: number[];
+            /** Length Minutes */
+            length_minutes: number | null;
+            /** Teach Minutes */
+            teach_minutes: number | null;
+            /** Teachers */
+            teachers: components["schemas"]["PersonRead"][];
+            /** New To It */
+            new_to_it: components["schemas"]["PersonRead"][];
+            /** Moods */
+            moods: components["schemas"]["MoodTally"][];
+            /** Want To Play */
+            want_to_play: components["schemas"]["PersonRead"][];
+            /** Wishlist */
+            wishlist: components["schemas"]["PersonRead"][];
         };
         /**
          * RsvpIn
@@ -1827,7 +1893,7 @@ export interface components {
             weight_vote: number | null;
             playtime_feel: components["schemas"]["PlaytimeFeel"] | null;
             /** Can Teach */
-            can_teach: boolean;
+            can_teach: boolean | null;
             /** Teach Minutes */
             teach_minutes: number | null;
             /** Plays */
@@ -1869,7 +1935,7 @@ export interface components {
             weight_vote: number | null;
             playtime_feel: components["schemas"]["PlaytimeFeel"] | null;
             /** Can Teach */
-            can_teach: boolean;
+            can_teach: boolean | null;
             /** Teach Minutes */
             teach_minutes: number | null;
             /** Plays */

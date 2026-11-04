@@ -35,6 +35,7 @@ import {
   isOwned,
   isWanted,
   OWNERSHIP_LABELS,
+  teaches,
   WISHLIST_LABELS,
 } from '../components/userGameFields'
 
@@ -87,7 +88,7 @@ function YourAnswers({ row, statusOnly = false }: { row: UserGame; statusOnly?: 
       : [
           row.want_to_play && 'Want to play',
           row.rating !== null && `Rated ${row.rating}`,
-          row.can_teach && 'Can teach',
+          teaches(row) && 'Can teach',
         ]),
   ].filter((b): b is string => Boolean(b))
   if (badges.length === 0) return null

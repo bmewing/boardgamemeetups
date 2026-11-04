@@ -80,7 +80,7 @@ These are folded into the checklist below.
 
 Per-user game data lives in one row per user per game, so a user can rate or tag any game, owned or not, and one import can fill every field. Blank always means "no opinion"; the UI may show a default (e.g. "just right") without storing it, so group results only count real answers.
 
-- [x] `moods` (seeded list; the tag weights for the fallback guess from categories/mechanics/weight come with Phase 9), e.g. *Light & quick, Party/social, Laughs, Chill, Brain-burner, Cutthroat, Thematic/story, Family-friendly*. Used both to tag games and to pick an RSVP mood. Meetup-only moods that describe the group's history (*Something new, Old favorite, No preference*) can't be tagged on a game
+- [x] `moods` (seeded list; Phase 9 decided against guessing moods from BGG's categories and mechanics), e.g. *Light & quick, Party/social, Laughs, Chill, Brain-burner, Cutthroat, Thematic/story, Family-friendly*. Used both to tag games and to pick an RSVP mood. Meetup-only moods that describe the group's history (*Something new, Old favorite, No preference*) can't be tagged on a game
 - [x] `user_games` (user, game, plus):
   - ownership: `owned` / `previously_owned` / `preordered` / none
   - `wishlist_priority` (1–5, blank = not wishlisted), `want_to_play`
@@ -164,30 +164,33 @@ Max seats and a waitlist are on the back burner (Phase 13): whoever runs a group
   - Each event's `UID` is the meetup id, with a `SEQUENCE` taken from `updated_at` so it goes up when the date changes; times in UTC from `starts_at`
   - Fetching the feed also tops up each group's next 8 dates, since otherwise that only happens when someone opens the group page
   - Calendar apps refresh slowly (Google can take hours, sometimes a day), so the meetup page stays the source of truth and Phase 11's "meetup changed" email covers urgent changes. Their polling also keeps Supabase from pausing
-- **Done when:** 3 test users RSVP with moods and plus-ones, the headcount and the games that fit follow along, the plus-one limit is enforced, and a subscribed calendar shows each user's yes, maybe and unanswered dates but not their no's
+- **Done when:** 3 test users RSVP with moods and plus-ones, the headcount and the games that fit follow along, the plus-one limit is enforced, and a subscribed calendar shows each user's yes, maybe and unanswered dates but not their no's (not yet met by hand: deployed 2026-11-04 and covered by automated tests; one user has RSVPed with a guest and moods and added a date to their calendar in production)
 
 ### Phase 9 — Recommendations
-- [ ] Candidate pool = games owned by confirmed attendees and marked "will bring" (expansions folded into base, widening its player range); Phase 7 already filters it by headcount and the split setting
-- [ ] Hard filters: player count fits the confirmed headcount; playtime (plus teach time when someone attending is new to it) fits the meetup duration
-- [ ] Group roll-ups, computed per query over the people in scope (group members for the library, confirmed attendees for a meetup); groups are small, so nothing is stored:
+Decided 2026-11-04: only yes answers count, game length is shown but never filters or sorts, and moods come only from what people say (nothing guessed from BGG).
+
+- [x] Candidate pool = games owned by members who said yes and marked "will bring" (expansions folded into their base game, widening its player range); Phase 7 already filters it by headcount and the split setting. Length never filters
+- [x] People in scope: members who said yes at a meetup, every member for the group's library. Maybes only count toward one thing: a game that would still fit if they (and their guests) came too gets a boost and a "Fits the maybes too" chip. Guests count toward the headcount only
+- [x] Group roll-ups, computed per query over the people in scope; groups are small, so nothing is stored:
   - rating: average pulled toward BGG's rating when few have rated, `(sum + 2 × bgg_rating) / (n + 2)`; also show the lowest rating, and treat 3 or below as a soft veto
   - player count: group votes added onto BGG's poll counts, group votes weighted higher; read off at the headcount
-  - weight: group average blended with BGG's weight the same way as rating
-  - playtime: BGG's time adjusted by the net shorter/longer votes; replaced by the median logged duration once Phase 10 plays exist
-  - mood: share of people who tagged each mood; fall back to the guess from categories/mechanics/weight for untagged games
-  - teaching: who's new to it (`plays` = 0 and not previously owned), who can teach, and their teach time
+  - weight: group average blended with BGG's weight the same way as rating (shown only)
+  - length (shown only, to inform the vote): BGG's playing time adjusted by the net shorter/longer answers, plus teach time when someone new is coming; replaced by the median logged duration once Phase 10 plays exist
+  - moods: who tagged the game with which mood (members' own tags only)
+  - teaching: who's new to it (doesn't own it and never did, `plays` = 0, and hasn't rated it, since a rating means they've played), who can teach, and their teach time. Owners count as able to teach until they untick it (`can_teach` is null until answered; existing "no" answers were reset to unanswered)
   - owners willing to bring it; wishlist and want-to-play counts
-- [ ] Scoring (weighted, tunable in one config module):
-  - player-count fit (from the roll-up above)
-  - mood match (roll-up mood shares vs. attendees' RSVP moods)
+- [x] Scoring (weighted, tunable in one config module):
+  - player-count fit at the headcount (from the roll-up above)
+  - fits the maybes too (boost)
   - attendees' rating (roll-up above; unrated = neutral), with a penalty for soft vetoes
   - wishlist and want-to-play hits among attendees (strong boost)
-  - novelty ("something new" mood boosts games few attendees have played)
-  - teach cost (new players with no teacher attending is a penalty; with one, teach time counts against the meetup length)
+  - mood match: a boost only when attendees tagged the game with a mood someone picked for this date, shown as a chip. Otherwise RSVP moods are just shown to inform the vote. *Co-op* has no tags (it was meant to come from BGG), so it's display-only
+  - teach cost: new players with nobody attending who can teach is a penalty (teach time is shown, never counted against the meetup length)
   - recently played penalty (from Phase 10 play logs)
-- [ ] "Why this game" explanation chips (e.g. "3 want to play · best at 5 · matches Brain-burner · Sam can teach (15 min)")
-- [ ] Recompute on RSVP change; show top ~10
-- [ ] Unit tests with fixture attendees/libraries for scoring edge cases
+- [x] "Why this game" explanation chips (e.g. "3 want to play · best at 5 · matches Brain-burner · Sam can teach (15 min)")
+- [x] Meetup page: the games that fit, ranked, top 10 with "Show all"; attendees' RSVP moods shown above. Recompute on RSVP change
+- [x] Group's Games tab: the combined numbers (group rating and lowest, best player counts, moods, who can teach)
+- [x] Unit tests with fixture attendees/libraries for scoring edge cases
 - **Done when:** recs change sensibly as people RSVP and switch moods, and each rec explains itself
 
 ### Phase 10 — Voting, bring assignment & play log

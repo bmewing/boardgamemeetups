@@ -71,7 +71,7 @@ export function blankUserGame(game: GameSummary): UserGame {
     rating: null,
     weight_vote: null,
     playtime_feel: null,
-    can_teach: false,
+    can_teach: null,
     teach_minutes: null,
     plays: 0,
     will_bring: true,
@@ -85,6 +85,11 @@ export function blankUserGame(game: GameSummary): UserGame {
 
 export function isOwned(row: Pick<UserGame, 'ownership'>): boolean {
   return row.ownership === 'owned' || row.ownership === 'preordered'
+}
+
+/** Said they can teach it, or owns it and hasn't said they can't. */
+export function teaches(row: Pick<UserGame, 'can_teach' | 'ownership'>): boolean {
+  return row.can_teach ?? row.ownership === 'owned'
 }
 
 export function isWanted(row: Pick<UserGame, 'wishlist_priority' | 'want_to_play'>): boolean {

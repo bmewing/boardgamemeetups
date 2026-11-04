@@ -239,9 +239,24 @@ describe('MeetupPage', () => {
     { id: 'brain', name: 'Brain-burner', description: 'Heavy', taggable: true },
     { id: 'no_preference', name: 'No preference', description: 'Anything', taggable: false },
   ]
+  const rollup = {
+    rating: null,
+    rated_by: 0,
+    lowest_rating: null,
+    weight: null,
+    best_at: [],
+    length_minutes: 50,
+    teach_minutes: 10,
+    teachers: [ben],
+    new_to_it: [ann],
+    moods: [],
+    want_to_play: [],
+    wishlist: [],
+  }
   const games: MeetupGames = {
     confirmed: 5,
     guests: 0,
+    maybes: 0,
     willing_to_split: true,
     unknown_player_count: 1,
     games: [
@@ -264,6 +279,15 @@ describe('MeetupPage', () => {
         },
         bringers: [ben],
         fit: 'split',
+        min_players: 2,
+        max_players: 4,
+        expansions: [],
+        rollup,
+        score: 4.5,
+        reasons: [
+          { text: 'Sam wants to play', tone: 'good' },
+          { text: 'Ben can teach (10 min)', tone: 'info' },
+        ],
       },
     ],
   }
@@ -295,6 +319,8 @@ describe('MeetupPage', () => {
     expect(await screen.findByText('Bring snacks')).toBeInTheDocument()
     expect(await screen.findByText('Azul')).toBeInTheDocument()
     expect(screen.getByText('One of several tables')).toBeInTheDocument()
+    expect(screen.getByText('Sam wants to play')).toBeInTheDocument()
+    expect(screen.getByText('About 50 min, plus 10 to teach')).toBeInTheDocument()
     expect(screen.getByText(/1 game left out/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
 
@@ -305,6 +331,33 @@ describe('MeetupPage', () => {
     // Guests are off in this group; moods show once you might come.
     expect(screen.queryByText('Bringing anyone?')).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Chill' })).toBeInTheDocument()
+  })
+
+  it('shows the top 10 games until you ask for all of them', async () => {
+    const many: MeetupGames = {
+      ...games,
+      games: Array.from({ length: 12 }, (_, i) => ({
+        ...games.games[0],
+        game: { ...games.games[0].game, id: i + 1, name: `Game ${i + 1}` },
+        score: 12 - i,
+      })),
+    }
+    mockApi({
+      [`GET /api/meetups/${MEETUP_ID}`]: () => Response.json(meetup),
+      [`GET /api/meetups/${MEETUP_ID}/games`]: () => Response.json(many),
+      'GET /api/moods': () => Response.json(moods),
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/meetups/:meetupId" element={<MeetupPage />} />
+      </Routes>,
+      { route: `/meetups/${MEETUP_ID}` },
+    )
+
+    expect(await screen.findByText('Game 10')).toBeInTheDocument()
+    expect(screen.queryByText('Game 11')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Show all 12' }))
+    expect(screen.getByText('Game 12')).toBeInTheDocument()
   })
 
   it('brings guests and picks moods, with No preference on its own', async () => {

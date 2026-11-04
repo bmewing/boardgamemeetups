@@ -48,6 +48,8 @@ import {
   withGuests,
 } from '../components/meetupFormat'
 import { MeetupForm } from '../components/MeetupForm'
+import { ReasonChips } from '../components/Rollup'
+import { lengthLabel } from '../components/rollupFormat'
 import { plural } from '../components/userGameFields'
 
 const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -240,8 +242,11 @@ function AddToCalendar({ meetup }: { meetup: Meetup }) {
   )
 }
 
+const TOP_GAMES = 10
+
 function FittingGames({ meetup }: { meetup: Meetup }) {
   const games = useMeetupGames(meetup.id)
+  const [showAll, setShowAll] = useState(false)
   if (meetup.status === 'cancelled') return null
   if (games.isPending) {
     return (
@@ -253,9 +258,11 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
   if (games.isError) return <Alert color="red">{games.error.message}</Alert>
 
   const { confirmed, guests, willing_to_split: split, unknown_player_count: unknown } = games.data
+  const ranked = games.data.games
+  const shown = showAll ? ranked : ranked.slice(0, TOP_GAMES)
   return (
     <Stack gap="xs">
-      <Title order={4}>Games that fit</Title>
+      <Title order={4}>Recommended games</Title>
       {confirmed === 0 ? (
         <Text size="sm" c="dimmed">
           Once people say they're going, games they'll bring that fit the group show here.
@@ -268,25 +275,50 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
             {split
               ? 'one table of everyone, or tables that leave nobody on their own'
               : 'everyone at one table'}
-            .
+            . Ranked by what the people going think of them.
             {unknown > 0 &&
               ` ${plural(unknown, 'game')} left out because BGG hasn't said how many it seats.`}
           </Text>
-          {games.data.games.length === 0 && (
+          {ranked.length === 0 && (
             <Text size="sm">Nothing anyone's bringing fits {plural(confirmed, 'player')}.</Text>
           )}
-          {games.data.games.map((g) => (
-            <GameCard key={g.game.id} game={g.game}>
-              <Group gap="xs">
-                <Text size="sm">Brought by {g.bringers.map((p) => p.display_name).join(', ')}</Text>
-                {g.fit === 'split' && (
-                  <Badge size="xs" variant="light" color="teal">
-                    One of several tables
-                  </Badge>
+          {shown.map((g) => {
+            const length = lengthLabel(g.rollup)
+            const widened = g.expansions.length > 0 && g.max_players !== g.game.max_players
+            return (
+              <GameCard key={g.game.id} game={g.game}>
+                <Group gap="xs">
+                  <Text size="sm">
+                    Brought by {g.bringers.map((p) => p.display_name).join(', ')}
+                  </Text>
+                  {g.fit === 'split' && (
+                    <Badge size="xs" variant="light" color="teal">
+                      One of several tables
+                    </Badge>
+                  )}
+                </Group>
+                {g.expansions.length > 0 && (
+                  <Text size="xs" c="dimmed">
+                    With {g.expansions.map((e) => e.name).join(', ')}
+                    {widened && ` (seats up to ${g.max_players})`}
+                  </Text>
                 )}
-              </Group>
-            </GameCard>
-          ))}
+                {length && (
+                  <Text size="xs" c="dimmed">
+                    {length}
+                  </Text>
+                )}
+                <ReasonChips reasons={g.reasons} />
+              </GameCard>
+            )
+          })}
+          {ranked.length > TOP_GAMES && (
+            <Group>
+              <Button size="xs" variant="subtle" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? `Show the top ${TOP_GAMES}` : `Show all ${ranked.length}`}
+              </Button>
+            </Group>
+          )}
         </>
       )}
     </Stack>

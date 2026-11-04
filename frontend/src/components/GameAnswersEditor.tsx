@@ -23,7 +23,7 @@ import {
   useUpdateMyGame,
 } from '../api/collection'
 import { playtimeLabel } from './gameFacts'
-import { isOwned, OWNERSHIP_LABELS, WISHLIST_LABELS } from './userGameFields'
+import { isOwned, OWNERSHIP_LABELS, teaches, WISHLIST_LABELS } from './userGameFields'
 
 const OWNERSHIP_OPTIONS = Object.entries(OWNERSHIP_LABELS).map(([value, label]) => ({
   value,
@@ -309,12 +309,13 @@ export function GameAnswersEditor({ row, full = false }: { row: UserGame; full?:
           <Checkbox
             size="xs"
             label="Can teach"
-            checked={row.can_teach || needsTeachTime}
+            // Owners start ticked until they say otherwise.
+            checked={teaches(row) || needsTeachTime}
             onChange={(e) => {
               const checked = e.currentTarget.checked
               if (!checked) {
                 setNeedsTeachTime(false)
-                if (row.can_teach) save({ can_teach: false })
+                if (teaches(row)) save({ can_teach: false })
               } else if (row.teach_minutes) {
                 save({ can_teach: true })
               } else {
