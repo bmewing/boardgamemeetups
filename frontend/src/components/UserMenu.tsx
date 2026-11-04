@@ -30,6 +30,9 @@ export function UserMenu() {
       </Menu.Target>
       <Menu.Dropdown>
         {name && <Menu.Label>{name}</Menu.Label>}
+        <Menu.Item component={Link} to="/collection">
+          My games
+        </Menu.Item>
         <Menu.Item component={Link} to="/profile">
           Profile
         </Menu.Item>
