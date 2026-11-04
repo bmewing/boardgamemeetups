@@ -50,6 +50,8 @@ pydantic-settings==2.16.1
     # via boardgamegroup-api
 pyjwt==2.15.1
     # via boardgamegroup-api
+python-dateutil==4.0.0
+    # via boardgamegroup-api
 python-dotenv==1.2.4
     # via pydantic-settings
 sqlalchemy==2.1.6
@@ -72,4 +74,6 @@ typing-inspection==0.4.4
     #   pydantic
     #   pydantic-settings
 tzdata==2026.6
-    # via boardgamegroup-api
+    # via
+    #   boardgamegroup-api
+    #   python-dateutil

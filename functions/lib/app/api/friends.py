@@ -3,10 +3,10 @@
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
-from fastapi import APIRouter, HTTPException, Path, status
-from pydantic import BaseModel, StringConstraints
+from fastapi import APIRouter, HTTPException, Path, Query, status
+from pydantic import BaseModel, StringConstraints, model_validator
 from sqlalchemy import Select, case, delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,8 +75,22 @@ class FriendsRead(BaseModel):
     outgoing: list[FriendRead]  # your requests they haven't answered
 
 
-class FriendRequestIn(BaseModel):
-    email: Email
+class PersonPick(BaseModel):
+    """Someone picked from the search (`user_id`), or an email typed in full."""
+
+    user_id: uuid.UUID | None = None
+    email: Email | None = None
+
+    @model_validator(mode="after")
+    def exactly_one(self) -> Self:
+        if (self.user_id is None) == (self.email is None):
+            raise ValueError("Send either user_id or email")
+        return self
+
+
+class PersonMatch(BaseModel):
+    person: PersonRead
+    relation: Relation
 
 
 class RelationRead(BaseModel):
@@ -90,10 +104,9 @@ class PersonProfile(BaseModel):
     games_visible: bool
 
 
-class SharedGameRead(BaseModel):
+class SharedAnswers(BaseModel):
     """Someone's answers about a game, as others see them: everything but their notes."""
 
-    game: GameSummary
     ownership: Ownership | None
     wishlist_priority: int | None
     want_to_play: bool
@@ -107,18 +120,25 @@ class SharedGameRead(BaseModel):
     player_counts: list[PlayerCountRead]
     moods: list[str]
 
-    @classmethod
-    def build(cls, row: UserGame, game: Game) -> Self:
+    @staticmethod
+    def fields_of(row: UserGame) -> dict[str, Any]:
         shared = {name: getattr(row, name) for name in collection.FIELD_TYPES if name != "notes"}
-        return cls(
-            game=GameSummary.from_game(game),
+        return {
             **shared,
-            player_counts=[
+            "player_counts": [
                 PlayerCountRead(players=pc.players, vote=pc.vote)
                 for pc in sorted(row.player_counts, key=lambda pc: pc.players)
             ],
-            moods=sorted(mood.mood_id for mood in row.moods),
-        )
+            "moods": sorted(mood.mood_id for mood in row.moods),
+        }
+
+
+class SharedGameRead(SharedAnswers):
+    game: GameSummary
+
+    @classmethod
+    def build(cls, row: UserGame, game: Game) -> Self:
+        return cls(game=GameSummary.from_game(game), **cls.fields_of(row))
 
 
 class InviteLinkRead(BaseModel):
@@ -155,6 +175,15 @@ async def _people_by_relation(
     return [(friendship, user) for friendship, user in rows]
 
 
+async def find_person(session: AsyncSession, pick: PersonPick) -> User | None:
+    if pick.user_id is not None:
+        return await session.get(User, pick.user_id)
+    assert pick.email is not None
+    return await session.scalar(
+        select(User).where(func.lower(User.email) == pick.email.lower()).limit(1)
+    )
+
+
 @router.get("/friends")
 async def list_friends(user: CurrentUser, session: SessionDep) -> FriendsRead:
     result = FriendsRead(friends=[], incoming=[], outgoing=[])
@@ -175,20 +204,18 @@ async def list_friends(user: CurrentUser, session: SessionDep) -> FriendsRead:
 
 @router.post("/friends/requests")
 async def send_friend_request(
-    body: FriendRequestIn, user: CurrentUser, session: SessionDep
+    body: PersonPick, user: CurrentUser, session: SessionDep
 ) -> RelationRead:
-    """Ask someone to be friends by their exact email address (any case).
+    """Ask someone to be friends: picked from the search, or by exact email (any case).
 
     If they already asked you, this accepts. Someone who has blocked you looks the same as
     nobody having that email.
     """
-    other = await session.scalar(
-        select(User).where(func.lower(User.email) == body.email.lower()).limit(1)
-    )
+    other = await find_person(session, body)
     if other is None or await has_blocked(session, other.id, user.id):
-        raise NOBODY_THERE
+        raise NOBODY_THERE if body.email else PERSON_NOT_FOUND
     if other.id == user.id:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That's your own email.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "That's you.")
     if await has_blocked(session, user.id, other.id):
         raise HTTPException(
             status.HTTP_409_CONFLICT, "You've blocked this person. Unblock them first."
@@ -424,6 +451,65 @@ async def accept_invite(token: InviteToken, user: CurrentUser, session: SessionD
         link.use_count += 1
         await session.commit()
     return RelationRead(person=PersonRead.of(owner), relation=Relation.FRIENDS)
+
+
+SEARCH_LIMIT = 8
+
+
+def _like_prefix(text: str) -> str:
+    escaped = text.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
+    return f"{escaped}%"
+
+
+@router.get("/people/search")
+async def search_people(
+    user: CurrentUser,
+    session: SessionDep,
+    q: Annotated[str, Query(max_length=320)] = "",
+) -> list[PersonMatch]:
+    """People to suggest as you type: names starting with what you typed (or with a word
+    in the name that does), friends first. An email only matches when typed in full, so
+    suggestions never give one away. People who have blocked you, or whom you've blocked,
+    never appear."""
+    text = " ".join(q.split()).lower()
+    if len(text) < 2:
+        return []
+    blocks = (
+        select(UserBlock.blocker_id)
+        .where(UserBlock.blocked_id == user.id)
+        .union(select(UserBlock.blocked_id).where(UserBlock.blocker_id == user.id))
+    )
+    name = func.lower(User.display_name)
+    if "@" in text:
+        matches = func.lower(User.email) == text
+    else:
+        matches = or_(
+            name.like(_like_prefix(text), escape="\\"),
+            name.like("% " + _like_prefix(text), escape="\\"),
+        )
+    is_friend = (
+        select(Friendship.user_low_id)
+        .where(
+            Friendship.status == FriendshipStatus.ACCEPTED,
+            or_(
+                (Friendship.user_low_id == user.id) & (Friendship.user_high_id == User.id),
+                (Friendship.user_high_id == user.id) & (Friendship.user_low_id == User.id),
+            ),
+        )
+        .exists()
+    )
+    found = await session.scalars(
+        select(User)
+        .where(matches, User.id != user.id, User.id.not_in(blocks))
+        .order_by(is_friend.desc(), name.like(_like_prefix(text), escape="\\").desc(), name)
+        .limit(SEARCH_LIMIT)
+    )
+    return [
+        PersonMatch(
+            person=PersonRead.of(other), relation=await relation(session, user.id, other.id)
+        )
+        for other in found
+    ]
 
 
 @router.get("/people/{user_id}")

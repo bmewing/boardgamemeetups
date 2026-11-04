@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy import DateTime, Enum, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -16,6 +16,11 @@ class CollectionVisibility(StrEnum):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        # Display names double as usernames, so no two may match, ignoring case. Alembic
+        # can't compare this index, so changes to it need a hand-written migration.
+        Index("uq_users_display_name_lower", text("lower(display_name)"), unique=True),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     kinde_id: Mapped[str] = mapped_column(String(255), unique=True)
