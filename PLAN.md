@@ -44,7 +44,7 @@ These are folded into the checklist below.
 - [x] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
 - [x] Supabase: create project; grab the **transaction pooler** connection string (port 6543; the direct connection is IPv6-only on the free tier)
 - [x] DigitalOcean (personal account): confirm billing, decide on domain (or use `*.ondigitalocean.app` initially)
-- [ ] Resend (or Postmark) account for transactional email; verify sending domain
+- [x] Resend account for transactional email; `bggroup.app` verified as the sending domain, and a sending-only key for it set on the app as `RESEND_API_KEY` (2026-11-04)
 
 ### Phase 1 — Project scaffolding ✅
 - [x] Monorepo layout: `backend/` (FastAPI) and `frontend/` (Vite + React + TS)
@@ -209,11 +209,21 @@ Decided 2026-11-04: owners and admins lock the pick and log what was played; RSV
 - **Done when:** a full meetup cycle runs: RSVP → recs → vote → lock → owner tagged → play logged (and an unlogged date fills itself in after a week)
 
 ### Phase 11 — Notifications
-- [ ] Email service wrapper (Resend) with templates
-- [ ] Triggers: invited, friend request, RSVP reminder (X days before), pick locked, "you're bringing X", meetup changed/cancelled
-- [ ] Per-user notification preferences
-- [ ] Scheduled reminders: a GitHub Actions cron hitting a protected endpoint (Functions on App Platform can't be scheduled yet)
-- **Done when:** each trigger sends a real email in staging
+Decided 2026-11-04: RSVP reminders go out the day before, to members who haven't answered or said maybe; the reminder endpoint is open, since it only sends what's due and never twice; one on/off switch per kind of email; a change to a group's repeating schedule sends one summary email.
+
+- [ ] Email wrapper over Resend's API (`RESEND_API_KEY`, sending access only, from `bggroup.app`). Each recipient gets their own email (batched up to 100 a call); sending happens after the change is saved and a failure is logged, never shown to whoever made the change. With no key (local dev, tests) emails are logged instead of sent
+- [ ] Plain text and simple HTML templates; dates in the group's local time, naming the group's time zone when it differs from the reader's; every email links to the page it's about
+- [ ] Triggers (never to whoever caused it):
+  - **Friend request:** to the person asked, when a new request is made (not when it accepts theirs)
+  - **Group invite:** to the email invited, when the invite is new. Someone not on the app yet gets it too, saying to sign up with that address. Someone who has blocked the inviter gets nothing
+  - **RSVP reminder:** the day before (within 24 hours of the start), to members who haven't answered or said maybe, once per date
+  - **Pick locked:** to members who said yes or maybe: the picked games and who's bringing each. Anyone tagged to bring one is told in the same email
+  - **You're bringing X:** when an owner or admin hands a game to someone (claiming one yourself sends nothing)
+  - **Date changed or cancelled:** a hand edit of an upcoming date's day, time or place, or cancelling or restoring it, to members who haven't said no. Notes and length don't count
+  - **Schedule changed:** one summary email per change to the group's schedule, start time, length or place, listing the upcoming dates added, dropped or moved, to every member
+- [ ] Preferences: `users.email_opt_outs` (the kinds turned off; empty = all on), switches on the profile page. Every email to a user has an unsubscribe link for that kind (or all) that works without signing in, via a random `users.email_token`, plus `List-Unsubscribe` one-click headers. The unsubscribe page asks for a click, so mail scanners that open links don't unsubscribe anyone
+- [ ] Reminders: `meetups.reminder_sent_at`, claimed before sending (so two runs can't both send) and released if the send fails. `POST /api/notifications/run` sends whatever is due; a GitHub Actions workflow calls it every hour (Functions on App Platform can't be scheduled yet), which also keeps Supabase from pausing
+- **Done when:** each kind of email arrives for real from production, and turning a kind off (on the profile page or from an email's link) stops it
 
 ### Phase 12 — Deploy to DigitalOcean
 - [x] Run the API as a DigitalOcean function: Python 3.13, `web: raw` adapter, no connection pool, pooler-safe statements, BGG throttle shared through Postgres
@@ -221,7 +231,7 @@ Decided 2026-11-04: owners and admins lock the pick and log what was played; RSV
 - [x] `.do/app.yaml` spec: static site + functions component, `/api` routed to the function
 - [x] Migrations applied to Supabase (`uv run --env-file .env.production alembic upgrade head`; rerun before deploying new migrations, since Functions-only apps have no pre-deploy job)
 - [x] Env vars/secrets in DO: DB URL (Supabase transaction pooler, `sslmode=require`), BGG token
-- [ ] Resend key (Phase 11)
+- [x] Resend key (Phase 11)
 - [x] First deploy: https://boardgamemeetups-i59h7.ondigitalocean.app (auto-deploys on push to `main`)
 - [x] Kinde prod callback URLs
 - [ ] Own OAuth credentials for Google, Facebook and Discord in Kinde (dev currently uses Kinde's shared keys, so consent screens name Kinde, not this app)
