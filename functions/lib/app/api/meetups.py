@@ -21,7 +21,7 @@ from app.api.rollups import ReasonRead, RollupRead
 from app.auth import CurrentUser
 from app.calendar import file_name, meetup_event
 from app.db import SessionDep
-from app.groups import TableFit, membership, require_runner, table_fit
+from app.groups import TableFit, membership, player_range, require_runner, table_fit
 from app.models import (
     Game,
     Group,
@@ -37,6 +37,7 @@ from app.models import (
     User,
     UserGame,
 )
+from app.plays import drop_bringing, fill_unlogged, recently_played
 from app.recommend import Answer, Person, rollup, score
 from app.schedule import instant
 
@@ -225,6 +226,7 @@ async def add_meetup(
 @router.get("/meetups/{meetup_id}")
 async def read_meetup(meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> MeetupRead:
     meetup, group, me = await _meetup(session, meetup_id, user)
+    await fill_unlogged(session, group)
     return await _read(session, meetup, group, me, user)
 
 
@@ -303,6 +305,8 @@ async def rsvp(
                 [{"meetup_id": meetup.id, "user_id": user.id, "mood_id": m} for m in moods]
             )
         )
+    if body.response != RsvpResponse.YES:
+        await drop_bringing(session, meetup.id, user.id)
     await session.commit()
     return await _read(session, meetup, group, me, user)
 
@@ -345,6 +349,8 @@ async def list_meetup_games(
     still fit if they came too. Length is shown, never used to filter or rank.
     """
     meetup, group, _me = await _meetup(session, meetup_id, user)
+    await fill_unlogged(session, group)
+    played_lately = await recently_played(session, meetup)
     answered = await session.execute(
         select(User, MeetupRsvp.response, MeetupRsvp.guests)
         .join(MeetupRsvp, MeetupRsvp.user_id == User.id)
@@ -422,7 +428,7 @@ async def list_meetup_games(
     unknown = 0
     for game_id, game in bases.items():
         extras = expansions[game_id]
-        low, high = _player_range(game, extras)
+        low, high = player_range(game, extras)
         if high is None:
             unknown += 1
             continue
@@ -441,6 +447,7 @@ async def list_meetup_games(
             fits_maybes=fits_maybes,
             tonight_moods=tonight,
             mood_names=mood_names,
+            recently_played=game_id in played_lately,
         )
         fitting.append(
             FittingGame(
@@ -464,15 +471,6 @@ async def list_meetup_games(
         games=fitting,
         unknown_player_count=unknown,
     )
-
-
-def _player_range(game: Game, expansions: list[Game]) -> tuple[int | None, int | None]:
-    """The base game's player range, widened by the expansions people are bringing."""
-    lows = [g.min_players for g in (game, *expansions) if g.min_players is not None]
-    highs = [g.max_players for g in (game, *expansions) if g.max_players is not None]
-    if game.max_players is None:
-        return (min(lows) if lows else None), None
-    return (min(lows) if lows else None), max(highs)
 
 
 def _biggest_table(low: int | None, high: int, players: int) -> int:

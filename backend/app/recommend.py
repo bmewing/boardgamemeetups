@@ -221,6 +221,7 @@ def score(
     fits_maybes: bool,
     tonight_moods: Iterable[str],
     mood_names: Mapping[str, str],
+    recently_played: bool = False,
 ) -> tuple[float, list[Reason]]:
     """How well the game suits tonight, and the reasons, best first. `tonight_moods` are the
     moods the people coming picked; only ones they've tagged the game with count."""
@@ -277,5 +278,7 @@ def score(
         total += cfg.SOFT_VETO
         reasons.append(Reason(f"{person.name} isn't keen ({rating:g})", "bad"))
 
-    # Phase 10 adds cfg.RECENTLY_PLAYED here, once the play log says what was played lately.
+    if recently_played:
+        total += cfg.RECENTLY_PLAYED
+        reasons.append(Reason("Played last time", "bad"))
     return total, reasons

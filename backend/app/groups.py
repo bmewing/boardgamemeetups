@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Group, GroupMember, GroupRole, User
+from app.models import Game, Group, GroupMember, GroupRole, User
 
 GROUP_NOT_FOUND = HTTPException(status.HTTP_404_NOT_FOUND, "Group not found")
 RUNS_GROUP = (GroupRole.OWNER, GroupRole.ADMIN)
@@ -92,3 +92,12 @@ def table_fit(
     if willing_to_split and any(seats(low, max_players, t) for t in range(2, confirmed - 1)):
         return "split"
     return None
+
+
+def player_range(game: Game, expansions: list[Game]) -> tuple[int | None, int | None]:
+    """The base game's player range, widened by the expansions people are bringing."""
+    lows = [g.min_players for g in (game, *expansions) if g.min_players is not None]
+    highs = [g.max_players for g in (game, *expansions) if g.max_players is not None]
+    if game.max_players is None:
+        return (min(lows) if lows else None), None
+    return (min(lows) if lows else None), max(highs)

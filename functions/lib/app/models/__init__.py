@@ -17,6 +17,14 @@ from app.models.group import (
     RsvpResponse,
 )
 from app.models.mood import Mood
+from app.models.play import (
+    BringAssignment,
+    MeetupAttendee,
+    MeetupNomination,
+    MeetupVote,
+    Play,
+    PlayPlayer,
+)
 from app.models.user import CollectionVisibility, User
 from app.models.user_game import (
     Ownership,
@@ -32,6 +40,7 @@ from app.models.user_game import (
 __all__ = [
     "Base",
     "BggThrottle",
+    "BringAssignment",
     "CalendarFeed",
     "CollectionVisibility",
     "Friendship",
@@ -43,11 +52,16 @@ __all__ = [
     "GroupRole",
     "InviteLink",
     "Meetup",
+    "MeetupAttendee",
+    "MeetupNomination",
     "MeetupRsvp",
     "MeetupRsvpMood",
     "MeetupStatus",
+    "MeetupVote",
     "Mood",
     "Ownership",
+    "Play",
+    "PlayPlayer",
     "PlayerCountVote",
     "PlayerCountVotes",
     "PlaytimeFeel",

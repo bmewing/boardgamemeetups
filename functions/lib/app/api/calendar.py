@@ -26,6 +26,7 @@ from app.models import (
     RsvpResponse,
     User,
 )
+from app.plays import fill_unlogged
 from app.schedule import sync_meetups
 
 router = APIRouter(tags=["calendar"])
@@ -110,6 +111,7 @@ async def calendar_feed(token: FeedToken, session: SessionDep) -> Response:
     # Otherwise the dates ahead are only topped up when someone opens the group's page.
     for group in groups:
         await sync_meetups(session, group)
+        await fill_unlogged(session, group)
 
     rows = await session.execute(
         select(Meetup, Group, MeetupRsvp.response)

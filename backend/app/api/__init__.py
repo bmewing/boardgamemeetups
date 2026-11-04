@@ -1,6 +1,17 @@
 from fastapi import APIRouter
 
-from app.api import calendar, collection, friends, games, groups, health, me, meetups
+from app.api import (
+    calendar,
+    collection,
+    friends,
+    games,
+    groups,
+    health,
+    me,
+    meetups,
+    play_log,
+    votes,
+)
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -11,3 +22,5 @@ api_router.include_router(friends.router)
 api_router.include_router(groups.router)
 api_router.include_router(meetups.router)
 api_router.include_router(calendar.router)
+api_router.include_router(votes.router)
+api_router.include_router(play_log.router)
