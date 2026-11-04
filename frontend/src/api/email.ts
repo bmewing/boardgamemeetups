@@ -67,7 +67,7 @@ export function useEmailSettingsByLink(token: string) {
       const { data, error } = await api.GET('/api/email/unsubscribe/{token}', {
         params: { path: { token } },
       })
-      if (error) throw new Error("This link doesn't work any more.")
+      if (error !== undefined || !data) throw new Error("This link doesn't work any more.")
       return data
     },
   })
@@ -81,7 +81,8 @@ export function useUnsubscribe(token: string) {
       const { data, error } = await api.POST('/api/email/unsubscribe/{token}', {
         params: { path: { token }, query: kind ? { kind } : {} },
       })
-      if (error) throw new Error("Couldn't change your email settings. Try again.")
+      if (error !== undefined || !data)
+        throw new Error("Couldn't change your email settings. Try again.")
       return data
     },
     onSuccess: (settings) => queryClient.setQueryData(settingsKey(token), settings),

@@ -75,8 +75,14 @@ export function Layout() {
       </AppShell.Main>
       <AppShell.Footer>
         <Container size="md" h="100%">
-          <Group h="100%" justify="center">
+          <Group h="100%" justify="center" gap="lg">
             <PoweredByBgg />
+            <Anchor component={Link} to="/terms" size="sm" c="dimmed">
+              Terms
+            </Anchor>
+            <Anchor component={Link} to="/privacy" size="sm" c="dimmed">
+              Privacy
+            </Anchor>
           </Group>
         </Container>
       </AppShell.Footer>
