@@ -18,8 +18,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       audience={import.meta.env.VITE_KINDE_AUDIENCE}
       redirectUri={window.location.origin}
       logoutUri={window.location.origin}
-      // Without a Kinde custom domain, staying signed in across reloads needs the refresh
-      // token in localStorage. Allow that only in local development.
+      // Production signs in through Kinde on our own domain (auth.bggroup.app), where Kinde
+      // keeps the refresh token in a secure httpOnly cookie. Local development uses the
+      // kinde.com domain, which can't set that cookie, so there the refresh token goes in
+      // localStorage instead (never in production).
       useInsecureForRefreshToken={import.meta.env.DEV}
     >
       <TokenBridge>{children}</TokenBridge>
