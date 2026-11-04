@@ -170,8 +170,8 @@ export function TermsPage() {
   return (
     <Page title="Terms of service">
       <Text>
-        These terms cover using Board Game Group (bggroup.app). By signing in, you agree to them.
-        The{' '}
+        These terms cover using Board Game Group (bggroup.app). By using this site, you agree to
+        them. The{' '}
         <Anchor component={Link} to="/privacy">
           privacy policy
         </Anchor>{' '}
