@@ -163,6 +163,8 @@ class Meetup(Base):
     # from the pick and the yes answers because nobody logged it.
     logged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     log_assumed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # When the day-before reminder went out; cleared if the date or time moves.
+    reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

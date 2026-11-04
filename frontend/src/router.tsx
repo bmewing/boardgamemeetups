@@ -15,6 +15,7 @@ import { InvitePage } from './pages/InvitePage'
 import { MeetupPage } from './pages/MeetupPage'
 import { PersonPage } from './pages/PersonPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { UnsubscribePage } from './pages/UnsubscribePage'
 
 export const router = createBrowserRouter([
   {
@@ -95,6 +96,8 @@ export const router = createBrowserRouter([
       },
       // Open to anyone with the link: it says who sent it before they sign up.
       { path: 'invite/:token', element: <InvitePage /> },
+      // From a link in an email: works without signing in.
+      { path: 'unsubscribe/:token', element: <UnsubscribePage /> },
       {
         path: 'games',
         element: (

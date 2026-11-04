@@ -598,7 +598,8 @@ export interface paths {
         head?: never;
         /**
          * Update Group
-         * @description Change the group's details or schedule. Untouched future dates follow along.
+         * @description Change the group's details or schedule. Untouched future dates follow along, and
+         *     members get one email listing the dates that moved, if any did.
          */
         patch: operations["update_group_api_groups__group_id__patch"];
         trace?: never;
@@ -758,7 +759,7 @@ export interface paths {
         /**
          * Delete Meetup
          * @description Remove a date added on its own. Scheduled dates are cancelled instead, so the
-         *     schedule doesn't bring them back.
+         *     schedule doesn't bring them back. Told like a cancellation.
          */
         delete: operations["delete_meetup_api_meetups__meetup_id__delete"];
         options?: never;
@@ -766,7 +767,8 @@ export interface paths {
         /**
          * Update Meetup
          * @description Move, change or cancel one date. A scheduled date changed this way is left alone
-         *     by later schedule changes (notes alone don't count).
+         *     by later schedule changes (notes alone don't count). Members who haven't said no are
+         *     emailed about a new day, time or place, or the date being cancelled or back on.
          */
         patch: operations["update_meetup_api_meetups__meetup_id__patch"];
         trace?: never;
@@ -968,7 +970,8 @@ export interface paths {
         /**
          * Lock Pick
          * @description Choose the game or games to play, and stop the voting. A picked game with exactly one
-         *     owner going is tagged as theirs to bring.
+         *     owner going is tagged as theirs to bring. Members who said yes or maybe are emailed the
+         *     pick.
          */
         post: operations["lock_pick_api_meetups__meetup_id__lock_post"];
         delete?: never;
@@ -1007,7 +1010,8 @@ export interface paths {
         get?: never;
         /**
          * Bring Game
-         * @description Claim a picked game to bring, or (owner or admin) hand it to another owner going.
+         * @description Claim a picked game to bring, or (owner or admin) hand it to another owner going,
+         *     who is emailed about it.
          */
         put: operations["bring_game_api_meetups__meetup_id__bring__game_id__put"];
         post?: never;
@@ -1037,6 +1041,53 @@ export interface paths {
          */
         put: operations["save_play_log_api_meetups__meetup_id__log_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Scheduled
+         * @description Called every hour by a GitHub Actions workflow. Open to anyone: it only does what's
+         *     due (tops up each group's dates, fills in unlogged plays, sends reminders), and never
+         *     sends a reminder twice.
+         */
+        post: operations["run_scheduled_api_notifications_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/email/unsubscribe/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Email Settings
+         * @description Which emails the link's owner has turned off. Needs no sign-in, only the link.
+         */
+        get: operations["read_email_settings_api_email_unsubscribe__token__get"];
+        put?: never;
+        /**
+         * Unsubscribe
+         * @description Turn off one kind of email, or all of them when no kind is given. Also the target of
+         *     mail apps' one-click unsubscribe (RFC 8058), whose form body is ignored.
+         */
+        post: operations["unsubscribe_api_email_unsubscribe__token__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1145,6 +1196,17 @@ export interface components {
             filled: number;
             /** Remaining */
             remaining: number;
+        };
+        /**
+         * EmailKind
+         * @description The kinds of email someone can turn off one by one.
+         * @enum {string}
+         */
+        EmailKind: "friend_request" | "group_invite" | "rsvp_reminder" | "pick_locked" | "bringing" | "date_changed";
+        /** EmailSettingsRead */
+        EmailSettingsRead: {
+            /** Email Opt Outs */
+            email_opt_outs: components["schemas"]["EmailKind"][];
         };
         /** EveryNWeeks */
         EveryNWeeks: {
@@ -2142,6 +2204,11 @@ export interface components {
          * @enum {string}
          */
         RsvpResponse: "yes" | "maybe" | "no";
+        /** RunResult */
+        RunResult: {
+            /** Reminded Dates */
+            reminded_dates: number;
+        };
         /** SharedGameRead */
         SharedGameRead: {
             ownership: components["schemas"]["Ownership"] | null;
@@ -2276,6 +2343,8 @@ export interface components {
             /** Bgg Pulled At */
             bgg_pulled_at: string | null;
             collection_visibility: components["schemas"]["CollectionVisibility"];
+            /** Email Opt Outs */
+            email_opt_outs: components["schemas"]["EmailKind"][];
         };
         /** UserUpdate */
         UserUpdate: {
@@ -2286,6 +2355,8 @@ export interface components {
             /** Bgg Username */
             bgg_username?: string | null;
             collection_visibility?: components["schemas"]["CollectionVisibility"] | null;
+            /** Email Opt Outs */
+            email_opt_outs?: components["schemas"]["EmailKind"][] | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -4287,6 +4358,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LogRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_scheduled_api_notifications_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResult"];
+                };
+            };
+        };
+    };
+    read_email_settings_api_email_unsubscribe__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailSettingsRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unsubscribe_api_email_unsubscribe__token__post: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["EmailKind"] | null;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailSettingsRead"];
                 };
             };
             /** @description Validation Error */

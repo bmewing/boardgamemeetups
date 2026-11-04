@@ -1,0 +1,22 @@
+name: Scheduled emails
+
+# DigitalOcean Functions on App Platform can't run on a timer, so GitHub calls the API every
+# hour. The endpoint only does what's due (reminders for dates within a day, topping up
+# scheduled dates, filling in unlogged plays) and never sends a reminder twice, so it needs
+# no secret. The hourly call also keeps the Supabase free tier from pausing.
+on:
+  schedule:
+    - cron: "17 * * * *" # off the hour, when GitHub's scheduler is less busy
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send what's due
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 90 --retry 2 \
+            -X POST https://bggroup.app/api/core/app/api/notifications/run

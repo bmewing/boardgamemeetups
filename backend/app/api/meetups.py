@@ -12,7 +12,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import ics
+from app import ics, notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
@@ -21,6 +21,7 @@ from app.api.rollups import ReasonRead, RollupRead
 from app.auth import CurrentUser
 from app.calendar import file_name, meetup_event
 from app.db import SessionDep
+from app.email import MailerDep
 from app.groups import TableFit, membership, player_range, require_runner, table_fit
 from app.models import (
     Game,
@@ -232,12 +233,18 @@ async def read_meetup(meetup_id: uuid.UUID, user: CurrentUser, session: SessionD
 
 @router.patch("/meetups/{meetup_id}")
 async def update_meetup(
-    meetup_id: uuid.UUID, changes: MeetupUpdate, user: CurrentUser, session: SessionDep
+    meetup_id: uuid.UUID,
+    changes: MeetupUpdate,
+    user: CurrentUser,
+    session: SessionDep,
+    mailer: MailerDep,
 ) -> MeetupRead:
     """Move, change or cancel one date. A scheduled date changed this way is left alone
-    by later schedule changes (notes alone don't count)."""
+    by later schedule changes (notes alone don't count). Members who haven't said no are
+    emailed about a new day, time or place, or the date being cancelled or back on."""
     meetup, group, me = await _meetup(session, meetup_id, user)
     require_runner(me)
+    before = notify.DateSnapshot.of(meetup)
     sent = changes.model_fields_set
     for field in ("local_date", "local_time", "duration_minutes", "status"):
         value = getattr(changes, field)
@@ -250,22 +257,32 @@ async def update_meetup(
     if sent & SCHEDULE_FIELDS and meetup.slot_date is not None:
         meetup.is_overridden = True
     meetup.starts_at = instant(meetup.local_date, meetup.local_time, group.time_zone)
+    notify.mark_moved(meetup, before)
     await session.commit()
-    return await _read(session, meetup, group, me, user)
+    result = await _read(session, meetup, group, me, user)
+    people = await notify.might_come(session, group, meetup)
+    after = notify.DateSnapshot.of(meetup)
+    await notify.date_changed(session, mailer, meetup.id, group, user, before, after, people)
+    return result
 
 
 @router.delete("/meetups/{meetup_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_meetup(meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> None:
+async def delete_meetup(
+    meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep, mailer: MailerDep
+) -> None:
     """Remove a date added on its own. Scheduled dates are cancelled instead, so the
-    schedule doesn't bring them back."""
-    meetup, _group, me = await _meetup(session, meetup_id, user)
+    schedule doesn't bring them back. Told like a cancellation."""
+    meetup, group, me = await _meetup(session, meetup_id, user)
     require_runner(me)
     if meetup.slot_date is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "This date comes from the schedule; cancel it instead."
         )
+    before = notify.DateSnapshot.of(meetup)
+    people = await notify.might_come(session, group, meetup)
     await session.delete(meetup)
     await session.commit()
+    await notify.date_changed(session, mailer, meetup_id, group, user, before, None, people)
 
 
 @router.put("/meetups/{meetup_id}/rsvp")

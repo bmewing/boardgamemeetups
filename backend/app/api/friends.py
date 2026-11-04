@@ -11,11 +11,12 @@ from sqlalchemy import Select, case, delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import collection
+from app import collection, notify
 from app.api.collection import PlayerCountRead
 from app.api.games import GameSummary
 from app.auth import CurrentUser
 from app.db import SessionDep
+from app.email import MailerDep
 from app.friends import (
     Relation,
     blocked_either_way,
@@ -204,7 +205,7 @@ async def list_friends(user: CurrentUser, session: SessionDep) -> FriendsRead:
 
 @router.post("/friends/requests")
 async def send_friend_request(
-    body: PersonPick, user: CurrentUser, session: SessionDep
+    body: PersonPick, user: CurrentUser, session: SessionDep, mailer: MailerDep
 ) -> RelationRead:
     """Ask someone to be friends: picked from the search, or by exact email (any case).
 
@@ -242,6 +243,10 @@ async def send_friend_request(
         await session.commit()
         # A request from them may have landed at the same moment; report what's stored.
         current = await relation(session, user.id, other.id)
+        if current == Relation.OUTGOING:
+            result = RelationRead(person=PersonRead.of(other), relation=current)
+            await notify.friend_request(session, mailer, user, other)
+            return result
     return RelationRead(person=PersonRead.of(other), relation=current)
 
 

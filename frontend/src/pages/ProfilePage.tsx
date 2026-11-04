@@ -10,6 +10,7 @@ import {
   Modal,
   SegmentedControl,
   Stack,
+  Switch,
   Text,
   TextInput,
   Title,
@@ -18,6 +19,7 @@ import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
 
 import type { UserProfile } from '../api/client'
+import { EMAIL_KINDS } from '../api/email'
 import { useDeleteMe, useMe, useUpdateMe } from '../api/me'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
 
@@ -107,6 +109,37 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
   )
 }
 
+/** One switch per kind of email; each change saves straight away. */
+function EmailSettings({ profile }: { profile: UserProfile }) {
+  const update = useUpdateMe()
+  const off = new Set(profile.email_opt_outs)
+
+  return (
+    <Stack gap="sm">
+      <Title order={4}>Emails</Title>
+      <Text size="sm" c="dimmed">
+        Sent to {profile.email ?? 'your email'}. Every email also has a link to stop that kind.
+      </Text>
+      {EMAIL_KINDS.map(({ kind, label, description }) => (
+        <Switch
+          key={kind}
+          label={label}
+          description={description}
+          checked={!off.has(kind)}
+          disabled={update.isPending}
+          onChange={(event) => {
+            const next = new Set(off)
+            if (event.currentTarget.checked) next.delete(kind)
+            else next.add(kind)
+            update.mutate({ email_opt_outs: [...next] })
+          }}
+        />
+      ))}
+      {update.isError && <Alert color="red">{update.error.message}</Alert>}
+    </Stack>
+  )
+}
+
 function DeleteAccount() {
   const { logout } = useKindeAuth()
   const remove = useDeleteMe()
@@ -164,6 +197,8 @@ export function ProfilePage() {
         Signed in as {me.data.email ?? 'unknown email'}
       </Text>
       <ProfileForm profile={me.data} />
+      <Divider my="md" />
+      <EmailSettings profile={me.data} />
       <Divider my="md" />
       <DeleteAccount />
     </Stack>

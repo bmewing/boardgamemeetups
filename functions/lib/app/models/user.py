@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, Enum, Index, String, func, text
+from sqlalchemy import ARRAY, DateTime, Enum, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -40,6 +40,13 @@ class User(Base):
         ),
         default=CollectionVisibility.FRIENDS,
     )
+    # Kinds of email (app.email.EmailKind) this user has turned off; empty means all on.
+    email_opt_outs: Mapped[list[str]] = mapped_column(
+        ARRAY(String(32)), default=list, server_default=text("'{}'")
+    )
+    # Secret in each email's unsubscribe link, so it works without signing in. Made when
+    # the first email goes out.
+    email_token: Mapped[str | None] = mapped_column(String(64), unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
