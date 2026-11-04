@@ -235,8 +235,8 @@ Decided 2026-11-04: RSVP reminders go out the day before, to members who haven't
 - [x] First deploy: https://boardgamemeetups-i59h7.ondigitalocean.app (auto-deploys on push to `main`)
 - [x] Kinde prod callback URLs
 - [ ] Own OAuth credentials for Google, Facebook and Discord in Kinde (dev currently uses Kinde's shared keys, so consent screens name Kinde, not this app)
-- [ ] Kinde custom domain (e.g. `auth.<your-domain>`) so sign-ins survive page reloads without keeping the refresh token in localStorage (only allowed in local dev)
-- [ ] App custom domain + TLS (optional)
+- [x] Kinde custom domain `auth.bggroup.app`, so sign-ins survive page reloads with the refresh token in a secure cookie rather than localStorage (localStorage stays for local dev, which signs in through `boardgamegroup.kinde.com`). Production's `VITE_KINDE_DOMAIN` and `KINDE_DOMAIN` (the token issuer) both point at it
+- [x] App custom domain + TLS: `bggroup.app` (primary) and `boardgames.ewingsonline.com`
 - [x] Auto-deploy from `main`
 - [ ] Staging database: a second Supabase project (free tier allows two)
 - **Done when:** production URL works end-to-end with a real login (met 2026-11-03; the open items above can follow later)

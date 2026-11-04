@@ -25,9 +25,9 @@ static_sites:
     output_dir: dist
     catchall_document: index.html  # client-side routes like /games/123
     envs:
-      - key: VITE_KINDE_DOMAIN
+      - key: VITE_KINDE_DOMAIN  # Kinde on our own domain, so sign-ins survive reloads
         scope: BUILD_TIME
-        value: https://boardgamegroup.kinde.com
+        value: https://auth.bggroup.app
       - key: VITE_KINDE_CLIENT_ID
         scope: BUILD_TIME
         value: 226d3ab0d847428a83cda0b690884c39
@@ -56,9 +56,9 @@ functions:
       - key: BGG_API_TOKEN
         scope: RUN_AND_BUILD_TIME
         type: SECRET
-      - key: KINDE_DOMAIN
+      - key: KINDE_DOMAIN  # the token issuer: the custom domain the browser signs in through
         scope: RUN_AND_BUILD_TIME
-        value: https://boardgamegroup.kinde.com
+        value: https://auth.bggroup.app
       - key: KINDE_AUDIENCE
         scope: RUN_AND_BUILD_TIME
         value: https://api.boardgamemeetups
