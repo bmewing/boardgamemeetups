@@ -56,6 +56,7 @@ class GameSummary(BaseModel):
     min_playtime: int | None
     max_playtime: int | None
     weight: float | None
+    bgg_rating: float | None
     bgg_rank: int | None
     best_with: list[int]
     base_game_ids: list[int]  # for an expansion, the games it expands
@@ -71,7 +72,6 @@ class GameDetail(GameSummary):
     image_url: str | None
     playing_time: int | None
     min_age: int | None
-    bgg_rating: float | None
     bgg_users_rated: int | None
     categories: list[str]
     mechanics: list[str]
