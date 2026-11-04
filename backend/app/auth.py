@@ -3,9 +3,10 @@
 import asyncio
 from functools import lru_cache
 from typing import Annotated, Any
+from zoneinfo import available_timezones
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -63,10 +64,15 @@ async def get_token_claims(
 ClaimsDep = Annotated[dict[str, Any], Depends(get_token_claims)]
 
 
+MAX_NAME_TRIES = 50
+TIME_ZONES = frozenset(available_timezones())
+
+
 def default_display_name(claims: dict[str, Any]) -> str:
     full_name = " ".join(
         part for part in (claims.get("given_name"), claims.get("family_name")) if part
     )
+    full_name = " ".join(full_name.split())
     if full_name:
         return full_name[:80]
     email = claims.get("email")
@@ -75,26 +81,43 @@ def default_display_name(claims: dict[str, Any]) -> str:
     return "Player"
 
 
-async def get_current_user(claims: ClaimsDep, session: SessionDep) -> User:
-    """Return the calling user, creating their record on first sight."""
+def browser_time_zone(request: Request) -> str:
+    """The zone the app sends in X-Time-Zone, or UTC if it's missing or unknown."""
+    zone = request.headers.get("x-time-zone", "")
+    return zone if zone in TIME_ZONES else "UTC"
+
+
+async def get_current_user(claims: ClaimsDep, session: SessionDep, request: Request) -> User:
+    """Return the calling user, creating their record on first sight.
+
+    A new account starts in the browser's time zone, so its groups do too.
+    """
     kinde_id = claims["sub"]
     email = claims.get("email")
     user = await session.scalar(select(User).where(User.kinde_id == kinde_id))
     if user is None:
-        # Two first requests can race; whichever insert loses is a no-op.
-        await session.execute(
-            insert(User)
-            .values(
-                kinde_id=kinde_id,
-                email=email,
-                display_name=default_display_name(claims),
-                avatar_url=claims.get("picture"),
+        # Display names are unique, so try "Sam Lee", then "Sam Lee 2", and so on. Any
+        # conflict is a no-op: either the name is taken, or a second first request for the
+        # same person won the race (and then the user exists).
+        base = default_display_name(claims)
+        for n in range(1, MAX_NAME_TRIES + 1):
+            await session.execute(
+                insert(User)
+                .values(
+                    kinde_id=kinde_id,
+                    email=email,
+                    display_name=base if n == 1 else f"{base[:76]} {n}",
+                    avatar_url=claims.get("picture"),
+                    time_zone=browser_time_zone(request),
+                )
+                .on_conflict_do_nothing()
             )
-            .on_conflict_do_nothing(index_elements=[User.kinde_id])
-        )
-        await session.commit()
-        user = await session.scalar(select(User).where(User.kinde_id == kinde_id))
-        assert user is not None
+            await session.commit()
+            user = await session.scalar(select(User).where(User.kinde_id == kinde_id))
+            if user is not None:
+                break
+        if user is None:
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not set up account")
     elif email and user.email != email:
         # Kinde owns the email address; keep ours in step if it changes there.
         user.email = email
