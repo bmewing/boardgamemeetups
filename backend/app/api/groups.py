@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, StringConstraints
-from sqlalchemy import ColumnElement, and_, delete, exists, func, select
+from sqlalchemy import ColumnElement, and_, delete, exists, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,6 +42,7 @@ GroupName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1
 Description = Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
 Location = Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)]
 Duration = Annotated[int, Field(ge=15, le=24 * 60)]
+PlusOneLimit = Annotated[int, Field(ge=0, le=10)]
 RECENT_DATES = 3
 
 
@@ -58,6 +59,7 @@ class MeetupBrief(BaseModel):
     yes: int
     maybe: int
     no: int
+    headcount: int  # members going plus the guests they're bringing
     my_response: RsvpResponse | None
 
 
@@ -112,6 +114,7 @@ class GroupRead(BaseModel):
     start_time: time
     duration_minutes: int
     location: str | None
+    plus_one_limit: int
     my_role: GroupRole
     members: list[MemberRead]
     invites: list[GroupInviteRead]  # waiting for an answer; only the owner and admins see them
@@ -138,6 +141,8 @@ class GroupUpdate(BaseModel):
     start_time: time | None = None
     duration_minutes: Duration | None = None
     location: Location | None = None
+    # Lowering it trims guests already on upcoming dates down to the new limit.
+    plus_one_limit: PlusOneLimit | None = None
 
 
 class InviteResult(BaseModel):
@@ -178,15 +183,23 @@ async def meetup_briefs(
 ) -> list[MeetupBrief]:
     ids = [m.id for m in meetups]
     counts: dict[uuid.UUID, dict[RsvpResponse, int]] = defaultdict(dict)
+    guests_going: dict[uuid.UUID, int] = defaultdict(int)
     mine: dict[uuid.UUID, RsvpResponse] = {}
     if ids:
         tallies = await session.execute(
-            select(MeetupRsvp.meetup_id, MeetupRsvp.response, func.count())
+            select(
+                MeetupRsvp.meetup_id,
+                MeetupRsvp.response,
+                func.count(),
+                func.coalesce(func.sum(MeetupRsvp.guests), 0),
+            )
             .where(MeetupRsvp.meetup_id.in_(ids))
             .group_by(MeetupRsvp.meetup_id, MeetupRsvp.response)
         )
-        for meetup_id, response, count in tallies:
+        for meetup_id, response, count, guests in tallies:
             counts[meetup_id][response] = count
+            if response == RsvpResponse.YES:
+                guests_going[meetup_id] = int(guests)
         own = await session.execute(
             select(MeetupRsvp.meetup_id, MeetupRsvp.response).where(
                 MeetupRsvp.meetup_id.in_(ids), MeetupRsvp.user_id == user.id
@@ -207,10 +220,24 @@ async def meetup_briefs(
             yes=counts[m.id].get(RsvpResponse.YES, 0),
             maybe=counts[m.id].get(RsvpResponse.MAYBE, 0),
             no=counts[m.id].get(RsvpResponse.NO, 0),
+            headcount=counts[m.id].get(RsvpResponse.YES, 0) + guests_going[m.id],
             my_response=mine.get(m.id),
         )
         for m in meetups
     ]
+
+
+async def _trim_guests(session: AsyncSession, group: Group) -> None:
+    """Bring guests on upcoming dates down to the group's plus-one limit. Past dates keep
+    who actually came."""
+    upcoming = select(Meetup.id).where(
+        Meetup.group_id == group.id, Meetup.local_date >= today_in(group.time_zone)
+    )
+    await session.execute(
+        update(MeetupRsvp)
+        .where(MeetupRsvp.meetup_id.in_(upcoming), MeetupRsvp.guests > group.plus_one_limit)
+        .values(guests=group.plus_one_limit)
+    )
 
 
 def _invites_for(user: User) -> ColumnElement[bool]:
@@ -345,6 +372,7 @@ async def read_group(group_id: uuid.UUID, user: CurrentUser, session: SessionDep
         start_time=group.start_time,
         duration_minutes=group.duration_minutes,
         location=group.location,
+        plus_one_limit=group.plus_one_limit,
         my_role=me.role,
         members=[
             MemberRead(person=PersonRead.of(person), role=member.role, joined_at=member.joined_at)
@@ -376,6 +404,9 @@ async def update_group(
         group.schedule = changes.schedule.model_dump(mode="json") if changes.schedule else None
     if "time_zone" in sent and changes.time_zone:
         await move_to_time_zone(session, group, today_in(group.time_zone))
+    if "plus_one_limit" in sent and changes.plus_one_limit is not None:
+        group.plus_one_limit = changes.plus_one_limit
+        await _trim_guests(session, group)
     await session.commit()
     return await read_group(group.id, user, session)
 

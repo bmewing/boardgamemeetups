@@ -52,6 +52,9 @@ functions:
       - key: KINDE_AUDIENCE
         scope: RUN_AND_BUILD_TIME
         value: https://api.boardgamemeetups
+      - key: APP_URL  # links back to the app from calendar events
+        scope: RUN_AND_BUILD_TIME
+        value: https://boardgames.ewingsonline.com
 
 ingress:
   rules:
