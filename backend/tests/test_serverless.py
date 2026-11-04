@@ -95,6 +95,21 @@ async def test_empty_responses_have_no_body(client: AsyncClient, make_token: Tok
     assert "body" not in result
 
 
+async def test_bare_json_that_looks_like_base64_is_sent_encoded(
+    client: AsyncClient, make_token: TokenFactory
+) -> None:
+    auth = {"authorization": f"Bearer {make_token('kp_no_feed_fn')}"}
+
+    # No calendar link yet: the answer is a bare null, which DigitalOcean would decode.
+    result = await serverless.handle(web_event("GET", "/api/me/calendar-feed", headers=auth))
+
+    assert result["statusCode"] == 200
+    assert base64.b64decode(result["body"]) == b"null"
+    assert not serverless._looks_like_base64('{"status":"ok"}')
+    assert not serverless._looks_like_base64('"text"')
+    assert serverless._looks_like_base64("true")
+
+
 async def test_entry_point_starts_the_app_and_serves_requests() -> None:
     # The Functions runtime calls main() synchronously, so run it off the test's event loop.
     result = await asyncio.to_thread(serverless.main, web_event("GET", "/api/nope"), None)
