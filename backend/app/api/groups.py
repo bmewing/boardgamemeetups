@@ -21,6 +21,7 @@ from app.db import SessionDep
 from app.friends import has_blocked
 from app.groups import membership, require_owner, require_runner
 from app.models import (
+    BringAssignment,
     Game,
     Group,
     GroupInvite,
@@ -35,6 +36,7 @@ from app.models import (
     UserBlock,
     UserGame,
 )
+from app.plays import fill_unlogged
 from app.recommend import Answer, Person, rollup
 from app.schedule import SCHEDULE, Schedule, move_to_time_zone, sync_meetups, today_in
 
@@ -334,6 +336,7 @@ async def read_group(group_id: uuid.UUID, user: CurrentUser, session: SessionDep
     """The group, its members and dates. Opening it tops up the scheduled dates."""
     group, me = await membership(session, group_id, user)
     await sync_meetups(session, group)
+    await fill_unlogged(session, group)
     today = today_in(group.time_zone)
 
     members = await session.execute(
@@ -572,6 +575,11 @@ async def remove_member(
     await session.execute(
         delete(MeetupRsvp).where(
             MeetupRsvp.user_id == target.user_id, MeetupRsvp.meetup_id.in_(upcoming)
+        )
+    )
+    await session.execute(
+        delete(BringAssignment).where(
+            BringAssignment.user_id == target.user_id, BringAssignment.meetup_id.in_(upcoming)
         )
     )
     await session.delete(target)

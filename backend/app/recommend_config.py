@@ -20,8 +20,8 @@ WISHLIST = 1.5
 MOOD_MATCH = 1.0
 # Someone coming is new to it and nobody coming can teach it.
 NOBODY_TO_TEACH = -2.0
-# Phase 10: played at one of the group's last few meetups.
-RECENTLY_PLAYED = 0.0
+# Played at one of the group's last two logged meetups (app.plays.RECENT_DATES).
+RECENTLY_PLAYED = -2.0
 
 # Group ratings and weights lean on BGG's until a few people have answered:
 # (sum of answers + PRIOR * BGG's value) / (answers + PRIOR).

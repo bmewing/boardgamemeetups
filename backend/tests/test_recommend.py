@@ -194,3 +194,19 @@ def test_mood_matches_need_attendees_tags() -> None:
 
     assert matched > unmatched
     assert not any("Matches" in r.text for r in reasons)
+
+
+def test_games_played_lately_move_down() -> None:
+    roll = rollup(game(), [ANN], answers(Answer(ANN, ownership=Ownership.OWNED)))
+    options: dict[str, Any] = {
+        "players": 2,
+        "fits_maybes": False,
+        "tonight_moods": [],
+        "mood_names": MOOD_NAMES,
+    }
+
+    fresh, _ = score(roll, **options)
+    stale, reasons = score(roll, recently_played=True, **options)
+
+    assert stale < fresh
+    assert reasons[-1].text == "Played last time"
