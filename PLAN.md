@@ -121,7 +121,7 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - [x] BGG's values beside your own: rating and weight as hints in your boxes, the listed time in the length box, BGG's best counts as a dot on the player-count buttons (plus the "Best at N" badge)
 - **Done when:** can set every field from both the collection and search, and BGG's values show beside your own (met 2026-11-03: search sets the status fields directly and links to the game page for the rest)
 
-### Phase 6 — Friends & invites
+### Phase 6 — Friends & invites ✅
 - [x] `friendships`: one row per pair, stored as (smaller user id, larger user id) so two crossing requests can't make two rows, plus the requester and status (pending / accepted)
 - [x] Find friends by **exact email only** (any case), not display name, so nobody can list everyone on the app. No match offers an invite link instead
 - [x] Send, accept, decline, cancel, remove. Declining deletes the request quietly; the sender isn't told
@@ -130,7 +130,7 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 - [x] Opening `/invite/:token` keeps the token in sessionStorage through Kinde sign-up or sign-in, then offers to become friends (`POST /api/invites/{token}/accept`)
 - [x] Friends page (account menu, with a count of incoming requests): add by email, requests, friends, invite links, blocked
 - [x] Person page: their collection and wishlist, read only, as their visibility allows: *private* = only you, *friends* = friends, *public* = anyone signed in. **Notes are never shown to anyone else**
-- **Done when:** two test accounts can befriend each other via search and via invite link
+- **Done when:** two test accounts can befriend each other via search and via invite link (met 2026-11-03, in production)
 
 ### Phase 7 — Groups (persistent + recurring)
 - [ ] `groups` (name, description, owner) + `group_members` (role: owner/admin/member)
