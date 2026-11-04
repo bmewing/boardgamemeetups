@@ -93,7 +93,8 @@ class UserGame(Base):
     rating: Mapped[float | None] = mapped_column(Float)  # BGG's 1 to 10 scale, decimals allowed
     weight_vote: Mapped[int | None] = mapped_column(Integer)  # BGG's 1 (light) … 5 (heavy)
     playtime_feel: Mapped[PlaytimeFeel | None] = mapped_column(_string_enum(PlaytimeFeel))
-    can_teach: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # Null: not answered. An owner who hasn't answered counts as able to teach it.
+    can_teach: Mapped[bool | None] = mapped_column(Boolean)
     teach_minutes: Mapped[int | None] = mapped_column(Integer)
     plays: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     # Only meaningful for an owned copy: no for one that's lent out or never leaves home.
