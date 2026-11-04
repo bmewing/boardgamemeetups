@@ -4,6 +4,16 @@
 name: boardgamemeetups
 region: nyc
 
+domains:
+  - domain: boardgames.ewingsonline.com
+    type: PRIMARY
+  - domain: bggroup.app
+    type: ALIAS
+    zone: bggroup.app
+
+features:
+  - buildpack-stack=ubuntu-22  # set by DigitalOcean
+
 static_sites:
   - name: web
     github:
