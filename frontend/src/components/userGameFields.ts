@@ -61,6 +61,28 @@ export function formatValue(field: FieldName, value: unknown): string {
   }
 }
 
+/** A game with no answers yet, as the API would list it once any answer is saved. */
+export function blankUserGame(game: GameSummary): UserGame {
+  return {
+    game,
+    ownership: null,
+    wishlist_priority: null,
+    want_to_play: false,
+    rating: null,
+    weight_vote: null,
+    playtime_feel: null,
+    can_teach: false,
+    teach_minutes: null,
+    plays: 0,
+    will_bring: true,
+    notes: null,
+    player_counts: [],
+    moods: [],
+    source: 'manual',
+    updated_at: new Date().toISOString(),
+  }
+}
+
 export function isOwned(row: Pick<UserGame, 'ownership'>): boolean {
   return row.ownership === 'owned' || row.ownership === 'preordered'
 }

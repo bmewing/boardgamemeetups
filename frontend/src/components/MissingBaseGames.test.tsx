@@ -19,6 +19,7 @@ const game = (id: number, name: string, isExpansion = false): GameSummary => ({
   min_playtime: 60,
   max_playtime: 120,
   weight: 3.5,
+  bgg_rating: null,
   bgg_rank: null,
   best_with: [],
   base_game_ids: [],

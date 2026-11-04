@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 
+import { blankUserGame } from '../components/userGameFields'
 import { api } from './client'
+import type { GameSummary } from './games'
 import type { components } from './schema'
 
 export type UserGame = components['schemas']['UserGameRead']
@@ -37,10 +39,27 @@ export function useMyGames() {
   })
 }
 
+const UPDATE_KEY = ['me', 'games', 'update'] as const
+
+/**
+ * Save changes to one of your games. The list shows them at once; saves go out one at a
+ * time, in order, so quick taps can't land out of order, and the list is refetched once
+ * the last one is done (or one fails).
+ */
 export function useUpdateMyGame() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ gameId, changes }: { gameId: number; changes: UserGameUpdate }) => {
+    mutationKey: UPDATE_KEY,
+    scope: { id: 'my-games' },
+    // `game` lets a game that isn't in the list yet show up in it straight away.
+    mutationFn: async ({
+      gameId,
+      changes,
+    }: {
+      gameId: number
+      changes: UserGameUpdate
+      game?: GameSummary
+    }) => {
       const { data, error } = await api.PUT('/api/me/games/{game_id}', {
         params: { path: { game_id: gameId } },
         body: changes,
@@ -48,7 +67,37 @@ export function useUpdateMyGame() {
       if (error) throw new Error(detailOf(error, 'Could not save this game'))
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: MY_GAMES_KEY }),
+    onMutate: async ({ gameId, changes, game }) => {
+      await queryClient.cancelQueries({ queryKey: MY_GAMES_KEY })
+      queryClient.setQueryData<UserGame[]>(MY_GAMES_KEY, (rows) => {
+        if (!rows) return rows
+        const apply = (r: UserGame) => ({ ...r, ...changes }) as UserGame
+        if (rows.some((r) => r.game.id === gameId)) {
+          return rows.map((r) => (r.game.id === gameId ? apply(r) : r))
+        }
+        return game ? [...rows, apply(blankUserGame(game))] : rows
+      })
+    },
+    onSettled: (_data, error) => {
+      // This save still counts as running here.
+      if (error || queryClient.isMutating({ mutationKey: UPDATE_KEY }) <= 1) {
+        return queryClient.invalidateQueries({ queryKey: MY_GAMES_KEY })
+      }
+    },
+  })
+}
+
+export type Mood = components['schemas']['MoodRead']
+
+export function useMoods() {
+  return useQuery({
+    queryKey: ['moods'],
+    queryFn: async () => {
+      const { data, error } = await api.GET('/api/moods')
+      if (error) throw new Error('Could not load moods')
+      return data
+    },
+    staleTime: Infinity,
   })
 }
 

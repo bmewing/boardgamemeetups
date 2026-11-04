@@ -27,6 +27,7 @@ import {
   useMyGames,
 } from '../api/collection'
 import { GameCard } from '../components/GameCard'
+import { GameAnswersEditor } from '../components/GameAnswersEditor'
 import { FindMissingBaseGames } from '../components/MissingBaseGames'
 import { RemoveGameButton } from '../components/RemoveGameButton'
 import {
@@ -76,13 +77,18 @@ function matches(row: UserGame, f: Filters): boolean {
   return true
 }
 
-function YourAnswers({ row }: { row: UserGame }) {
+/** Badges for your answers; `statusOnly` leaves out the ones the list row lets you edit. */
+function YourAnswers({ row, statusOnly = false }: { row: UserGame; statusOnly?: boolean }) {
   const badges = [
     row.ownership && OWNERSHIP_LABELS[row.ownership],
     row.wishlist_priority !== null && `Wishlist: ${WISHLIST_LABELS[row.wishlist_priority]}`,
-    row.want_to_play && 'Want to play',
-    row.rating !== null && `Rated ${row.rating}`,
-    row.can_teach && 'Can teach',
+    ...(statusOnly
+      ? []
+      : [
+          row.want_to_play && 'Want to play',
+          row.rating !== null && `Rated ${row.rating}`,
+          row.can_teach && 'Can teach',
+        ]),
   ].filter((b): b is string => Boolean(b))
   if (badges.length === 0) return null
   return (
@@ -310,8 +316,8 @@ export function CollectionPage() {
         <Stack gap="xs">
           {shown.map((row) => (
             <WithRemove key={row.game.id} row={row} allRows={games.data}>
-              <GameCard game={row.game} pr={44}>
-                <YourAnswers row={row} />
+              <GameCard game={row.game} pr={44} below={<GameAnswersEditor row={row} />}>
+                <YourAnswers row={row} statusOnly />
               </GameCard>
             </WithRemove>
           ))}

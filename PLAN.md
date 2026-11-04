@@ -108,13 +108,18 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
 
 **Phase 4 notes: BGG is pull-only.** BGG's XML API is read-only. Writing back would mean driving BGG's website with the user's own BGG login, which means holding their BGG password and likely breaks the terms of our registered app. So data only flows from BGG to us, never back, and every pull or file import is previewed as a diff and applied only on confirm.
 
-### Phase 5 — Editing your game data
-- [ ] Game page and collection rows: edit every `user_games` field from either the collection or search
-- [ ] Player counts as a row of tappable counts per game (tap cycles best → recommended → not recommended → blank), with a one-tap "best at N" shortcut
-- [ ] "Can teach" asks for teach time before it saves
-- [ ] Mood tags as chips from the `moods` list
-- [ ] Show BGG's community values (rating, weight, best count, playing time) alongside the user's own
-- **Done when:** can set every field from both the collection and search, and BGG's values show beside your own
+### Phase 5 — Editing your game data ✅
+- [x] "My games" moves from the header to the account menu; the header keeps shared things (Search now, later Groups and Meetups)
+- [x] `PUT /api/me/games/{id}` takes `player_counts` and `moods`, each replacing the whole list (only taggable moods)
+- [x] One editor (`GameAnswersEditor`), each change saving on its own and in order:
+  - My games list rows: player counts, rating, weight, length, can teach + teach time, want to play, will bring (owned only), moods
+  - Game page: all of those plus ownership, wishlist priority, plays and notes; any answer adds a game that isn't in your list
+  - Search results: one-tap "I own it", "On my wishlist", "Want to play"; the rest via the game page
+- [x] Player counts as a row of tappable counts (tap cycles best → recommended → not recommended → blank; the first tap is the "best at N" shortcut)
+- [x] "Can teach" asks for teach time before it saves; entering a teach time ticks it, clearing it unticks it
+- [x] Moods picked from the taggable `moods` list
+- [x] BGG's values beside your own: rating and weight as hints in your boxes, the listed time in the length box, BGG's best counts as a dot on the player-count buttons (plus the "Best at N" badge)
+- **Done when:** can set every field from both the collection and search, and BGG's values show beside your own (met 2026-11-03: search sets the status fields directly and links to the game page for the rest)
 
 ### Phase 6 — Friends & invites
 - [ ] `friendships` (requester, addressee, status: pending/accepted/blocked)
