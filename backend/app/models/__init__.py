@@ -2,6 +2,7 @@
 
 from app.db import Base
 from app.models.bgg_throttle import BggThrottle
+from app.models.friend import Friendship, FriendshipStatus, InviteLink, UserBlock
 from app.models.game import Game, PlayerCountVotes
 from app.models.mood import Mood
 from app.models.user import CollectionVisibility, User
@@ -20,7 +21,10 @@ __all__ = [
     "Base",
     "BggThrottle",
     "CollectionVisibility",
+    "Friendship",
+    "FriendshipStatus",
     "Game",
+    "InviteLink",
     "Mood",
     "Ownership",
     "PlayerCountVote",
@@ -29,6 +33,7 @@ __all__ = [
     "RemovedGame",
     "Source",
     "User",
+    "UserBlock",
     "UserGame",
     "UserGameMood",
     "UserGamePlayerCount",
