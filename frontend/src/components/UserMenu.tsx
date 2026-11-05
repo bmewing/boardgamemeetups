@@ -54,6 +54,11 @@ export function UserMenu() {
         <Menu.Item component={Link} to="/profile">
           Profile
         </Menu.Item>
+        {me.data?.is_admin && (
+          <Menu.Item component={Link} to="/admin">
+            Admin
+          </Menu.Item>
+        )}
         <Menu.Item onClick={() => logout()}>Sign out</Menu.Item>
       </Menu.Dropdown>
     </Menu>

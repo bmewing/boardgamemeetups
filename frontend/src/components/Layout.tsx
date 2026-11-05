@@ -1,8 +1,20 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import { Anchor, AppShell, Container, Group, Image, Indicator, Title } from '@mantine/core'
+import {
+  Alert,
+  Anchor,
+  AppShell,
+  Button,
+  Container,
+  Group,
+  Image,
+  Indicator,
+  Stack,
+  Title,
+} from '@mantine/core'
 import { Link, NavLink, Outlet } from 'react-router'
 
 import { useGroups } from '../api/groups'
+import { AccountSuspendedError, useMe } from '../api/me'
 import { useResumeInvite } from '../auth/pendingInvite'
 import { UserMenu } from './UserMenu'
 
@@ -42,8 +54,25 @@ function GroupsLink() {
   )
 }
 
+/** Shown in place of every page to a banned account: the API refuses all its requests. */
+function Suspended({ message }: { message: string }) {
+  const { logout } = useKindeAuth()
+  return (
+    <Stack align="flex-start" py="xl">
+      <Alert color="red" title="Account suspended">
+        {message} If you think this is a mistake, email admin@bggroup.app.
+      </Alert>
+      <Button variant="default" onClick={() => logout()}>
+        Sign out
+      </Button>
+    </Stack>
+  )
+}
+
 export function Layout() {
   const { isAuthenticated } = useKindeAuth()
+  const me = useMe()
+  const suspended = me.error instanceof AccountSuspendedError ? me.error : null
   useResumeInvite()
 
   return (
@@ -55,7 +84,7 @@ export function Layout() {
               <Anchor component={Link} to="/" underline="never" c="inherit">
                 <Title order={3}>Board Game Group</Title>
               </Anchor>
-              {isAuthenticated && (
+              {isAuthenticated && !suspended && (
                 <>
                   <GroupsLink />
                   <Anchor component={NavLink} to="/games" c="inherit" fw={500}>
@@ -70,7 +99,7 @@ export function Layout() {
       </AppShell.Header>
       <AppShell.Main>
         <Container size="md">
-          <Outlet />
+          {suspended ? <Suspended message={suspended.message} /> : <Outlet />}
         </Container>
       </AppShell.Main>
       <AppShell.Footer>

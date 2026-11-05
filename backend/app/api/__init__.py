@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api import (
+    admin,
     calendar,
     collection,
     friends,
@@ -26,3 +27,4 @@ api_router.include_router(calendar.router)
 api_router.include_router(votes.router)
 api_router.include_router(play_log.router)
 api_router.include_router(notifications.router)
+api_router.include_router(admin.router)

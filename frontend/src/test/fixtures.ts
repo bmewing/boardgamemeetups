@@ -10,4 +10,5 @@ export const profile: UserProfile = {
   bgg_pulled_at: null,
   collection_visibility: 'friends',
   email_opt_outs: [],
+  is_admin: false,
 }

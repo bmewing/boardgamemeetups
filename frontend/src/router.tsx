@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 
 import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
+import { AdminPage } from './pages/AdminPage'
 import { BggPullPage } from './pages/BggPullPage'
 import { CollectionPage } from './pages/CollectionPage'
 import { FileImportPage } from './pages/FileImportPage'
@@ -28,6 +29,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <ProfilePage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'admin',
+        element: (
+          <RequireAuth>
+            <AdminPage />
           </RequireAuth>
         ),
       },

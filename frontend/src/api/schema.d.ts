@@ -1095,10 +1095,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Stats */
+        get: operations["read_stats_api_admin_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description Everyone, newest first. `q` matches part of a name or email.
+         */
+        get: operations["list_users_api_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}/ban": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Ban User
+         * @description Refuse every request the account makes from now on. Its data stays, so a ban can be
+         *     lifted; banning again just updates the reason.
+         */
+        put: operations["ban_user_api_admin_users__user_id__ban_put"];
+        post?: never;
+        /** Unban User */
+        delete: operations["unban_user_api_admin_users__user_id__ban_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete User
+         * @description Delete the account and its data, as if they'd deleted it themselves. Their Kinde login
+         *     remains, so signing in again starts a fresh, empty account; ban instead to keep them out.
+         */
+        delete: operations["delete_user_api_admin_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update User
+         * @description Make someone an admin, or stop them being one.
+         */
+        patch: operations["update_user_api_admin_users__user_id__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActivityStats */
+        ActivityStats: {
+            /** Groups */
+            groups: number;
+            /** Meetups Upcoming */
+            meetups_upcoming: number;
+            /** Meetups Past */
+            meetups_past: number;
+            /** Plays Logged */
+            plays_logged: number;
+            /** Friendships */
+            friendships: number;
+            /** Games Owned */
+            games_owned: number;
+            /** Catalog Games */
+            catalog_games: number;
+        };
+        /** AdminUserPage */
+        AdminUserPage: {
+            /** Users */
+            users: components["schemas"]["AdminUserRead"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminUserRead */
+        AdminUserRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string | null;
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Banned At */
+            banned_at: string | null;
+            /** Ban Reason */
+            ban_reason: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Games Owned */
+            games_owned: number;
+            /** Groups */
+            groups: number;
+        };
+        /** AdminUserUpdate */
+        AdminUserUpdate: {
+            /** Is Admin */
+            is_admin: boolean;
+        };
+        /** BanRequest */
+        BanRequest: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
         /**
          * BaseGameChoice
          * @description An expansion of yours that fits several base games, none of which you own.
@@ -2255,6 +2407,13 @@ export interface components {
          * @enum {string}
          */
         Source: "bgg" | "file" | "manual";
+        /** StatsRead */
+        StatsRead: {
+            users: components["schemas"]["UserStats"];
+            activity: components["schemas"]["ActivityStats"];
+            /** Signups By Week */
+            signups_by_week: components["schemas"]["WeekCount"][];
+        };
         /** SuggestedGame */
         SuggestedGame: {
             game: components["schemas"]["GameSummary"];
@@ -2350,6 +2509,25 @@ export interface components {
             collection_visibility: components["schemas"]["CollectionVisibility"];
             /** Email Opt Outs */
             email_opt_outs: components["schemas"]["EmailKind"][];
+            /** Is Admin */
+            is_admin: boolean;
+        };
+        /** UserStats */
+        UserStats: {
+            /** Total */
+            total: number;
+            /** New 7D */
+            new_7d: number;
+            /** New 30D */
+            new_30d: number;
+            /** Active 7D */
+            active_7d: number;
+            /** Active 30D */
+            active_30d: number;
+            /** Banned */
+            banned: number;
+            /** Admins */
+            admins: number;
         };
         /** UserUpdate */
         UserUpdate: {
@@ -2392,6 +2570,16 @@ export interface components {
             nominations: components["schemas"]["NominationRead"][];
             /** Nominatable */
             nominatable: components["schemas"]["GameBrief"][];
+        };
+        /** WeekCount */
+        WeekCount: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /** Count */
+            count: number;
         };
         /**
          * WholeFile
@@ -4447,6 +4635,190 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmailSettingsRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_stats_api_admin_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatsRead"];
+                };
+            };
+        };
+    };
+    list_users_api_admin_users_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                show?: "all" | "banned" | "admins";
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ban_user_api_admin_users__user_id__ban_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unban_user_api_admin_users__user_id__ban_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_api_admin_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_admin_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserRead"];
                 };
             };
             /** @description Validation Error */

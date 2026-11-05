@@ -62,6 +62,19 @@ then from `backend/`:
 uv run python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
 ```
 
+## Admins
+
+Admins get an **Admin** item in the account menu, leading to `/admin`: site-wide stats, and
+banning, deleting or promoting accounts. Make the first admin from `backend/` (they must have
+signed in once); after that, admins can promote others from the portal:
+
+```bash
+uv run python -m app.admins grant you@example.com
+```
+
+`revoke EMAIL` and `list` work too. Add `--env-file .env.production` after `uv run` for
+production.
+
 ## Checks
 
 Backend, from `backend/`:

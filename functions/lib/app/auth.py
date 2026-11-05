@@ -1,6 +1,7 @@
 """Authentication: verify Kinde access tokens and resolve the calling user."""
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Annotated, Any
 from zoneinfo import available_timezones
@@ -65,6 +66,10 @@ ClaimsDep = Annotated[dict[str, Any], Depends(get_token_claims)]
 
 
 MAX_NAME_TRIES = 50
+# How stale last_seen_at may get before a request updates it, so most requests don't write.
+LAST_SEEN_GRANULARITY = timedelta(minutes=5)
+
+BANNED = HTTPException(status.HTTP_403_FORBIDDEN, "This account has been suspended.")
 TIME_ZONES = frozenset(available_timezones())
 
 
@@ -118,11 +123,30 @@ async def get_current_user(claims: ClaimsDep, session: SessionDep, request: Requ
                 break
         if user is None:
             raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not set up account")
-    elif email and user.email != email:
+    if user.banned_at is not None:
+        raise BANNED
+    changed = False
+    if email and user.email != email:
         # Kinde owns the email address; keep ours in step if it changes there.
         user.email = email
+        changed = True
+    now = datetime.now(UTC)
+    if user.last_seen_at is None or now - user.last_seen_at >= LAST_SEEN_GRANULARITY:
+        user.last_seen_at = now
+        changed = True
+    if changed:
         await session.commit()
     return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_admin(user: CurrentUser) -> User:
+    """The calling user, who must be an admin. Admins are made with `python -m app.admins`."""
+    if not user.is_admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only admins can do that.")
+    return user
+
+
+CurrentAdmin = Annotated[User, Depends(get_admin)]

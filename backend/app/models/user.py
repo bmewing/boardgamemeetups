@@ -47,6 +47,13 @@ class User(Base):
     # Secret in each email's unsubscribe link, so it works without signing in. Made when
     # the first email goes out.
     email_token: Mapped[str | None] = mapped_column(String(64), unique=True)
+    # Admins see the admin portal: site stats, and banning or deleting accounts.
+    is_admin: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
+    # A banned account keeps its data but every request it makes is refused.
+    banned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ban_reason: Mapped[str | None] = mapped_column(String(500))
+    # When the account last used the app, to the nearest few minutes (see app.auth).
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
