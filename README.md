@@ -130,5 +130,13 @@ tests are the same as in local development.
   uv run --env-file .env.production alembic upgrade head
   uv run --env-file .env.production python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
   ```
+
+- A staging database (a second Supabase project, `boardgamemeetups-staging`) is there to try
+  migrations on first. Its settings are in the gitignored `backend/.env.staging`, laid out like
+  `.env.production` (including `SERVERLESS=true`, which the pooler needs):
+
+  ```bash
+  uv run --env-file .env.staging alembic upgrade head
+  ```
 - `DATABASE_URL` in production is Supabase's transaction pooler; `SERVERLESS=true` (set in
   `functions/project.yml`) turns off connection pooling and prepared-statement caching to suit it.

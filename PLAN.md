@@ -39,7 +39,7 @@ These are folded into the checklist below.
 
 ### Phase 0 — Accounts & setup
 - [x] Create GitHub repo (`bmewing/boardgamemeetups`)
-- [ ] Protect `main` (require CI to pass)
+- [x] Protect `main` (require the `backend` and `frontend` CI checks; no force pushes or deletions, admins included)
 - [x] Register app with BGG XML API; store bearer token
 - [x] Kinde: create business/app (React SPA type), set callback/logout URLs for localhost + prod, define an API audience for FastAPI
 - [x] Supabase: create project; grab the **transaction pooler** connection string (port 6543; the direct connection is IPv6-only on the free tier)
@@ -234,11 +234,11 @@ Decided 2026-11-04: RSVP reminders go out the day before, to members who haven't
 - [x] Resend key (Phase 11)
 - [x] First deploy: https://boardgamemeetups-i59h7.ondigitalocean.app (auto-deploys on push to `main`)
 - [x] Kinde prod callback URLs
-- [ ] Own OAuth credentials for Google, Facebook and Discord in Kinde (dev currently uses Kinde's shared keys, so consent screens name Kinde, not this app)
+- [x] Own OAuth credentials for Google, Facebook and Discord in Kinde, so consent screens name this app rather than Kinde (Discord links to `/terms` and `/privacy`)
 - [x] Kinde custom domain `auth.bggroup.app`, so sign-ins survive page reloads with the refresh token in a secure cookie rather than localStorage (localStorage stays for local dev, which signs in through `boardgamegroup.kinde.com`). Production's `VITE_KINDE_DOMAIN` and `KINDE_DOMAIN` (the token issuer) both point at it
 - [x] App custom domain + TLS: `bggroup.app` (primary) and `boardgames.ewingsonline.com`
 - [x] Auto-deploy from `main`
-- [ ] Staging database: a second Supabase project (free tier allows two)
+- [x] Staging database: a second Supabase project, `boardgamemeetups-staging` (us-east-1, Data API off). Settings in the gitignored `backend/.env.staging`; migrated to head 2026-11-04
 - **Done when:** production URL works end-to-end with a real login (met 2026-11-03; the open items above can follow later)
 
 ### Phase 13 — Post-MVP / nice-to-haves
