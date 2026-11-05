@@ -65,15 +65,12 @@ uv run python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
 ## Admins
 
 Admins get an **Admin** item in the account menu, leading to `/admin`: site-wide stats, and
-banning, deleting or promoting accounts. Make the first admin from `backend/` (they must have
-signed in once); after that, admins can promote others from the portal:
+banning or deleting accounts. Kinde decides who's an admin: anyone whose access token carries
+the `admin` permission (`KINDE_ADMIN_PERMISSION` to use another key). In Kinde, that
+permission belongs to an **Admin** role; assign the role to a user to make them an admin.
 
-```bash
-uv run python -m app.admins grant you@example.com
-```
-
-`revoke EMAIL` and `list` work too. Add `--env-file .env.production` after `uv run` for
-production.
+Changes take effect when the person's access token is next issued, so after granting it, sign
+out and back in. Removing it lasts until their current token expires.
 
 ## Checks
 

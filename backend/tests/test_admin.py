@@ -6,17 +6,26 @@ from httpx import AsyncClient
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admins import list_admins, set_admin
 from app.auth import LAST_SEEN_GRANULARITY
 from app.models import Group, GroupMember, GroupRole, User
-from tests.conftest import MakePerson, Person
+from tests.conftest import MakePerson, Person, TokenFactory, bearer
+
+
+async def make_admin(client: AsyncClient, make_token: TokenFactory, name: str) -> Person:
+    """Someone whose Kinde token carries the admin permission."""
+    email = f"{name.lower()}@example.com"
+    headers = bearer(
+        make_token(
+            f"kp_{name.lower()}", email=email, given_name=name, permissions=["admin", "other"]
+        )
+    )
+    me = (await client.get("/api/me", headers=headers)).json()
+    return Person(id=me["id"], email=email, headers=headers)
 
 
 @pytest.fixture
-async def admin(person: MakePerson, db_session: AsyncSession) -> Person:
-    boss = await person("Boss")
-    assert await set_admin(db_session, boss.email, True) is not None
-    return boss
+async def admin(client: AsyncClient, make_token: TokenFactory) -> Person:
+    return await make_admin(client, make_token, "Boss")
 
 
 async def test_only_admins_can_use_the_portal(
@@ -134,25 +143,36 @@ async def test_deleting_a_user_hands_on_their_groups(
     assert heir.role == GroupRole.OWNER
 
 
-async def test_admins_are_protected(client: AsyncClient, person: MakePerson, admin: Person) -> None:
-    other = await person("Other")
-    promoted = await client.patch(
-        f"/api/admin/users/{other.id}", json={"is_admin": True}, headers=admin.headers
-    )
+async def test_admin_follows_the_kinde_permission(
+    client: AsyncClient, make_token: TokenFactory
+) -> None:
+    def headers(*permissions: str) -> dict[str, str]:
+        return bearer(make_token("kp_pat", email="pat@example.com", permissions=list(permissions)))
+
+    granted = await client.get("/api/me", headers=headers("admin"))
+    portal = await client.get("/api/admin/stats", headers=headers("admin"))
+    revoked = await client.get("/api/me", headers=headers("view:stats"))
+    refused = await client.get("/api/admin/stats", headers=headers())
+
+    assert granted.json()["is_admin"] is True
+    assert portal.status_code == 200
+    assert revoked.json()["is_admin"] is False
+    assert refused.status_code == 403
+
+
+async def test_admins_are_protected(
+    client: AsyncClient, make_token: TokenFactory, admin: Person
+) -> None:
+    other = await make_admin(client, make_token, "Other")
 
     ban_admin = await client.put(f"/api/admin/users/{other.id}/ban", json={}, headers=admin.headers)
     delete_admin = await client.delete(f"/api/admin/users/{other.id}", headers=admin.headers)
     ban_self = await client.put(f"/api/admin/users/{admin.id}/ban", json={}, headers=admin.headers)
-    demote_self = await client.patch(
-        f"/api/admin/users/{admin.id}", json={"is_admin": False}, headers=admin.headers
-    )
     missing = await client.delete(f"/api/admin/users/{uuid.uuid4()}", headers=admin.headers)
 
-    assert promoted.json()["is_admin"] is True
     assert ban_admin.status_code == 409
     assert delete_admin.status_code == 409
     assert ban_self.status_code == 400
-    assert demote_self.status_code == 400
     assert missing.status_code == 404
 
 
@@ -174,15 +194,3 @@ async def test_last_seen_is_only_written_every_few_minutes(
     await db_session.commit()
     await client.get("/api/me", headers=sam.headers)
     assert user.last_seen_at > stale
-
-
-async def test_admin_command_grants_and_revokes(
-    person: MakePerson, db_session: AsyncSession
-) -> None:
-    sam = await person("Sam")
-
-    assert await set_admin(db_session, "nobody@example.com", True) is None
-    assert await set_admin(db_session, sam.email.upper(), True) is not None
-    assert [user.display_name for user in await list_admins(db_session)] == ["Sam"]
-    await set_admin(db_session, sam.email, False)
-    assert await list_admins(db_session) == []

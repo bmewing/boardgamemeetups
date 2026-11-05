@@ -36,7 +36,7 @@ NOT_YOURSELF = HTTPException(
     status.HTTP_400_BAD_REQUEST, "You can't do that to your own account here."
 )
 IS_ADMIN = HTTPException(
-    status.HTTP_409_CONFLICT, "They're an admin. Remove their admin role first."
+    status.HTTP_409_CONFLICT, "They're an admin. Take away their admin role in Kinde first."
 )
 
 
@@ -92,10 +92,6 @@ class AdminUserPage(BaseModel):
 
 class BanRequest(BaseModel):
     reason: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] = ""
-
-
-class AdminUserUpdate(BaseModel):
-    is_admin: bool
 
 
 async def _scalar_count(session: SessionDep, *where: ColumnElement[bool], of: type) -> int:
@@ -267,19 +263,6 @@ async def unban_user(user_id: UserId, admin: CurrentAdmin, session: SessionDep) 
     user = await _target(session, admin, user_id)
     user.banned_at = None
     user.ban_reason = None
-    await session.commit()
-    return await _reread(session, user)
-
-
-@router.patch("/users/{user_id}")
-async def update_user(
-    user_id: UserId, changes: AdminUserUpdate, admin: CurrentAdmin, session: SessionDep
-) -> AdminUserRead:
-    """Make someone an admin, or stop them being one."""
-    user = await _target(session, admin, user_id)
-    if changes.is_admin and user.banned_at is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Lift their ban first.")
-    user.is_admin = changes.is_admin
     await session.commit()
     return await _reread(session, user)
 

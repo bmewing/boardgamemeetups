@@ -1172,11 +1172,7 @@ export interface paths {
         delete: operations["delete_user_api_admin_users__user_id__delete"];
         options?: never;
         head?: never;
-        /**
-         * Update User
-         * @description Make someone an admin, or stop them being one.
-         */
-        patch: operations["update_user_api_admin_users__user_id__patch"];
+        patch?: never;
         trace?: never;
     };
 }
@@ -1237,11 +1233,6 @@ export interface components {
             games_owned: number;
             /** Groups */
             groups: number;
-        };
-        /** AdminUserUpdate */
-        AdminUserUpdate: {
-            /** Is Admin */
-            is_admin: boolean;
         };
         /** BanRequest */
         BanRequest: {
@@ -4785,41 +4776,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_user_api_admin_users__user_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                user_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminUserUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminUserRead"];
-                };
             };
             /** @description Validation Error */
             422: {

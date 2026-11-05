@@ -34,7 +34,6 @@ import {
   useAdminUsers,
   useBanUser,
   useDeleteUser,
-  useSetAdmin,
   useUnbanUser,
 } from '../api/admin'
 import { useMe } from '../api/me'
@@ -257,7 +256,6 @@ function UserActions({
   onPick: (pending: Pending) => void
 }) {
   const unban = useUnbanUser()
-  const setAdmin = useSetAdmin()
   if (isMe) {
     return (
       <Text size="xs" c="dimmed">
@@ -273,23 +271,12 @@ function UserActions({
           variant="subtle"
           color="gray"
           aria-label={`Actions for ${user.display_name}`}
-          loading={unban.isPending || setAdmin.isPending}
+          loading={unban.isPending}
         >
           ⋯
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        {user.is_admin ? (
-          <Menu.Item onClick={() => setAdmin.mutate({ userId: user.id, isAdmin: false })}>
-            Remove admin
-          </Menu.Item>
-        ) : (
-          !banned && (
-            <Menu.Item onClick={() => setAdmin.mutate({ userId: user.id, isAdmin: true })}>
-              Make admin
-            </Menu.Item>
-          )
-        )}
         {banned ? (
           <Menu.Item onClick={() => unban.mutate(user.id)}>Lift ban</Menu.Item>
         ) : (
@@ -308,7 +295,7 @@ function UserActions({
         >
           Delete account…
         </Menu.Item>
-        {user.is_admin && <Menu.Label>Remove admin to ban or delete</Menu.Label>}
+        {user.is_admin && <Menu.Label>Take away their admin role in Kinde first</Menu.Label>}
       </Menu.Dropdown>
     </Menu>
   )

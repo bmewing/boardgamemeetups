@@ -47,7 +47,8 @@ class User(Base):
     # Secret in each email's unsubscribe link, so it works without signing in. Made when
     # the first email goes out.
     email_token: Mapped[str | None] = mapped_column(String(64), unique=True)
-    # Admins see the admin portal: site stats, and banning or deleting accounts.
+    # Admins see the admin portal: site stats, and banning or deleting accounts. Kinde decides
+    # (see Settings.kinde_admin_permission); this copy is refreshed on each request.
     is_admin: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
     # A banned account keeps its data but every request it makes is refused.
     banned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

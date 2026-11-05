@@ -75,16 +75,6 @@ export function useUnbanUser() {
   })
 }
 
-export function useSetAdmin() {
-  return useAdminMutation(async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
-    const { error } = await api.PATCH('/api/admin/users/{user_id}', {
-      params: { path: { user_id: userId } },
-      body: { is_admin: isAdmin },
-    })
-    if (error) throw new Error(detailOf(error, 'Could not change their role'))
-  })
-}
-
 export function useDeleteUser() {
   return useAdminMutation(async (userId: string) => {
     const { error } = await api.DELETE('/api/admin/users/{user_id}', {
