@@ -313,15 +313,21 @@ export function useDeleteMeetup(meetupId: string, groupId: string) {
   })
 }
 
-export function useMeetupGames(meetupId: string) {
+/**
+ * The games that fit a date. `players` fits them to that many instead of the people going,
+ * just for you ("what if two more came?"); null for the real headcount.
+ */
+export function useMeetupGames(meetupId: string, players: number | null = null) {
   return useQuery({
-    queryKey: [...meetupKey(meetupId), 'games'],
+    queryKey: [...meetupKey(meetupId), 'games', players],
     queryFn: async () => {
       const { data, error } = await api.GET('/api/meetups/{meetup_id}/games', {
-        params: { path: { meetup_id: meetupId } },
+        params: { path: { meetup_id: meetupId }, query: players === null ? {} : { players } },
       })
       if (error) throw new Error('Could not load the games')
       return data
     },
+    // Keep this date's list up while another player count loads, rather than a spinner.
+    placeholderData: (previous, query) => (query?.queryKey[1] === meetupId ? previous : undefined),
   })
 }

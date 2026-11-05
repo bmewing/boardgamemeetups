@@ -826,6 +826,10 @@ export interface paths {
          *
          *     Only yes answers count toward the ranking. Maybes only give a lift to games that would
          *     still fit if they came too. Length is shown, never used to filter or rank.
+         *
+         *     `players` asks "what if this many came?": the games are fitted and ranked for that many
+         *     instead of the headcount, and the maybes are taken to be part of it. It's only for the
+         *     person asking; nothing is saved.
          */
         get: operations["list_meetup_games_api_meetups__meetup_id__games_get"];
         put?: never;
@@ -1628,6 +1632,11 @@ export interface components {
             willing_to_split: boolean;
             /** Time Zone */
             time_zone?: string | null;
+            /**
+             * Plus One Limit
+             * @default 0
+             */
+            plus_one_limit: number;
         };
         /** GroupGameRead */
         GroupGameRead: {
@@ -1980,6 +1989,8 @@ export interface components {
         MeetupGames: {
             /** Confirmed */
             confirmed: number;
+            /** Players */
+            players: number;
             /** Guests */
             guests: number;
             /** Maybes */
@@ -4075,7 +4086,9 @@ export interface operations {
     };
     list_meetup_games_api_meetups__meetup_id__games_get: {
         parameters: {
-            query?: never;
+            query?: {
+                players?: number | null;
+            };
             header?: never;
             path: {
                 meetup_id: string;
