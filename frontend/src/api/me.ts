@@ -6,13 +6,20 @@ import { detailOf } from './collection'
 
 const ME_KEY = ['me'] as const
 
+/** The API refuses every request from a banned account with a 403. */
+export class AccountSuspendedError extends Error {}
+
 export function useMe() {
   const { isAuthenticated } = useKindeAuth()
   return useQuery({
     queryKey: ME_KEY,
     enabled: isAuthenticated,
+    retry: (failures, error) => !(error instanceof AccountSuspendedError) && failures < 3,
     queryFn: async () => {
-      const { data, error } = await api.GET('/api/me')
+      const { data, error, response } = await api.GET('/api/me')
+      if (response.status === 403) {
+        throw new AccountSuspendedError(detailOf(error, 'This account has been suspended.'))
+      }
       if (error) throw new Error('Could not load your profile')
       return data
     },

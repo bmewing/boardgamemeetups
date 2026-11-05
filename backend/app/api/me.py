@@ -56,6 +56,7 @@ class UserRead(BaseModel):
     bgg_pulled_at: datetime | None
     collection_visibility: CollectionVisibility
     email_opt_outs: list[EmailKind]  # kinds of email turned off
+    is_admin: bool  # can open the admin portal
 
 
 class UserUpdate(BaseModel):

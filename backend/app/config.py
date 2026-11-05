@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     kinde_domain: str = ""
     # Audience of the Kinde API registered for this backend.
     kinde_audience: str = ""
+    # Kinde permission that makes someone an admin of the whole site. Give it to a role in
+    # Kinde and assign the role; it arrives in the access token's `permissions` claim.
+    kinde_admin_permission: str = "admin"
 
     # BoardGameGeek XML API application token (secret).
     bgg_api_token: str = ""

@@ -505,7 +505,7 @@ async def search_people(
     )
     found = await session.scalars(
         select(User)
-        .where(matches, User.id != user.id, User.id.not_in(blocks))
+        .where(matches, User.id != user.id, User.id.not_in(blocks), User.banned_at.is_(None))
         .order_by(is_friend.desc(), name.like(_like_prefix(text), escape="\\").desc(), name)
         .limit(SEARCH_LIMIT)
     )

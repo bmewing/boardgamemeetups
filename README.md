@@ -62,6 +62,16 @@ then from `backend/`:
 uv run python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
 ```
 
+## Admins
+
+Admins get an **Admin** item in the account menu, leading to `/admin`: site-wide stats, and
+banning or deleting accounts. Kinde decides who's an admin: anyone whose access token carries
+the `admin` permission (`KINDE_ADMIN_PERMISSION` to use another key). In Kinde, that
+permission belongs to an **Admin** role; assign the role to a user to make them an admin.
+
+Changes take effect when the person's access token is next issued, so after granting it, sign
+out and back in. Removing it lasts until their current token expires.
+
 ## Checks
 
 Backend, from `backend/`:

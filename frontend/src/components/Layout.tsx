@@ -1,8 +1,19 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import { Anchor, AppShell, Container, Group, Image, Indicator } from '@mantine/core'
+import {
+  Alert,
+  Anchor,
+  AppShell,
+  Button,
+  Container,
+  Group,
+  Image,
+  Indicator,
+  Stack,
+} from '@mantine/core'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 
 import { useGroups } from '../api/groups'
+import { AccountSuspendedError, useMe } from '../api/me'
 import { useResumeInvite } from '../auth/pendingInvite'
 import classes from './Layout.module.css'
 import { UserMenu } from './UserMenu'
@@ -41,8 +52,25 @@ function GroupsLink() {
   )
 }
 
+/** Shown in place of every page to a banned account: the API refuses all its requests. */
+function Suspended({ message }: { message: string }) {
+  const { logout } = useKindeAuth()
+  return (
+    <Stack align="flex-start" py="xl">
+      <Alert color="red" title="Account suspended">
+        {message} If you think this is a mistake, email admin@bggroup.app.
+      </Alert>
+      <Button variant="default" onClick={() => logout()}>
+        Sign out
+      </Button>
+    </Stack>
+  )
+}
+
 export function Layout() {
   const { isAuthenticated } = useKindeAuth()
+  const me = useMe()
+  const suspended = me.error instanceof AccountSuspendedError ? me.error : null
   const { pathname } = useLocation()
   useResumeInvite()
 
@@ -59,7 +87,7 @@ export function Layout() {
                 <img src="/favicon.svg" alt="" className={classes.logo} />
                 <span className={classes.wordmark}>Board Game Group</span>
               </Link>
-              {isAuthenticated && (
+              {isAuthenticated && !suspended && (
                 <Group gap={4} wrap="nowrap">
                   <GroupsLink />
                   <NavLink to="/games" className={classes.navLink}>
@@ -77,7 +105,7 @@ export function Layout() {
           <Outlet />
         ) : (
           <Container size="md" py="sm">
-            <Outlet />
+            {suspended ? <Suspended message={suspended.message} /> : <Outlet />}
           </Container>
         )}
       </AppShell.Main>

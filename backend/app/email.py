@@ -138,7 +138,11 @@ class Message:
 
 
 def wants(user: User, kind: EmailKind) -> bool:
-    return bool(user.email) and kind.value not in (user.email_opt_outs or [])
+    return (
+        bool(user.email)
+        and user.banned_at is None
+        and kind.value not in (user.email_opt_outs or [])
+    )
 
 
 def ensure_token(user: User) -> str:

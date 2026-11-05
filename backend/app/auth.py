@@ -1,6 +1,7 @@
 """Authentication: verify Kinde access tokens and resolve the calling user."""
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Annotated, Any
 from zoneinfo import available_timezones
@@ -65,6 +66,10 @@ ClaimsDep = Annotated[dict[str, Any], Depends(get_token_claims)]
 
 
 MAX_NAME_TRIES = 50
+# How stale last_seen_at may get before a request updates it, so most requests don't write.
+LAST_SEEN_GRANULARITY = timedelta(minutes=5)
+
+BANNED = HTTPException(status.HTTP_403_FORBIDDEN, "This account has been suspended.")
 TIME_ZONES = frozenset(available_timezones())
 
 
@@ -87,6 +92,11 @@ def browser_time_zone(request: Request) -> str:
     return zone if zone in TIME_ZONES else "UTC"
 
 
+def has_admin_permission(claims: dict[str, Any]) -> bool:
+    permissions = claims.get("permissions")
+    return isinstance(permissions, list) and get_settings().kinde_admin_permission in permissions
+
+
 async def get_current_user(claims: ClaimsDep, session: SessionDep, request: Request) -> User:
     """Return the calling user, creating their record on first sight.
 
@@ -94,6 +104,7 @@ async def get_current_user(claims: ClaimsDep, session: SessionDep, request: Requ
     """
     kinde_id = claims["sub"]
     email = claims.get("email")
+    is_admin = has_admin_permission(claims)
     user = await session.scalar(select(User).where(User.kinde_id == kinde_id))
     if user is None:
         # Display names are unique, so try "Sam Lee", then "Sam Lee 2", and so on. Any
@@ -109,6 +120,7 @@ async def get_current_user(claims: ClaimsDep, session: SessionDep, request: Requ
                     display_name=base if n == 1 else f"{base[:76]} {n}",
                     avatar_url=claims.get("picture"),
                     time_zone=browser_time_zone(request),
+                    is_admin=is_admin,
                 )
                 .on_conflict_do_nothing()
             )
@@ -118,11 +130,34 @@ async def get_current_user(claims: ClaimsDep, session: SessionDep, request: Requ
                 break
         if user is None:
             raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not set up account")
-    elif email and user.email != email:
+    if user.banned_at is not None:
+        raise BANNED
+    changed = False
+    if email and user.email != email:
         # Kinde owns the email address; keep ours in step if it changes there.
         user.email = email
+        changed = True
+    if user.is_admin != is_admin:
+        # Kinde decides who's an admin; the copy here lets the portal show and protect them.
+        user.is_admin = is_admin
+        changed = True
+    now = datetime.now(UTC)
+    if user.last_seen_at is None or now - user.last_seen_at >= LAST_SEEN_GRANULARITY:
+        user.last_seen_at = now
+        changed = True
+    if changed:
         await session.commit()
     return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_admin(user: CurrentUser) -> User:
+    """The calling user, who must be an admin: someone with the admin permission in Kinde."""
+    if not user.is_admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only admins can do that.")
+    return user
+
+
+CurrentAdmin = Annotated[User, Depends(get_admin)]
