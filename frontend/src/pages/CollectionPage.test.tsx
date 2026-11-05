@@ -98,6 +98,31 @@ describe('CollectionPage', () => {
     expect(screen.getByText('Azul')).toBeInTheDocument()
   })
 
+  it("counts the expansions you own toward a game's player range", async () => {
+    const withExpansion = [
+      ...rows,
+      row(game(4, 'Azul: Big Box', { is_expansion: true, max_players: 6, base_game_ids: [1] })),
+      // Only owned expansions count.
+      row(game(5, 'Brass: Solo', { is_expansion: true, min_players: 1, base_game_ids: [2] }), {
+        ownership: null,
+        wishlist_priority: 3,
+      }),
+    ]
+    mockApi({
+      'GET /api/me/games': () => Response.json(withExpansion),
+      'POST /api/me/games/fill-details': () => Response.json({ filled: 0, remaining: 0 }),
+    })
+    renderWithProviders(<CollectionPage />)
+
+    expect(await screen.findByText('With your Azul: Big Box (seats 2–6)')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('Players'), '6')
+    expect(screen.getByText('Azul')).toBeInTheDocument()
+    expect(screen.queryByText('Brass')).not.toBeInTheDocument()
+    await userEvent.clear(screen.getByLabelText('Players'))
+    await userEvent.type(screen.getByLabelText('Players'), '1')
+    expect(screen.queryByText('Brass')).not.toBeInTheDocument()
+  })
+
   it('removes a game from the list after asking once', async () => {
     let current = rows
     const deleted: string[] = []

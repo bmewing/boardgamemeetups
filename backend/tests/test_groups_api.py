@@ -485,6 +485,9 @@ async def test_group_library(client: AsyncClient, crew: Crew, games: None) -> No
     base, duo = library
     assert [p["id"] for p in base["owners"]] == [ann.id]
     assert [e["id"] for e in base["expansions"]] == [EXPANSION]
+    # Ben's expansion lets Ann's copy seat six.
+    assert (base["min_players"], base["max_players"]) == (2, 6)
+    assert (duo["min_players"], duo["max_players"]) == (2, 4)
     assert [(a["person"]["id"], a["rating"]) for a in base["answers"]] == [(ann.id, 8)]
     assert "notes" not in base["answers"][0]
     assert {a["person"]["id"]: a["rating"] for a in duo["answers"]} == {ben.id: None, cat.id: 6}

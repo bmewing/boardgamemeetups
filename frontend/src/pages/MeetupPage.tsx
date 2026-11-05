@@ -37,6 +37,7 @@ import {
   useUpdateMeetup,
 } from '../api/groups'
 import { GameCard } from '../components/GameCard'
+import { widenedLabel } from '../components/gameFacts'
 import {
   endTime,
   formatLongDate,
@@ -290,7 +291,7 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
           )}
           {shown.map((g) => {
             const length = lengthLabel(g.rollup)
-            const widened = g.expansions.length > 0 && g.max_players !== g.game.max_players
+            const widened = widenedLabel(g.game, g)
             return (
               <GameCard
                 key={g.game.id}
@@ -325,7 +326,7 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
                 {g.expansions.length > 0 && (
                   <Text size="xs" c="dimmed">
                     With {g.expansions.map((e) => e.name).join(', ')}
-                    {widened && ` (seats up to ${g.max_players})`}
+                    {widened && ` (${widened})`}
                   </Text>
                 )}
                 {length && (
