@@ -2,7 +2,7 @@ import { Badge, Group, Text } from '@mantine/core'
 
 import { type GroupRollup, lengthLabel, type Reason } from './rollupFormat'
 
-const TONE_COLORS = { good: 'teal', bad: 'red', info: 'gray' } as const
+const TONE_COLORS = { good: 'meeple', bad: 'red', info: 'gray' } as const
 const names = (people: { display_name: string }[]) => people.map((p) => p.display_name).join(', ')
 
 /** Why a game suits tonight, best reasons first. */
