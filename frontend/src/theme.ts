@@ -2,6 +2,7 @@ import {
   Button,
   Card,
   createTheme,
+  rgba,
   type CSSVariablesResolver,
   type MantineColorsTuple,
 } from '@mantine/core'
@@ -106,7 +107,24 @@ export const theme = createTheme({
   },
 })
 
-export const cssVariablesResolver: CSSVariablesResolver = () => ({
+/**
+ * Mantine 9 paints light-variant buttons and badges in dark mode with a near-black solid
+ * (shade 9, darkened). On the navy page those read as black pills, so use translucent tints
+ * of each color instead, with light text.
+ */
+function darkLightVariants(colors: Record<string, MantineColorsTuple>) {
+  return Object.fromEntries(
+    Object.entries(colors)
+      .filter(([name]) => name !== 'dark')
+      .flatMap(([name, shades]) => [
+        [`--mantine-color-${name}-light`, rgba(shades[5], 0.2)],
+        [`--mantine-color-${name}-light-hover`, rgba(shades[5], 0.3)],
+        [`--mantine-color-${name}-light-color`, shades[2]],
+      ]),
+  )
+}
+
+export const cssVariablesResolver: CSSVariablesResolver = (resolved) => ({
   variables: {
     '--bgg-cream': palette.cream,
     '--bgg-teal': palette.teal,
@@ -134,5 +152,6 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     '--bgg-band': '#25263a',
     '--bgg-hex-line': 'rgba(255, 238, 219, 0.05)',
     '--bgg-heading': palette.cream,
+    ...darkLightVariants(resolved.colors as Record<string, MantineColorsTuple>),
   },
 })
