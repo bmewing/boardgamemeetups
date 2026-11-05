@@ -318,7 +318,7 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
                     Brought by {g.bringers.map((p) => p.display_name).join(', ')}
                   </Text>
                   {g.fit === 'split' && (
-                    <Badge size="xs" variant="light" color="teal">
+                    <Badge size="xs" variant="light" color="meeple">
                       One of several tables
                     </Badge>
                   )}

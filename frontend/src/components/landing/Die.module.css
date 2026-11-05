@@ -1,0 +1,67 @@
+.die {
+  --face: #fffaf3;
+  --pip: var(--bgg-navy);
+  width: var(--die-size);
+  height: var(--die-size);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  perspective: calc(var(--die-size) * 6);
+  flex: none;
+}
+
+.die[data-tone='coral'] {
+  --face: var(--bgg-coral);
+  --pip: #fffaf3;
+}
+
+.die:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+
+.tilt {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(-18deg) rotateY(24deg);
+}
+
+.cube {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--die-x)) rotateY(var(--die-y));
+  transition: transform 0.9s cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 16%;
+  gap: 4%;
+  background: var(--face);
+  border: max(2px, calc(var(--die-size) / 22)) solid var(--bgg-olive);
+  border-radius: 18%;
+  backface-visibility: hidden;
+}
+
+.pip {
+  border-radius: 50%;
+  background: var(--pip);
+  margin: 6%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cube {
+    transition: none;
+  }
+}
