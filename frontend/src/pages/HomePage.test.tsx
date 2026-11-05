@@ -42,7 +42,7 @@ describe('HomePage', () => {
 
     renderWithProviders(<HomePage />)
 
-    expect(await screen.findByRole('heading', { name: 'Welcome, Sam' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /, Sam$/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Get started' })).not.toBeInTheDocument()
     expect(screen.queryByTestId('demo-round')).not.toBeInTheDocument()
   })

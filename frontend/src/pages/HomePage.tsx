@@ -1,9 +1,9 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import { Badge, Group, Stack, Text, Title } from '@mantine/core'
+import { Badge, Group, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 
 import { api } from '../api/client'
-import { useMe } from '../api/me'
+import { Dashboard } from './Dashboard'
 import { LandingPage } from './LandingPage'
 
 function ApiStatus() {
@@ -34,15 +34,7 @@ function ApiStatus() {
 
 export function HomePage() {
   const { isAuthenticated } = useKindeAuth()
-  const me = useMe()
 
   if (!isAuthenticated) return <LandingPage />
-
-  return (
-    <Stack>
-      <Title order={2}>Welcome{me.data ? `, ${me.data.display_name}` : ''}</Title>
-      <Text>Organize game nights, see who's coming, and pick what to play.</Text>
-      <ApiStatus />
-    </Stack>
-  )
+  return <Dashboard footer={<ApiStatus />} />
 }
