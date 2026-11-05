@@ -27,6 +27,7 @@ import {
   useMyGames,
 } from '../api/collection'
 import { GameCard } from '../components/GameCard'
+import { playerRange, widenedLabel } from '../components/gameFacts'
 import { GameAnswersEditor } from '../components/GameAnswersEditor'
 import { FindMissingBaseGames } from '../components/MissingBaseGames'
 import { RemoveGameButton } from '../components/RemoveGameButton'
@@ -56,14 +57,30 @@ interface Filters {
   weight: Weight | null
 }
 
-function matches(row: UserGame, f: Filters): boolean {
+type Game = UserGame['game']
+
+/** The expansions you own, by the base games they fit. */
+function expansionsByBase(rows: UserGame[]): Map<number, Game[]> {
+  const byBase = new Map<number, Game[]>()
+  for (const row of rows) {
+    if (!row.game.is_expansion || !isOwned(row)) continue
+    for (const base of row.game.base_game_ids) {
+      byBase.set(base, [...(byBase.get(base) ?? []), row.game])
+    }
+  }
+  return byBase
+}
+
+function matches(row: UserGame, f: Filters, expansions: Game[]): boolean {
   const g = row.game
   if (f.shelf === 'owned' && !isOwned(row)) return false
   if (f.shelf === 'wanted' && !isWanted(row)) return false
   if (f.name && !g.name.toLowerCase().includes(f.name.trim().toLowerCase())) return false
   if (f.players !== null) {
-    if (!g.min_players || !g.max_players) return false
-    if (f.players < g.min_players || f.players > g.max_players) return false
+    // Your expansions for a game can let it seat more (or fewer).
+    const { min_players: min, max_players: max } = playerRange(g, expansions)
+    if (!min || !max) return false
+    if (f.players < min || f.players > max) return false
   }
   if (f.maxMinutes !== null) {
     const minutes = g.max_playtime ?? g.min_playtime
@@ -100,6 +117,18 @@ function YourAnswers({ row, statusOnly = false }: { row: UserGame; statusOnly?: 
         </Badge>
       ))}
     </Group>
+  )
+}
+
+/** The expansions you own for a game, and the player range they give it. */
+function YourExpansions({ game, expansions }: { game: Game; expansions: Game[] }) {
+  if (expansions.length === 0) return null
+  const widened = widenedLabel(game, playerRange(game, expansions))
+  return (
+    <Text size="xs" c="dimmed">
+      With your {expansions.map((e) => e.name).join(', ')}
+      {widened && ` (${widened})`}
+    </Text>
   )
 }
 
@@ -203,9 +232,11 @@ export function CollectionPage() {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((current) => ({ ...current, [key]: value }))
 
+  const expansions = useMemo(() => expansionsByBase(games.data ?? []), [games.data])
   const shown = useMemo(
-    () => (games.data ?? []).filter((row) => matches(row, filters)),
-    [games.data, filters],
+    () =>
+      (games.data ?? []).filter((row) => matches(row, filters, expansions.get(row.game.id) ?? [])),
+    [games.data, filters, expansions],
   )
 
   const header = (
@@ -319,6 +350,7 @@ export function CollectionPage() {
             <WithRemove key={row.game.id} row={row} allRows={games.data}>
               <GameCard game={row.game} pr={44} below={<GameAnswersEditor row={row} />}>
                 <YourAnswers row={row} statusOnly />
+                <YourExpansions game={row.game} expansions={expansions.get(row.game.id) ?? []} />
               </GameCard>
             </WithRemove>
           ))}

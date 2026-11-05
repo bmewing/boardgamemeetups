@@ -93,7 +93,7 @@ Per-user game data lives in one row per user per game, so a user can rate or tag
   - `notes`, `source` (bgg / file / manual), timestamps; the last applied pull is `users.bgg_pulled_at`
 - [x] `user_game_player_counts` (user, game, count, vote: best / recommended / not recommended), the same answers as BGG's poll so group votes add straight onto `games.player_count_votes`
 - [x] `user_game_moods` (user, game, mood)
-- [ ] Expansions are owned games of their own; an owned expansion's player range widens its base game's range
+- [x] Expansions are owned games of their own; an owned expansion's player range widens its base game's range (a meetup's games and votes count the expansions people are bringing, the group's Games tab counts members' expansions, and My games counts yours, in its player filter and as "With your … (seats 1–6)")
 - [x] **Pull from BGG** (`/collection/pull`: `POST /api/me/games/bgg-pull` previews, `POST /api/me/games/import` applies the kept changes) (by BGG username, collection API): fetch, compute the diff against our data, show a preview before anything is written (new games, blanks that would be filled, values that would be **overwritten**, games owned here but not on BGG), then apply on confirm. BGG doesn't expose a user's own weight or player-count votes, so those only come from our UI or a file
 - [x] Upload BGG CSV export → match by `objectid` directly, then the same diff preview as a pull (untested with a real export: BGG's column names are assumed)
 - [x] Upload any Excel/CSV/text list (`/collection/import`): the user says what each column holds (guessed from headers; several columns can feed notes), and where the whole file goes (owned / wishlist / neither) when no column says. A template is at `/game-list-template.csv`

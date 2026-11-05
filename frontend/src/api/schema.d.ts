@@ -717,7 +717,8 @@ export interface paths {
          * @description Every game a member owns, with who owns it, what each member has said about it, and
          *     all of that combined (members with no answers count as new to it).
          *
-         *     Expansions are listed under their base game when a member owns that too.
+         *     Expansions are listed under their base game when a member owns that too, and widen its
+         *     player range.
          */
         get: operations["list_group_games_api_groups__group_id__games_get"];
         put?: never;
@@ -1492,6 +1493,10 @@ export interface components {
             owners: components["schemas"]["PersonRead"][];
             /** Expansions */
             expansions: components["schemas"]["GameBrief"][];
+            /** Min Players */
+            min_players: number | null;
+            /** Max Players */
+            max_players: number | null;
             /** Answers */
             answers: components["schemas"]["MemberAnswers"][];
             rollup: components["schemas"]["RollupRead"];

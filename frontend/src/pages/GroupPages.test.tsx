@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import type { Group, Groups, Meetup, MeetupBrief, MeetupGames } from '../api/groups'
+import type { Group, GroupGame, Groups, Meetup, MeetupBrief, MeetupGames } from '../api/groups'
 import { profile } from '../test/fixtures'
 import { mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
@@ -170,6 +170,77 @@ describe('GroupPage', () => {
     expect(await screen.findByText('Every Thursday')).toBeInTheDocument()
     expect(screen.queryByRole('tab', { name: 'Settings' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add a date' })).not.toBeInTheDocument()
+  })
+
+  it("filters the group's games by what members' expansions let them seat", async () => {
+    const summary = (id: number, name: string, min: number, max: number) => ({
+      id,
+      name,
+      year_published: 2020,
+      is_expansion: false,
+      thumbnail_url: null,
+      min_players: min,
+      max_players: max,
+      min_playtime: 30,
+      max_playtime: 45,
+      weight: 2,
+      bgg_rating: null,
+      bgg_rank: null,
+      best_with: [],
+      base_game_ids: [],
+    })
+    const rollup = {
+      rating: null,
+      rated_by: 0,
+      lowest_rating: null,
+      weight: null,
+      best_at: [],
+      length_minutes: null,
+      teach_minutes: null,
+      teachers: [],
+      new_to_it: [],
+      moods: [],
+      want_to_play: [],
+      wishlist: [],
+    }
+    const library: GroupGame[] = [
+      {
+        game: summary(1, 'Azul', 2, 4),
+        owners: [ann],
+        expansions: [
+          {
+            id: 3,
+            name: 'Azul: Big Box',
+            year_published: 2021,
+            thumbnail_url: null,
+            is_expansion: true,
+          },
+        ],
+        min_players: 2,
+        max_players: 6,
+        answers: [],
+        rollup,
+      },
+      {
+        game: summary(2, 'Brass', 3, 4),
+        owners: [ben],
+        expansions: [],
+        min_players: 3,
+        max_players: 4,
+        answers: [],
+        rollup,
+      },
+    ]
+    renderGroup(group, {
+      [`GET /api/groups/${GROUP_ID}/games`]: () => Response.json(library),
+      'GET /api/moods': () => Response.json([]),
+    })
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Games' }))
+    expect(await screen.findByText('With Azul: Big Box (seats 2–6)')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText(/Players/), '6')
+    expect(screen.getByText('Azul')).toBeInTheDocument()
+    expect(screen.queryByText('Brass')).not.toBeInTheDocument()
   })
 
   it('invites someone picked from the suggestions, and marks members', async () => {

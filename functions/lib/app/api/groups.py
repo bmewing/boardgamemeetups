@@ -21,7 +21,7 @@ from app.auth import CurrentUser
 from app.db import SessionDep
 from app.email import MailerDep
 from app.friends import has_blocked
-from app.groups import membership, require_owner, require_runner
+from app.groups import membership, player_range, require_owner, require_runner
 from app.models import (
     BringAssignment,
     Game,
@@ -173,6 +173,9 @@ class GroupGameRead(BaseModel):
     game: GameSummary
     owners: list[PersonRead]  # members who own it
     expansions: list[GameBrief]  # expansions for it that members own
+    # The player range with those expansions (which can widen it).
+    min_players: int | None
+    max_players: int | None
     answers: list[MemberAnswers]  # every member who has answered anything about it
     rollup: RollupRead  # every member's answers combined
 
@@ -619,7 +622,8 @@ async def list_group_games(
     """Every game a member owns, with who owns it, what each member has said about it, and
     all of that combined (members with no answers count as new to it).
 
-    Expansions are listed under their base game when a member owns that too.
+    Expansions are listed under their base game when a member owns that too, and widen its
+    player range.
     """
     group, _me = await membership(session, group_id, user)
     members = list(
@@ -655,24 +659,30 @@ async def list_group_games(
             owners[game.id].append(PersonRead.of(person))
 
     owned = {game_id for game_id in owners}
-    expansions: dict[int, list[GameBrief]] = defaultdict(list)
+    expansions: dict[int, list[Game]] = defaultdict(list)
     listed: list[int] = []
     for game_id in owned:
         game = games[game_id]
         bases = [b for b in game.base_game_ids if b in owned] if game.is_expansion else []
         if bases:
             for base in bases:
-                expansions[base].append(_brief(game))
+                expansions[base].append(game)
         else:
             listed.append(game_id)
     listed.sort(key=lambda game_id: games[game_id].name.lower())
-    return [
-        GroupGameRead(
-            game=GameSummary.from_game(games[game_id]),
-            owners=owners[game_id],
-            expansions=sorted(expansions[game_id], key=lambda e: e.name.lower()),
-            answers=answers[game_id],
-            rollup=RollupRead.of(rollup(games[game_id], scope, combined[game_id]), people),
+    result: list[GroupGameRead] = []
+    for game_id in listed:
+        extras = sorted(expansions[game_id], key=lambda e: e.name.lower())
+        low, high = player_range(games[game_id], extras)
+        result.append(
+            GroupGameRead(
+                game=GameSummary.from_game(games[game_id]),
+                owners=owners[game_id],
+                expansions=[_brief(e) for e in extras],
+                min_players=low,
+                max_players=high,
+                answers=answers[game_id],
+                rollup=RollupRead.of(rollup(games[game_id], scope, combined[game_id]), people),
+            )
         )
-        for game_id in listed
-    ]
+    return result

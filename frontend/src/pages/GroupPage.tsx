@@ -41,6 +41,7 @@ import {
 import { useMe } from '../api/me'
 import { useMoods } from '../api/collection'
 import { GameCard } from '../components/GameCard'
+import { widenedLabel } from '../components/gameFacts'
 import { RollupFacts } from '../components/Rollup'
 import {
   formatDuration,
@@ -329,8 +330,7 @@ function GamesTab({ group }: { group: GroupData }) {
       (row) =>
         (!q || row.game.name.toLowerCase().includes(q)) &&
         (players === null ||
-          tableFit(row.game.min_players, row.game.max_players, players, group.willing_to_split) !==
-            null),
+          tableFit(row.min_players, row.max_players, players, group.willing_to_split) !== null),
     )
   }, [games.data, name, players, group.willing_to_split])
 
@@ -364,12 +364,14 @@ function GamesTab({ group }: { group: GroupData }) {
       <Stack gap="xs">
         {shown.map((row) => {
           const rated = row.answers.filter((a) => a.rating !== null)
+          const widened = widenedLabel(row.game, row)
           return (
             <GameCard key={row.game.id} game={row.game}>
               <Text size="sm">Owned by {row.owners.map((p) => p.display_name).join(', ')}</Text>
               {row.expansions.length > 0 && (
                 <Text size="xs" c="dimmed">
                   With {row.expansions.map((e) => e.name).join(', ')}
+                  {widened && ` (${widened})`}
                 </Text>
               )}
               <RollupFacts rollup={row.rollup} moodNames={moodNames} />
