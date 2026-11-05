@@ -101,7 +101,7 @@ function PlayerCounts({ row, save }: { row: UserGame; save: (c: UserGameUpdate) 
               label={`Tap to change.${bgg ? ' The dot: BGG says best.' : ''}`}
               openDelay={600}
             >
-              <Indicator size={7} color="teal" offset={3} disabled={!bgg}>
+              <Indicator size={7} color="meeple" offset={3} disabled={!bgg}>
                 <Button
                   size="compact-sm"
                   miw={32}

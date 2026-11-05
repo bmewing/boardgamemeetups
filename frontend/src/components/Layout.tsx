@@ -1,9 +1,10 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import { Anchor, AppShell, Container, Group, Image, Indicator, Title } from '@mantine/core'
-import { Link, NavLink, Outlet } from 'react-router'
+import { Anchor, AppShell, Container, Group, Image, Indicator } from '@mantine/core'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 
 import { useGroups } from '../api/groups'
 import { useResumeInvite } from '../auth/pendingInvite'
+import classes from './Layout.module.css'
 import { UserMenu } from './UserMenu'
 
 function PoweredByBgg() {
@@ -28,40 +29,43 @@ function GroupsLink() {
   const groups = useGroups()
   const waiting = groups.data?.invites.length ?? 0
   return (
-    <Indicator disabled={waiting === 0} color="red" size={8} offset={-2}>
-      <Anchor
-        component={NavLink}
+    <Indicator disabled={waiting === 0} color="red" size={8} offset={2}>
+      <NavLink
         to="/groups"
-        c="inherit"
-        fw={500}
+        className={classes.navLink}
         aria-label={waiting ? `Groups (${waiting} invites waiting)` : undefined}
       >
         Groups
-      </Anchor>
+      </NavLink>
     </Indicator>
   )
 }
 
 export function Layout() {
   const { isAuthenticated } = useKindeAuth()
+  const { pathname } = useLocation()
   useResumeInvite()
 
+  // The signed-out home page is a full-width landing page with its own bands.
+  const landing = !isAuthenticated && pathname === '/'
+
   return (
-    <AppShell header={{ height: 56 }} footer={{ height: 44 }} padding="md">
-      <AppShell.Header>
+    <AppShell header={{ height: 64 }} footer={{ height: 48 }} padding={landing ? 0 : 'md'}>
+      <AppShell.Header className={classes.header}>
         <Container size="md" h="100%">
           <Group h="100%" justify="space-between" wrap="nowrap">
-            <Group gap="lg" wrap="nowrap">
-              <Anchor component={Link} to="/" underline="never" c="inherit">
-                <Title order={3}>Board Game Group</Title>
-              </Anchor>
+            <Group gap="md" wrap="nowrap">
+              <Link to="/" className={classes.brand} aria-label="Board Game Group home">
+                <img src="/favicon.svg" alt="" className={classes.logo} />
+                <span className={classes.wordmark}>Board Game Group</span>
+              </Link>
               {isAuthenticated && (
-                <>
+                <Group gap={4} wrap="nowrap">
                   <GroupsLink />
-                  <Anchor component={NavLink} to="/games" c="inherit" fw={500}>
+                  <NavLink to="/games" className={classes.navLink}>
                     Search
-                  </Anchor>
-                </>
+                  </NavLink>
+                </Group>
               )}
             </Group>
             <UserMenu />
@@ -69,11 +73,15 @@ export function Layout() {
         </Container>
       </AppShell.Header>
       <AppShell.Main>
-        <Container size="md">
+        {landing ? (
           <Outlet />
-        </Container>
+        ) : (
+          <Container size="md" py="sm">
+            <Outlet />
+          </Container>
+        )}
       </AppShell.Main>
-      <AppShell.Footer>
+      <AppShell.Footer className={classes.footer}>
         <Container size="md" h="100%">
           <Group h="100%" justify="center" gap="lg">
             <PoweredByBgg />

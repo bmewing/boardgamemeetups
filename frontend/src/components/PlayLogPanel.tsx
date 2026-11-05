@@ -182,7 +182,7 @@ function LogEditor({
                     {came
                       .filter((m) => p.players.includes(m.id))
                       .map((m) => (
-                        <Chip key={m.id} value={m.id} size="xs" color="teal">
+                        <Chip key={m.id} value={m.id} size="xs" color="meeple">
                           {m.display_name}
                         </Chip>
                       ))}

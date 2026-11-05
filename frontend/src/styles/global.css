@@ -1,0 +1,57 @@
+/* App-wide "tabletop" touches that Mantine's theme object can't express. */
+
+/* A faint hex-board grid under everything. */
+body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='58.9'%3E%3Cpath d='M17 0l17 9.8v19.6L17 39.3 0 29.4V9.8zM17 39.3v19.6' fill='none' stroke='rgb(29,120,116)' stroke-opacity='0.08' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-size: 34px 58.9px;
+  background-attachment: fixed;
+}
+
+[data-mantine-color-scheme='dark'] body {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='58.9'%3E%3Cpath d='M17 0l17 9.8v19.6L17 39.3 0 29.4V9.8zM17 39.3v19.6' fill='none' stroke='rgb(255,238,219)' stroke-opacity='0.05' stroke-width='1.2'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: rgba(221, 115, 115, 0.35);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--bgg-heading);
+}
+
+/* Cards sit on the table: a solid surface a step above the page. */
+.mantine-Card-root {
+  background-color: var(--bgg-surface);
+}
+
+/* Buttons: rounded display type, and filled ones press down into their shadow.
+   Mantine leaves data-variant off a button that's filled by default. */
+.bgg-button {
+  font-family: var(--bgg-font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.bgg-button:is([data-variant='filled'], :not([data-variant])):not(
+    :disabled,
+    [data-disabled],
+    [data-loading]
+  ) {
+  box-shadow: 2px 2px 0 var(--bgg-ink);
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background-color 120ms ease;
+}
+
+.bgg-button:is([data-variant='filled'], :not([data-variant])):not(
+    :disabled,
+    [data-disabled],
+    [data-loading]
+  ):active {
+  box-shadow: 0 0 0 var(--bgg-ink);
+  transform: translate(2px, 2px);
+}

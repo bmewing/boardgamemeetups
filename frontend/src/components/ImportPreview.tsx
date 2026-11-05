@@ -193,7 +193,7 @@ export function PreviewView({
   if (preview.games.length === 0) {
     return (
       <Stack align="flex-start">
-        <Alert color="teal" title="Already up to date" w="100%">
+        <Alert color="meeple" title="Already up to date" w="100%">
           {words.Place} lists {plural(counts.games_on_source, 'game')}, and nothing there differs
           from what you have here.
         </Alert>
@@ -312,7 +312,7 @@ export function ResultView({
 }) {
   return (
     <Stack>
-      <Alert color="teal" title="Saved">
+      <Alert color="meeple" title="Saved">
         Applied {plural(result.applied, 'change')}.
       </Alert>
       {result.skipped.length > 0 && (
