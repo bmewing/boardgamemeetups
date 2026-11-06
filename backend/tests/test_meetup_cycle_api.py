@@ -103,6 +103,14 @@ async def test_vote_lock_and_bring(client: AsyncClient, crew: Crew, games: None)
         await answer(client, meetup, who, "yes")
     crowded = by_game(await vote_state(client, meetup, ann))
     assert (crowded[DUO]["fits_now"], crowded[BASE]["fits_now"]) == (False, True)
+    assert (crowded[DUO]["fit"], crowded[BASE]["fit"]) == (None, "together")
+    assert (crowded[DUO]["min_players"], crowded[DUO]["max_players"]) == (2, 4)
+    # Happy to split: Duo still seats some of the five, at a second table.
+    await client.patch(
+        f"/api/groups/{group['id']}", headers=ann.headers, json={"willing_to_split": True}
+    )
+    split = by_game(await vote_state(client, meetup, ann))
+    assert (split[DUO]["fits_now"], split[DUO]["fit"]) == (True, "split")
 
     unlocked = (await client.post(f"/api/meetups/{meetup}/unlock", headers=ann.headers)).json()
     assert unlocked["locked"] is False
