@@ -79,6 +79,9 @@ const nomination = {
   my_vote: false,
   picked: false,
   fits_now: true,
+  fit: 'together' as const,
+  min_players: 2,
+  max_players: 4,
   bring: null,
   can_remove: false,
 }
@@ -162,6 +165,23 @@ describe('Voting on a date', () => {
     expect(screen.getByText('Nobody’s bringing it yet')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'I’ll bring it' }))
     expect(await screen.findByText('Brought by Sam')).toBeInTheDocument()
+    expect(screen.queryByText(/Too many/)).not.toBeInTheDocument()
+  })
+
+  it('flags games that can’t seat everyone going', async () => {
+    const crowded: VoteState = {
+      ...openVote,
+      headcount: 5,
+      nominations: [{ ...nomination, fits_now: false, fit: null }],
+    }
+    renderMeetup(meetupAt('2099-01-01T19:00:00Z'), {
+      [`GET /api/meetups/${MEETUP_ID}/vote`]: () => Response.json(crowded),
+    })
+
+    expect(await screen.findByText('Too many: seats up to 4, 5 going')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Lock the pick' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Too many: seats up to 4, 5 going')).toBeInTheDocument()
   })
 })
 

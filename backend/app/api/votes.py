@@ -24,7 +24,7 @@ from app.api.meetups import _meetup
 from app.auth import CurrentUser
 from app.db import SessionDep
 from app.email import MailerDep
-from app.groups import RUNS_GROUP, player_range, require_runner, table_fit
+from app.groups import RUNS_GROUP, TableFit, player_range, require_runner, table_fit
 from app.models import (
     BringAssignment,
     Game,
@@ -58,6 +58,10 @@ class NominationRead(BaseModel):
     my_vote: bool
     picked: bool
     fits_now: bool  # still seats tonight's headcount, as answers change
+    fit: TableFit | None  # how it seats the headcount: everyone together, split, or not at all
+    # The game's player range, widened by expansions people going are bringing.
+    min_players: int | None
+    max_players: int | None
     bring: BringRead | None  # for picked games
     can_remove: bool
 
@@ -159,6 +163,7 @@ async def vote_state(
     nominations: list[NominationRead] = []
     for nomination, game in rows:
         low, high = player_range(game, [e for e in expansions if game.id in e.base_game_ids])
+        fit = table_fit(low, high, headcount, group.willing_to_split)
         bring = None
         if nomination.picked:
             who = bringers.get(game.id)
@@ -176,8 +181,10 @@ async def vote_state(
                 votes=[PersonRead.of(v) for v in votes[nomination.id]],
                 my_vote=any(v.id == user.id for v in votes[nomination.id]),
                 picked=nomination.picked,
-                fits_now=high is not None
-                and table_fit(low, high, headcount, group.willing_to_split) is not None,
+                fits_now=fit is not None,
+                fit=fit,
+                min_players=low,
+                max_players=high,
                 bring=bring,
                 can_remove=not locked and (runs or nomination.nominated_by_id == user.id),
             )

@@ -21,3 +21,32 @@ export function tableFit(
   }
   return null
 }
+
+export interface CapacityNote {
+  text: string
+  color: 'red' | 'yellow' | 'gray'
+}
+
+/**
+ * Why a game on the ballot is a squeeze for the people going, or null when everyone fits
+ * at one table. Too many or too few is red; too many but splittable is yellow, since it
+ * still works as one of several tables.
+ */
+export function capacityNote(
+  minPlayers: number | null,
+  maxPlayers: number | null,
+  fit: TableFit | null,
+  headcount: number,
+): CapacityNote | null {
+  if (fit === 'together' || headcount < 1) return null
+  if (maxPlayers === null) return { text: 'Player count unknown', color: 'gray' }
+  if (headcount > maxPlayers) {
+    return fit === 'split'
+      ? {
+          text: `Seats up to ${maxPlayers}: ${headcount} going means splitting up`,
+          color: 'yellow',
+        }
+      : { text: `Too many: seats up to ${maxPlayers}, ${headcount} going`, color: 'red' }
+  }
+  return { text: `Too few: needs ${minPlayers ?? 1}, ${headcount} going`, color: 'red' }
+}

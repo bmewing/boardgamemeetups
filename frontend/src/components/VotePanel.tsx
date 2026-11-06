@@ -29,9 +29,24 @@ import {
   useWithdraw,
   type VoteState,
 } from '../api/votes'
+import { capacityNote } from './tableFit'
 import { plural } from './userGameFields'
 
 const names = (people: { display_name: string }[]) => people.map((p) => p.display_name).join(', ')
+
+const noteFor = (n: Nomination, headcount: number) =>
+  capacityNote(n.min_players, n.max_players, n.fit, headcount)
+
+/** A flag on a nominated game that can't seat everyone going at one table. */
+function CapacityBadge({ nomination, headcount }: { nomination: Nomination; headcount: number }) {
+  const note = noteFor(nomination, headcount)
+  if (!note) return null
+  return (
+    <Badge size="sm" color={note.color} variant="light" tt="none">
+      {note.text}
+    </Badge>
+  )
+}
 
 function Ballot({ meetup, state }: { meetup: Meetup; state: VoteState }) {
   const nominate = useNominate(meetup.id)
@@ -51,9 +66,12 @@ function Ballot({ meetup, state }: { meetup: Meetup; state: VoteState }) {
         <Card key={n.id} withBorder padding="xs">
           <Group justify="space-between" wrap="nowrap">
             <Stack gap={0} style={{ minWidth: 0 }}>
-              <Anchor component={Link} to={`/games/${n.game.id}`} fw={600} c="inherit">
-                {n.game.name}
-              </Anchor>
+              <Group gap="xs">
+                <Anchor component={Link} to={`/games/${n.game.id}`} fw={600} c="inherit">
+                  {n.game.name}
+                </Anchor>
+                <CapacityBadge nomination={n} headcount={state.headcount} />
+              </Group>
               <Text size="xs" c="dimmed">
                 {n.votes.length > 0
                   ? `${plural(n.votes.length, 'vote')}: ${names(n.votes)}`
@@ -137,6 +155,7 @@ function LockButton({ meetup, state }: { meetup: Meetup; state: VoteState }) {
                   key={n.id}
                   value={n.id}
                   label={`${n.game.name} (${plural(n.votes.length, 'vote')})`}
+                  description={noteFor(n, state.headcount)?.text}
                 />
               ))}
             </Stack>
@@ -157,7 +176,17 @@ function LockButton({ meetup, state }: { meetup: Meetup; state: VoteState }) {
   )
 }
 
-function Pick({ meetup, pick, meId }: { meetup: Meetup; pick: Nomination; meId?: string }) {
+function Pick({
+  meetup,
+  pick,
+  headcount,
+  meId,
+}: {
+  meetup: Meetup
+  pick: Nomination
+  headcount: number
+  meId?: string
+}) {
   const bring = useBring(meetup.id)
   const runs = meetup.my_role === 'owner' || meetup.my_role === 'admin'
   const info = pick.bring
@@ -171,11 +200,7 @@ function Pick({ meetup, pick, meId }: { meetup: Meetup; pick: Nomination; meId?:
           <Anchor component={Link} to={`/games/${pick.game.id}`} fw={600} c="inherit">
             {pick.game.name}
           </Anchor>
-          {!pick.fits_now && (
-            <Badge size="sm" color="red" variant="light" tt="none">
-              Doesn’t fit the people going any more
-            </Badge>
-          )}
+          <CapacityBadge nomination={pick} headcount={headcount} />
         </Group>
         <Group gap="xs">
           {bringer ? (
@@ -263,7 +288,13 @@ export function VotePanel({ meetup }: { meetup: Meetup }) {
       {state.locked ? (
         <>
           {picks.map((p) => (
-            <Pick key={p.id} meetup={meetup} pick={p} meId={me.data?.id} />
+            <Pick
+              key={p.id}
+              meetup={meetup}
+              pick={p}
+              headcount={state.headcount}
+              meId={me.data?.id}
+            />
           ))}
           {others.length > 0 && (
             <Text size="xs" c="dimmed">

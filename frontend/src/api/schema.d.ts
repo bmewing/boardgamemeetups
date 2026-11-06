@@ -2168,6 +2168,12 @@ export interface components {
             picked: boolean;
             /** Fits Now */
             fits_now: boolean;
+            /** Fit */
+            fit: ("together" | "split") | null;
+            /** Min Players */
+            min_players: number | null;
+            /** Max Players */
+            max_players: number | null;
             bring: components["schemas"]["BringRead"] | null;
             /** Can Remove */
             can_remove: boolean;
