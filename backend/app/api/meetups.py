@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import date, time
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field, StringConstraints
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -49,6 +49,7 @@ MoodId = Annotated[str, StringConstraints(min_length=1, max_length=32)]
 # Rules out every other mood.
 NO_PREFERENCE = "no_preference"
 MAX_RSVP_MOODS = 20
+MAX_PLAYERS = 30  # the most a "what if this many came?" can ask about
 CALENDAR_FILE: dict[int | str, dict[str, Any]] = {
     200: {"content": {"text/calendar": {"schema": {"type": "string"}}}}
 }
@@ -125,6 +126,7 @@ class FittingGame(BaseModel):
 
 class MeetupGames(BaseModel):
     confirmed: int  # the headcount: members going plus their guests
+    players: int  # the count the games were fitted to: the headcount, unless asked for another
     guests: int  # of those, guests
     maybes: int  # members who said maybe, plus their guests
     willing_to_split: bool
@@ -356,7 +358,10 @@ async def meetup_calendar_file(
 
 @router.get("/meetups/{meetup_id}/games")
 async def list_meetup_games(
-    meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep
+    meetup_id: uuid.UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    players: Annotated[int | None, Query(ge=1, le=MAX_PLAYERS)] = None,
 ) -> MeetupGames:
     """Games the people coming could play, best suited first: owned and marked "will bring"
     by someone who said yes, and playable by everyone going (guests included), all together
@@ -364,6 +369,10 @@ async def list_meetup_games(
 
     Only yes answers count toward the ranking. Maybes only give a lift to games that would
     still fit if they came too. Length is shown, never used to filter or rank.
+
+    `players` asks "what if this many came?": the games are fitted and ranked for that many
+    instead of the headcount, and the maybes are taken to be part of it. It's only for the
+    person asking; nothing is saved.
     """
     meetup, group, _me = await _meetup(session, meetup_id, user)
     await fill_unlogged(session, group)
@@ -386,6 +395,9 @@ async def list_meetup_games(
         else:
             maybes += 1 + brings
     confirmed = len(coming) + guests
+    # Asking for the headcount itself is the same as not asking.
+    trying = players if players is not None and players != confirmed else None
+    table_count = confirmed if trying is None else trying
     coming_ids = [u.id for u in coming]
     people = {u.id: PersonRead.of(u) for u in coming}
     scope = [Person(u.id, u.display_name) for u in coming]
@@ -449,14 +461,16 @@ async def list_meetup_games(
         if high is None:
             unknown += 1
             continue
-        fit = table_fit(low, high, confirmed, group.willing_to_split)
+        fit = table_fit(low, high, table_count, group.willing_to_split)
         if fit is None:
             continue
         # A split game is played by a table of some of them; judge it at the biggest one.
-        table = confirmed if fit == "together" else _biggest_table(low, high, confirmed)
+        table = table_count if fit == "together" else _biggest_table(low, high, table_count)
         roll = rollup(game, scope, answers[game_id], table)
-        fits_maybes = maybes > 0 and (
-            table_fit(low, high, confirmed + maybes, group.willing_to_split) is not None
+        fits_maybes = (
+            trying is None
+            and maybes > 0
+            and table_fit(low, high, confirmed + maybes, group.willing_to_split) is not None
         )
         points, reasons = score(
             roll,
@@ -482,6 +496,7 @@ async def list_meetup_games(
     fitting.sort(key=lambda g: (-g.score, g.fit != "together", g.game.name.lower()))
     return MeetupGames(
         confirmed=confirmed,
+        players=table_count,
         guests=guests,
         maybes=maybes,
         willing_to_split=group.willing_to_split,

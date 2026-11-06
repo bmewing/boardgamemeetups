@@ -63,6 +63,7 @@ function meetupAt(startsAt: string, role: Meetup['my_role'] = 'owner'): Meetup {
 
 const noGames: MeetupGames = {
   confirmed: 2,
+  players: 2,
   guests: 0,
   maybes: 0,
   willing_to_split: false,

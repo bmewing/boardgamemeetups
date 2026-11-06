@@ -82,6 +82,7 @@ async def test_creating_a_group_makes_you_its_owner(
     assert group["time_zone"] == "UTC"  # the owner's
     assert group["willing_to_split"] is True
     assert group["schedule"] is None
+    assert group["plus_one_limit"] == 0  # no guests unless asked for
     assert group["upcoming"] == []
     listed = (await client.get("/api/groups", headers=ann.headers)).json()
     assert [(g["name"], g["my_role"], g["member_count"]) for g in listed["groups"]] == [
@@ -104,6 +105,28 @@ async def test_a_new_group_takes_its_owners_time_zone_unless_told_otherwise(
     assert own["time_zone"] == "America/Chicago"
     assert chosen["time_zone"] == "Europe/London"
     assert bad.status_code == 422
+
+
+async def test_a_new_group_can_allow_guests_from_the_start(
+    client: AsyncClient, person: MakePerson
+) -> None:
+    ann = await person("Ann")
+
+    group = await make_group(client, ann, plus_one_limit=2)
+    too_many = await client.post(
+        "/api/groups", headers=ann.headers, json={"name": "X", "plus_one_limit": 11}
+    )
+    negative = await client.post(
+        "/api/groups", headers=ann.headers, json={"name": "X", "plus_one_limit": -1}
+    )
+
+    assert group["plus_one_limit"] == 2
+    assert (too_many.status_code, negative.status_code) == (422, 422)
+    # Still changeable afterwards, the same as any other setting.
+    changed = await client.patch(
+        f"/api/groups/{group['id']}", headers=ann.headers, json={"plus_one_limit": 0}
+    )
+    assert changed.json()["plus_one_limit"] == 0
 
 
 async def test_joining_takes_accepting_an_invite(client: AsyncClient, person: MakePerson) -> None:

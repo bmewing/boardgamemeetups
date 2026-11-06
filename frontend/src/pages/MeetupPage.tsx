@@ -11,13 +11,14 @@ import {
   Loader,
   Menu,
   Modal,
+  NumberInput,
   SegmentedControl,
   Select,
   Stack,
   Text,
   Title,
 } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
+import { useDebouncedValue, useDisclosure } from '@mantine/hooks'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
@@ -53,7 +54,7 @@ import { VotePanel } from '../components/VotePanel'
 import { useNominate, useVote } from '../api/votes'
 import { PlayLogPanel } from '../components/PlayLogPanel'
 import { ReasonChips } from '../components/Rollup'
-import { lengthLabel } from '../components/rollupFormat'
+import { lengthLabel, minutesTonight } from '../components/rollupFormat'
 import { plural } from '../components/userGameFields'
 
 const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -247,9 +248,23 @@ function AddToCalendar({ meetup }: { meetup: Meetup }) {
 }
 
 const TOP_GAMES = 10
+const MAX_PLAYERS = 30
+
+/** What the filters are doing, in words, or null when the list is the default one. */
+function filterSummary(players: number, confirmed: number, maxMinutes: number | null) {
+  const parts: string[] = []
+  if (players !== confirmed) parts.push(`fitted to ${plural(players, 'player')}`)
+  if (maxMinutes !== null) parts.push(`${maxMinutes} min or less`)
+  return parts.length > 0 ? parts.join(', ') : null
+}
 
 function FittingGames({ meetup }: { meetup: Meetup }) {
-  const games = useMeetupGames(meetup.id)
+  // Just for whoever's looking: never saved, gone when they leave the page.
+  const [players, setPlayers] = useState<number | null>(null)
+  const [maxMinutes, setMaxMinutes] = useState<number | null>(null)
+  const [typedPlayers] = useDebouncedValue(players, 300)
+  // Clearing it goes back at once; typing a count waits for a pause.
+  const games = useMeetupGames(meetup.id, players === null ? null : typedPlayers)
   const vote = useVote(meetup.id)
   const nominate = useNominate(meetup.id)
   const nominated = new Set(vote.data?.nominations.map((n) => n.game.id))
@@ -265,8 +280,22 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
   if (games.isError) return <Alert color="red">{games.error.message}</Alert>
 
   const { confirmed, guests, willing_to_split: split, unknown_player_count: unknown } = games.data
-  const ranked = games.data.games
+  const fittedTo = games.data.players
+  const fitting = games.data.games
+  const ranked =
+    maxMinutes === null
+      ? fitting
+      : fitting.filter((g) => {
+          const minutes = minutesTonight(g.rollup)
+          return minutes === null || minutes <= maxMinutes
+        })
+  const tooLong = fitting.length - ranked.length
   const shown = showAll ? ranked : ranked.slice(0, TOP_GAMES)
+  const filtered = filterSummary(fittedTo, confirmed, maxMinutes)
+  const reset = () => {
+    setPlayers(null)
+    setMaxMinutes(null)
+  }
   return (
     <Stack gap="xs">
       <Title order={4}>Recommended games</Title>
@@ -277,8 +306,11 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
       ) : (
         <>
           <Text size="sm" c="dimmed">
-            Brought by the members going, for {plural(confirmed, 'player')}
-            {guests > 0 && ` (${plural(guests, 'guest')} included)`}:{' '}
+            Brought by the members going, for {plural(fittedTo, 'player')}
+            {fittedTo !== confirmed
+              ? ` (${confirmed} going)`
+              : guests > 0 && ` (${plural(guests, 'guest')} included)`}
+            :{' '}
             {split
               ? 'one table of everyone, or tables that leave nobody on their own'
               : 'everyone at one table'}
@@ -286,8 +318,50 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
             {unknown > 0 &&
               ` ${plural(unknown, 'game')} left out because BGG hasn't said how many it seats.`}
           </Text>
+          <Group align="flex-end" gap="sm">
+            <NumberInput
+              label="Players"
+              description="What if more or fewer came?"
+              placeholder={String(confirmed)}
+              min={1}
+              max={MAX_PLAYERS}
+              clampBehavior="strict"
+              allowDecimal={false}
+              w={170}
+              value={players ?? ''}
+              onChange={(v) => setPlayers(typeof v === 'number' ? v : null)}
+            />
+            <NumberInput
+              label="Longest game"
+              description="Minutes, teaching included"
+              placeholder="Any length"
+              min={15}
+              max={24 * 60}
+              step={15}
+              allowDecimal={false}
+              w={170}
+              value={maxMinutes ?? ''}
+              onChange={(v) => setMaxMinutes(typeof v === 'number' && v > 0 ? v : null)}
+            />
+          </Group>
+          {filtered && (
+            <Alert color="yellow" variant="light" p="xs">
+              <Group justify="space-between" gap="xs">
+                <Text size="sm">
+                  Filtered just for you: {filtered}
+                  {tooLong > 0 && ` (${plural(tooLong, 'longer game')} hidden)`}.
+                </Text>
+                <Button size="compact-xs" variant="white" color="yellow" onClick={reset}>
+                  Back to who's going
+                </Button>
+              </Group>
+            </Alert>
+          )}
           {ranked.length === 0 && (
-            <Text size="sm">Nothing anyone's bringing fits {plural(confirmed, 'player')}.</Text>
+            <Text size="sm">
+              Nothing anyone's bringing fits {plural(fittedTo, 'player')}
+              {maxMinutes !== null && ` in ${maxMinutes} min`}.
+            </Text>
           )}
           {shown.map((g) => {
             const length = lengthLabel(g.rollup)

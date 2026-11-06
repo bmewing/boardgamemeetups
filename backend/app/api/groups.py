@@ -136,6 +136,7 @@ class GroupCreate(BaseModel):
     willing_to_split: bool = False
     # Left out: the creator's own time zone.
     time_zone: TimeZone | None = None
+    plus_one_limit: PlusOneLimit = 0
 
 
 class GroupUpdate(BaseModel):
@@ -330,6 +331,7 @@ async def create_group(body: GroupCreate, user: CurrentUser, session: SessionDep
         description=body.description or None,
         willing_to_split=body.willing_to_split,
         time_zone=body.time_zone or user.time_zone,
+        plus_one_limit=body.plus_one_limit,
     )
     session.add(group)
     await session.flush()

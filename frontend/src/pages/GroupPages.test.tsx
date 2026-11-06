@@ -134,7 +134,39 @@ describe('GroupsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Make the group' }))
 
     expect(await screen.findByText('Group page')).toBeInTheDocument()
-    expect(sent).toMatchObject({ name: 'Thursday Crew', time_zone: 'America/Chicago' })
+    expect(sent).toMatchObject({
+      name: 'Thursday Crew',
+      time_zone: 'America/Chicago',
+      plus_one_limit: 0, // no guests unless you say so
+    })
+  })
+
+  it('asks how many guests each member can bring', async () => {
+    let sent: unknown
+    mockApi({
+      'GET /api/me': () => Response.json(profile),
+      'GET /api/groups': () => Response.json({ groups: [], invites: [] }),
+      'POST /api/groups': async (request) => {
+        sent = await request.json()
+        return Response.json({ ...group, plus_one_limit: 2 }, { status: 201 })
+      },
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<GroupsPage />} />
+        <Route path="/groups/:groupId" element={<p>Group page</p>} />
+      </Routes>,
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: 'New group' }))
+    await userEvent.type(await screen.findByLabelText(/Name/), 'Thursday Crew')
+    const guests = screen.getByRole('textbox', { name: 'Guests each member can bring' })
+    await userEvent.clear(guests)
+    await userEvent.type(guests, '2')
+    await userEvent.click(screen.getByRole('button', { name: 'Make the group' }))
+
+    expect(await screen.findByText('Group page')).toBeInTheDocument()
+    expect(sent).toMatchObject({ name: 'Thursday Crew', plus_one_limit: 2 })
   })
 })
 
@@ -326,6 +358,7 @@ describe('MeetupPage', () => {
   }
   const games: MeetupGames = {
     confirmed: 5,
+    players: 5,
     guests: 0,
     maybes: 0,
     willing_to_split: true,
@@ -402,6 +435,56 @@ describe('MeetupPage', () => {
     // Guests are off in this group; moods show once you might come.
     expect(screen.queryByText('Bringing anyone?')).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Chill' })).toBeInTheDocument()
+  })
+
+  it('lets you try another player count and a time limit, just for you', async () => {
+    const asked: (string | null)[] = []
+    const quick = {
+      ...games.games[0],
+      game: { ...games.games[0].game, id: 2, name: 'Hive' },
+      fit: 'together' as const,
+      rollup: { ...rollup, length_minutes: 20, teach_minutes: null },
+    }
+    mockApi({
+      [`GET /api/meetups/${MEETUP_ID}`]: () => Response.json(meetup),
+      [`GET /api/meetups/${MEETUP_ID}/games`]: (request) => {
+        const players = new URL(request.url).searchParams.get('players')
+        asked.push(players)
+        return Response.json(
+          players === null
+            ? games
+            : { ...games, players: Number(players), games: [...games.games, quick] },
+        )
+      },
+      'GET /api/moods': () => Response.json(moods),
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/meetups/:meetupId" element={<MeetupPage />} />
+      </Routes>,
+      { route: `/meetups/${MEETUP_ID}` },
+    )
+
+    expect(await screen.findByText('Azul')).toBeInTheDocument()
+    expect(screen.queryByText(/Filtered just for you/)).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Players' }), '7')
+    expect(await screen.findByText('Hive')).toBeInTheDocument()
+    expect(asked).toContain('7')
+    expect(screen.getByText(/for 7 players \(5 going\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Filtered just for you: fitted to 7 players\./)).toBeInTheDocument()
+
+    // Azul takes about an hour with teaching; Hive about 20 minutes.
+    await userEvent.type(screen.getByRole('textbox', { name: 'Longest game' }), '45')
+    expect(await screen.findByText(/45 min or less \(1 longer game hidden\)/)).toBeInTheDocument()
+    expect(screen.queryByText('Azul')).not.toBeInTheDocument()
+    expect(screen.getByText('Hive')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: "Back to who's going" }))
+    expect(await screen.findByText('Azul')).toBeInTheDocument()
+    expect(screen.queryByText('Hive')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Filtered just for you/)).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Players' })).toHaveValue('')
   })
 
   it('shows the top 10 games until you ask for all of them', async () => {

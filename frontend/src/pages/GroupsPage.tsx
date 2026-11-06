@@ -8,6 +8,7 @@ import {
   Group,
   Loader,
   Modal,
+  NumberInput,
   Stack,
   Text,
   Textarea,
@@ -37,6 +38,7 @@ function NewGroup({ opened, onClose }: { opened: boolean; onClose: () => void })
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [split, setSplit] = useState(false)
+  const [plusOnes, setPlusOnes] = useState(0)
   // Starts as your account's zone; null until you pick one, so a late-loading profile still wins.
   const me = useMe()
   const [picked, setPicked] = useState<string | null>(null)
@@ -46,7 +48,13 @@ function NewGroup({ opened, onClose }: { opened: boolean; onClose: () => void })
     e.preventDefault()
     if (!name.trim()) return
     create.mutate(
-      { name, description: description || null, willing_to_split: split, time_zone: timeZone },
+      {
+        name,
+        description: description || null,
+        willing_to_split: split,
+        time_zone: timeZone,
+        plus_one_limit: plusOnes,
+      },
       { onSuccess: (group) => navigate(`/groups/${group.id}`) },
     )
   }
@@ -75,6 +83,16 @@ function NewGroup({ opened, onClose }: { opened: boolean; onClose: () => void })
             description="Otherwise everyone plays one game together, so only games that seat everyone coming are suggested."
             checked={split}
             onChange={(e) => setSplit(e.currentTarget.checked)}
+          />
+          <NumberInput
+            label="Guests each member can bring"
+            description="0 means no guests. Guests count toward how many are playing. You can change this later."
+            min={0}
+            max={10}
+            clampBehavior="strict"
+            allowDecimal={false}
+            value={plusOnes}
+            onChange={(v) => setPlusOnes(typeof v === 'number' ? v : 0)}
           />
           <TimeZoneSelect
             value={timeZone}
