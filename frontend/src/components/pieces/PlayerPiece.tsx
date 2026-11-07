@@ -1,36 +1,14 @@
 import { createElement, type CSSProperties } from 'react'
 
 import { palette } from '../../theme'
+import { pieceDrawing, type Shape } from './drawings'
 import { type PieceHolder, pieceOf } from './pieceOf'
-import { PIECE_COLORS, PIECES, type PieceColorName, type PieceName, type Shape } from './shapes'
+import { PIECE_COLORS, PIECE_LABELS, type PieceColorName, type PieceName } from './shapes'
 
 const INK = palette.olive
 
 function draw(shape: Shape, key: number) {
-  switch (shape[0]) {
-    case 'path':
-    case 'line':
-      return createElement('path', { key, d: shape[1] })
-    case 'circle':
-      return createElement('circle', { key, cx: shape[1], cy: shape[2], r: shape[3] })
-    case 'ellipse':
-      return createElement('ellipse', {
-        key,
-        cx: shape[1],
-        cy: shape[2],
-        rx: shape[3],
-        ry: shape[4],
-      })
-    case 'rect':
-      return createElement('rect', {
-        key,
-        x: shape[1],
-        y: shape[2],
-        width: shape[3],
-        height: shape[4],
-        rx: shape[5] ?? 0,
-      })
-  }
+  return createElement(shape.tag, { key, ...shape.attrs })
 }
 
 type DrawingProps = {
@@ -45,10 +23,8 @@ type DrawingProps = {
 
 /** One piece in one color. The body is outlined as a single silhouette, then filled. */
 export function PieceDrawing({ piece, color, size = 38, label, className, style }: DrawingProps) {
-  const shape = PIECES[piece]
-  const body = shape.body.map(draw)
-  const details: readonly Shape[] = 'details' in shape ? shape.details : []
-  const name = label ?? `${PIECE_COLORS[color].label} ${shape.label.toLowerCase()}`
+  const { body, details, lines } = pieceDrawing(piece)
+  const name = label ?? `${PIECE_COLORS[color].label} ${PIECE_LABELS[piece].toLowerCase()}`
   return (
     <svg
       viewBox="0 0 100 100"
@@ -61,12 +37,12 @@ export function PieceDrawing({ piece, color, size = 38, label, className, style 
       aria-hidden={name ? undefined : true}
     >
       <g fill={INK} stroke={INK} strokeWidth={10} strokeLinejoin="round">
-        {body}
+        {body.map(draw)}
       </g>
-      <g fill={PIECE_COLORS[color].hex}>{shape.body.map(draw)}</g>
-      <g fill={INK}>{details.filter((d) => d[0] !== 'line').map(draw)}</g>
+      <g fill={PIECE_COLORS[color].hex}>{body.map(draw)}</g>
+      <g fill={INK}>{details.map(draw)}</g>
       <g fill="none" stroke={INK} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round">
-        {details.filter((d) => d[0] === 'line').map(draw)}
+        {lines.map(draw)}
       </g>
     </svg>
   )

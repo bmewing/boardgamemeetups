@@ -5,7 +5,7 @@ import { useUpdateMe } from '../../api/me'
 import classes from './PiecePicker.module.css'
 import { pieceOf } from './pieceOf'
 import { PieceDrawing } from './PlayerPiece'
-import { PIECE_COLORS, PIECE_GROUPS, PIECES, type PieceColorName } from './shapes'
+import { PIECE_COLORS, PIECE_GROUPS, PIECE_LABELS, type PieceColorName } from './shapes'
 
 const COLORS = Object.entries(PIECE_COLORS) as [
   PieceColorName,
@@ -40,8 +40,8 @@ export function PiecePicker({ profile }: { profile: UserProfile }) {
                 className={classes.choice}
                 role="radio"
                 aria-checked={name === piece}
-                aria-label={PIECES[name].label}
-                title={PIECES[name].label}
+                aria-label={PIECE_LABELS[name]}
+                title={PIECE_LABELS[name]}
                 data-selected={name === piece || undefined}
                 onClick={() => update.mutate({ piece: name })}
               >

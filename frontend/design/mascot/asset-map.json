@@ -66,7 +66,18 @@
         "size": 256,
         "background": "#ffeedb"
       },
-      "loopSeconds": 4.8
+      "loopSeconds": 4.8,
+      "motion": {
+        "sheet": {
+          "file": "public/mascot/layers/meeple-turntable.webp",
+          "url": "/mascot/layers/meeple-turntable.webp"
+        },
+        "stillAngle": "three-quarter",
+        "source": "design/mascot/source/meeple-turntable.png",
+        "spinSeconds": 1.2,
+        "views": 8,
+        "type": "eight-view turntable of an extruded wooden meeple"
+      }
     },
     "wave": {
       "suggestedUse": "Dashboard welcome and invitations",
@@ -262,7 +273,8 @@
         "size": 256,
         "background": "#ffeedb"
       },
-      "loopSeconds": 4.8
+      "loopSeconds": 4.8,
+      "artworkNote": "Three separated cubic dice with standard pip layouts and clean face edges."
     },
     "winner": {
       "suggestedUse": "Recorded play winners and cooperative wins; bragging rights",

@@ -1,6 +1,7 @@
 """The game pieces people pick to stand for them around the app.
 
-The frontend draws each one (frontend/src/components/pieces.tsx); these are only the names.
+These are only the names. The frontend draws each one from
+frontend/src/components/pieces/svg/<name>.svg and labels it in pieces/shapes.ts.
 Someone who hasn't picked is shown as a meeple in a color worked out from their id.
 """
 

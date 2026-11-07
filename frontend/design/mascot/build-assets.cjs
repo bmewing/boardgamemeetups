@@ -13,6 +13,7 @@ const runtime =
 const runtimeRequire = createRequire(path.join(runtime, 'mascot-runtime.cjs'))
 const sharp = runtimeRequire('sharp')
 const { chromium } = runtimeRequire('playwright')
+const meepleTurntable = require('./meeple-turntable.cjs')
 const out = path.resolve(__dirname, '../../public/mascot')
 const poses = ['idle', 'toss', 'twirl', 'wave', 'think', 'snooze', 'cheer', 'deal']
 
@@ -31,8 +32,7 @@ const motion = `
 .grp-die-spin { transform-box: fill-box; transform-origin: center; animation: grp-spin 2.4s infinite; }
 @keyframes grp-toss { 0%,12%,86%,100% { transform: translate(0,0); } 20% { transform: translate(0,3px); animation-timing-function:ease-out; } 50% { transform: translate(-6px,-56px); animation-timing-function:ease-in; } 80% { transform:translate(0,0); } }
 @keyframes grp-spin { 0%,20% { transform:rotate(0deg); } 80%,100% { transform:rotate(360deg); } }
-.grp-meeple { transform-box:fill-box; transform-origin:center; animation:grp-twirl 2.4s linear infinite; }
-@keyframes grp-twirl { 0%,100% { transform:scaleX(1); } 25%,75% { transform:scaleX(.16) translateY(-3px); } 50% { transform:scaleX(-1); } }
+${meepleTurntable.motion}
 .grp-bubble { animation:grp-bubble 4.8s ease-in-out infinite; }
 .grp-bubble.b2 { animation-delay:-1.6s; } .grp-bubble.b3 { animation-delay:-3.2s; }
 @keyframes grp-bubble { 0%,100% { opacity:0; transform:translate(0,0); } 25% { opacity:.8; } 80% { opacity:0; transform:translate(5px,-20px); } }
@@ -47,7 +47,7 @@ async function main() {
   await fs.mkdir(path.join(out, 'anim'), { recursive: true })
   await fs.mkdir(path.join(out, 'layers'), { recursive: true })
   const images = {}
-  for (const name of [...poses, 'die', 'meeple', 'favicon']) {
+  for (const name of [...poses, 'die', 'favicon']) {
     const source = path.join(__dirname, 'source', `${name}.png`)
     const meta = await sharp(source).metadata()
     if (!meta.hasAlpha) throw new Error(`${name}: generated source is missing transparency`)
@@ -58,13 +58,19 @@ async function main() {
     images[name] = `data:image/webp;base64,${encoded.toString('base64')}`
     if (name !== 'favicon') await fs.writeFile(path.join(out, 'layers', `${name}.webp`), encoded)
   }
+  const meepleSheet = await meepleTurntable.packageSheet(
+    sharp,
+    fs,
+    path,
+    path.join(__dirname, 'source'),
+    out,
+  )
   const scenes = {}
   for (const pose of poses) {
     let extras = ''
     if (pose === 'toss')
       extras = `<g class="grp-die-flight"><image class="grp-die-spin" href="${images.die}" x="166" y="67" width="48" height="48"/></g>`
-    if (pose === 'twirl')
-      extras = `<image class="grp-meeple" href="${images.meeple}" x="177" y="59" width="42" height="42"/>`
+    if (pose === 'twirl') extras = meepleTurntable.markup(meepleSheet)
     if (pose === 'think')
       extras = [0, 1, 2]
         .map(
@@ -106,7 +112,7 @@ async function main() {
       deviceScaleFactor: 1,
     })
     await page.setContent(
-      `<html><head><style>html,body{margin:0;background:transparent}body{display:grid;grid-template-columns:repeat(4,512px)}svg{width:100%;height:auto;display:block}</style></head><body>${poses.map((p) => scenes[p]).join('')}</body></html>`,
+      `<html><head><style>html,body{margin:0;background:transparent}body{display:grid;grid-template-columns:repeat(4,512px)}body>svg{width:100%;height:auto;display:block}</style></head><body>${poses.map((p) => scenes[p]).join('')}</body></html>`,
     )
     await page.evaluate(async () => {
       await Promise.all([...document.images].map((img) => img.decode()))
