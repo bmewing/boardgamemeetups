@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.db import SessionDep
+from app.discord.cards import announce_due
+from app.discord.client import DiscordDep
 from app.email import EmailKind, MailerDep
 from app.models import Group, User
 from app.notify import send_due_reminders
@@ -21,6 +23,7 @@ LINK_GONE = HTTPException(status.HTTP_404_NOT_FOUND, "This link doesn't work any
 
 class RunResult(BaseModel):
     reminded_dates: int
+    announced_dates: int  # meetup cards posted in Discord
 
 
 class EmailSettingsRead(BaseModel):
@@ -28,15 +31,16 @@ class EmailSettingsRead(BaseModel):
 
 
 @router.post("/notifications/run")
-async def run_scheduled(session: SessionDep, mailer: MailerDep) -> RunResult:
+async def run_scheduled(session: SessionDep, mailer: MailerDep, discord: DiscordDep) -> RunResult:
     """Called every hour by a GitHub Actions workflow. Open to anyone: it only does what's
-    due (tops up each group's dates, fills in unlogged plays, sends reminders), and never
-    sends a reminder twice."""
+    due (tops up each group's dates, fills in unlogged plays, sends reminders, posts Discord
+    cards a week ahead), and never sends a reminder or posts a card twice."""
     for group in list(await session.scalars(select(Group))):
         if group.schedule:
             await sync_meetups(session, group)
         await fill_unlogged(session, group)
-    return RunResult(reminded_dates=await send_due_reminders(session, mailer))
+    reminded = await send_due_reminders(session, mailer)
+    return RunResult(reminded_dates=reminded, announced_dates=await announce_due(session, discord))
 
 
 async def _by_token(session: SessionDep, token: str) -> User:

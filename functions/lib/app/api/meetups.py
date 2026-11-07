@@ -8,8 +8,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field, StringConstraints
-from sqlalchemy import delete, func, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import ics, notify
@@ -21,6 +20,8 @@ from app.api.rollups import ReasonRead, RollupRead
 from app.auth import CurrentUser
 from app.calendar import file_name, meetup_event
 from app.db import SessionDep
+from app.discord.cards import posted_cards, refresh_cards, remove_cards
+from app.discord.client import DiscordDep
 from app.email import MailerDep
 from app.groups import TableFit, membership, player_range, require_runner, table_fit
 from app.models import (
@@ -38,16 +39,15 @@ from app.models import (
     User,
     UserGame,
 )
-from app.plays import drop_bringing, fill_unlogged, recently_played
+from app.plays import fill_unlogged, recently_played
 from app.recommend import Answer, Person, rollup, score
+from app.rsvp import save_answer
 from app.schedule import instant
 
 router = APIRouter(tags=["meetups"])
 
 Notes = Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
 MoodId = Annotated[str, StringConstraints(min_length=1, max_length=32)]
-# Rules out every other mood.
-NO_PREFERENCE = "no_preference"
 MAX_RSVP_MOODS = 20
 MAX_PLAYERS = 30  # the most a "what if this many came?" can ask about
 CALENDAR_FILE: dict[int | str, dict[str, Any]] = {
@@ -240,6 +240,7 @@ async def update_meetup(
     user: CurrentUser,
     session: SessionDep,
     mailer: MailerDep,
+    discord: DiscordDep,
 ) -> MeetupRead:
     """Move, change or cancel one date. A scheduled date changed this way is left alone
     by later schedule changes (notes alone don't count). Members who haven't said no are
@@ -265,12 +266,17 @@ async def update_meetup(
     people = await notify.might_come(session, group, meetup)
     after = notify.DateSnapshot.of(meetup)
     await notify.date_changed(session, mailer, meetup.id, group, user, before, after, people)
+    await refresh_cards(session, discord, meetup.id)
     return result
 
 
 @router.delete("/meetups/{meetup_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_meetup(
-    meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep, mailer: MailerDep
+    meetup_id: uuid.UUID,
+    user: CurrentUser,
+    session: SessionDep,
+    mailer: MailerDep,
+    discord: DiscordDep,
 ) -> None:
     """Remove a date added on its own. Scheduled dates are cancelled instead, so the
     schedule doesn't bring them back. Told like a cancellation."""
@@ -282,65 +288,26 @@ async def delete_meetup(
         )
     before = notify.DateSnapshot.of(meetup)
     people = await notify.might_come(session, group, meetup)
+    cards = await posted_cards(session, meetup.id)
     await session.delete(meetup)
     await session.commit()
     await notify.date_changed(session, mailer, meetup_id, group, user, before, None, people)
+    await remove_cards(discord, cards)
 
 
 @router.put("/meetups/{meetup_id}/rsvp")
 async def rsvp(
-    meetup_id: uuid.UUID, body: RsvpIn, user: CurrentUser, session: SessionDep
+    meetup_id: uuid.UUID,
+    body: RsvpIn,
+    user: CurrentUser,
+    session: SessionDep,
+    discord: DiscordDep,
 ) -> MeetupRead:
     meetup, group, me = await _meetup(session, meetup_id, user)
-    if meetup.status == MeetupStatus.CANCELLED:
-        raise HTTPException(status.HTTP_409_CONFLICT, "This date has been cancelled.")
-    might_come = body.response != RsvpResponse.NO
-    guests = body.guests if might_come else 0
-    moods = list(dict.fromkeys(body.moods)) if might_come else []
-    if guests > group.plus_one_limit:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
-            f"This group allows up to {group.plus_one_limit} guests each."
-            if group.plus_one_limit
-            else "This group doesn't allow guests.",
-        )
-    await _check_moods(session, moods)
-    await session.execute(
-        insert(MeetupRsvp)
-        .values(meetup_id=meetup.id, user_id=user.id, response=body.response, guests=guests)
-        .on_conflict_do_update(
-            index_elements=[MeetupRsvp.meetup_id, MeetupRsvp.user_id],
-            set_={"response": body.response, "guests": guests, "responded_at": func.now()},
-        )
-    )
-    await session.execute(
-        delete(MeetupRsvpMood).where(
-            MeetupRsvpMood.meetup_id == meetup.id, MeetupRsvpMood.user_id == user.id
-        )
-    )
-    if moods:
-        await session.execute(
-            insert(MeetupRsvpMood).values(
-                [{"meetup_id": meetup.id, "user_id": user.id, "mood_id": m} for m in moods]
-            )
-        )
-    if body.response != RsvpResponse.YES:
-        await drop_bringing(session, meetup.id, user.id)
-    await session.commit()
-    return await _read(session, meetup, group, me, user)
-
-
-async def _check_moods(session: AsyncSession, mood_ids: list[str]) -> None:
-    """Any mood on the list will do for a date, including ones that can't go on a game."""
-    if NO_PREFERENCE in mood_ids and len(mood_ids) > 1:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, "No preference can't go with other moods."
-        )
-    known = set(await session.scalars(select(Mood.id).where(Mood.id.in_(mood_ids))))
-    if unknown := sorted(set(mood_ids) - known):
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_CONTENT, f"Unknown moods: {', '.join(unknown)}"
-        )
+    await save_answer(session, meetup, group, user, body.response, body.guests, body.moods)
+    result = await _read(session, meetup, group, me, user)
+    await refresh_cards(session, discord, meetup.id)
+    return result
 
 
 @router.get("/meetups/{meetup_id}/calendar.ics", response_class=Response, responses=CALENDAR_FILE)

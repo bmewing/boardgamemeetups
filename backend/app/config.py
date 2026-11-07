@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # Where replies to any email go (forwarded to whoever runs the app).
     email_reply_to: str = "admin@bggroup.app"
 
+    # The Discord application people sign in with also runs the bot. The application ID
+    # and public key (which checks that a request really came from Discord) aren't secret;
+    # the bot token is. Blank: the bot is off, and Discord's requests are refused.
+    discord_application_id: str = ""
+    discord_public_key: str = ""
+    discord_bot_token: str = ""
+
     @property
     def api_url(self) -> str:
         """Where the API is reached from outside, for links straight to it. In production

@@ -4,6 +4,7 @@ from app.api import (
     admin,
     calendar,
     collection,
+    discord,
     friends,
     games,
     groups,
@@ -28,3 +29,4 @@ api_router.include_router(votes.router)
 api_router.include_router(play_log.router)
 api_router.include_router(notifications.router)
 api_router.include_router(admin.router)
+api_router.include_router(discord.router)

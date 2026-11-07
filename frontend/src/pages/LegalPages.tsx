@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
 // Open to anyone, signed in or not: sign-in providers (Discord, Google, Facebook) link here.
-export const UPDATED = 'November 4, 2026'
+export const UPDATED = 'November 7, 2026'
 export const CONTACT = 'admin@bggroup.app'
 
 function Section({ title, id, children }: { title: string; id?: string; children: ReactNode }) {
@@ -66,10 +66,17 @@ export function PrivacyPage() {
           <List.Item>
             <b>Email settings:</b> which kinds of email you've turned off.
           </List.Item>
+          <List.Item>
+            <b>Discord, if you link it:</b> your Discord user ID and username, so the bot's buttons
+            can answer for you. For a Discord channel a group's owner or admin connects, we keep
+            which server and channel it is and the bot's posts there. Unlink from your profile at
+            any time.
+          </List.Item>
         </List>
         <Text>
           There are no ads, no analytics and no tracking. The app stores a little in your browser to
-          keep you signed in and to remember an invite link while you sign up, and nothing else.
+          keep you signed in and to remember an invite or Discord link while you sign in, and
+          nothing else.
         </Text>
       </Section>
 
@@ -116,6 +123,11 @@ export function PrivacyPage() {
           <List.Item>
             <b>Google, Facebook or Discord</b>, if you sign in with one of them, tell us your name,
             email address and picture. We ask for nothing else, and never post anything for you.
+          </List.Item>
+          <List.Item>
+            <b>Discord</b> also runs our bot. In a channel connected to a group, the bot posts that
+            group's dates, showing the names (and number of guests) of members who've answered. It
+            posts as itself, never as you.
           </List.Item>
         </List>
       </Section>

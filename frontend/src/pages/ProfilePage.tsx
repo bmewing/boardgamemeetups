@@ -17,6 +17,7 @@ import { useForm } from '@mantine/form'
 import { useDisclosure } from '@mantine/hooks'
 
 import type { UserProfile } from '../api/client'
+import { useUnlinkDiscord } from '../api/discord'
 import { EMAIL_KINDS } from '../api/email'
 import { useDeleteMe, useMe, useUpdateMe } from '../api/me'
 import { PiecePicker } from '../components/pieces/PiecePicker'
@@ -140,6 +141,34 @@ function EmailSettings({ profile }: { profile: UserProfile }) {
   )
 }
 
+function DiscordSettings({ profile }: { profile: UserProfile }) {
+  const unlink = useUnlinkDiscord()
+
+  return (
+    <Stack gap="xs">
+      <Title order={4}>Discord</Title>
+      {profile.discord_username ? (
+        <>
+          <Text size="sm" c="dimmed">
+            Linked to @{profile.discord_username}. The bot's buttons in Discord answer for you.
+          </Text>
+          <Group>
+            <Button variant="default" loading={unlink.isPending} onClick={() => unlink.mutate()}>
+              Unlink Discord
+            </Button>
+          </Group>
+        </>
+      ) : (
+        <Text size="sm" c="dimmed">
+          Not linked. In a Discord server with the Board Game Group bot, type{' '}
+          <code>/bggroup link</code>.
+        </Text>
+      )}
+      {unlink.isError && <Alert color="red">{unlink.error.message}</Alert>}
+    </Stack>
+  )
+}
+
 function DeleteAccount() {
   const { logout } = useKindeAuth()
   const remove = useDeleteMe()
@@ -197,6 +226,8 @@ export function ProfilePage() {
       <PiecePicker profile={me.data} />
       <Divider my="md" />
       <EmailSettings profile={me.data} />
+      <Divider my="md" />
+      <DiscordSettings profile={me.data} />
       <Divider my="md" />
       <DeleteAccount />
     </Stack>

@@ -42,6 +42,10 @@ class User(Base):
         Enum(PieceColor, native_enum=False, length=16, values_callable=_values)
     )
     time_zone: Mapped[str] = mapped_column(String(64), default="UTC")
+    # The Discord account linked through the bot (app.discord.link), so its button clicks
+    # act as this user. The name is only for showing which account it is.
+    discord_id: Mapped[str | None] = mapped_column(String(20), unique=True)
+    discord_username: Mapped[str | None] = mapped_column(String(100))
     bgg_username: Mapped[str | None] = mapped_column(String(64))
     # When this user last applied a pull from BGG (not just previewed one).
     bgg_pulled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -8,6 +8,7 @@ export const profile: UserProfile = {
   piece: null,
   piece_color: null,
   time_zone: 'UTC',
+  discord_username: null,
   bgg_username: null,
   bgg_pulled_at: null,
   collection_visibility: 'friends',

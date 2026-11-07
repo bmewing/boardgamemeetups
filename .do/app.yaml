@@ -1,5 +1,5 @@
 # App Platform spec: the React app as a static site, the API as one DigitalOcean function.
-# Secrets (DATABASE_URL, BGG_API_TOKEN, RESEND_API_KEY) are set on the app in DigitalOcean, not here; a spec
+# Secrets (DATABASE_URL, BGG_API_TOKEN, RESEND_API_KEY, DISCORD_BOT_TOKEN) are set on the app in DigitalOcean, not here; a spec
 # fetched back with `doctl apps spec get` carries them only in encrypted EV[...] form.
 name: boardgamemeetups
 region: nyc
@@ -66,6 +66,15 @@ functions:
         scope: RUN_AND_BUILD_TIME
         value: https://bggroup.app
       - key: RESEND_API_KEY  # sending access only, for bggroup.app
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: DISCORD_APPLICATION_ID  # the Discord app people sign in with, which runs the bot
+        scope: RUN_AND_BUILD_TIME
+        value: "<set before deploying>"
+      - key: DISCORD_PUBLIC_KEY  # checks requests really came from Discord; not secret
+        scope: RUN_AND_BUILD_TIME
+        value: "<set before deploying>"
+      - key: DISCORD_BOT_TOKEN
         scope: RUN_AND_BUILD_TIME
         type: SECRET
 

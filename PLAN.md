@@ -249,6 +249,17 @@ Decided 2026-11-04: RSVP reminders go out the day before, to members who haven't
 - [ ] Group stats (most played, H-index, who brings what most)
 - [ ] Reminder to pull from BGG when the last pull is old (still previewed and confirmed by the user, never silent)
 
+### Phase 14 — Discord bot
+The Discord application people sign in with also runs a bot. No always-on process: Discord POSTs slash commands and button clicks to `/api/discord/interactions` (checked against the app's public key, answered within Discord's 3 seconds), and the bot posts and edits through Discord's REST API. Code in `backend/app/discord/`.
+- [x] Link a Discord account to an account here: `/bggroup link` shows a 15-minute signed link (only to whoever asked); opening it while signed in links them. Shown and unlinkable on the profile
+- [x] `/bggroup connect` / `disconnect` (Manage Server, and owner or admin of the group): a channel follows one group
+- [x] Meetup cards with Going / Maybe / Can't go buttons: posted a week ahead by the hourly run, or now with `/bggroup next`; redrawn on every answer (app or Discord), move or cancellation; deleted with the date
+- [ ] Turn it on: bot token, public key and application ID on the app; Interactions Endpoint URL `https://bggroup.app/api/core/app/api/discord/interactions`; `uv run python -m app.discord.commands` to register the commands and print the install link
+- [ ] Measure cold starts against the 3-second limit; if they're too slow, move interactions to a small always-on worker
+- [ ] Phase 2: voting (nominate with autocomplete, vote from a dropdown), the bring list
+- [ ] Phase 3: reminders in Discord, invites, Discord scheduled events
+- **Done when:** in a real server, someone links, an admin connects a channel, the next date's card appears, and clicking Going shows up in the app (and the other way round)
+
 ---
 
 ## Verification
