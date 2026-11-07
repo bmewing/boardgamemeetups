@@ -70,10 +70,10 @@ functions:
         type: SECRET
       - key: DISCORD_APPLICATION_ID  # the Discord app people sign in with, which runs the bot
         scope: RUN_AND_BUILD_TIME
-        value: "<set before deploying>"
+        value: "1567626723955314838"
       - key: DISCORD_PUBLIC_KEY  # checks requests really came from Discord; not secret
         scope: RUN_AND_BUILD_TIME
-        value: "<set before deploying>"
+        value: 5d03184c04d574af43f78258bbeb4791f97d71613b1b4a277d1ec727da31d36e
       - key: DISCORD_BOT_TOKEN
         scope: RUN_AND_BUILD_TIME
         type: SECRET
