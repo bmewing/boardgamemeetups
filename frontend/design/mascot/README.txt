@@ -20,3 +20,8 @@ Rebuild the additional variants, portraits and social card:
   node design/mascot/build-variants.cjs
 
 These packaging scripts require sharp, Playwright and an installed Chromium, with no generation or API calls. MASCOT_NODE_MODULES can point to an existing package folder; MASCOT_CHROMIUM can point to an existing Chromium executable. The scripts default to the Codex bundled packages when available. Runtime dependencies were not added to the application.
+
+The twirl pose now uses an eight-view turntable of a thick wooden meeple (source/meeple-turntable.png), packaged by meeple-turntable.cjs. Its still and reduced-motion views show the piece at a three-quarter angle. The oops dice have clean cube geometry and standard pip layouts.
+
+To render selected current SVGs back to stills, GIF and WebP without rebuilding other poses:
+  node design/mascot/render-poses.cjs oops twirl

@@ -47,7 +47,12 @@ FORMAT CHOICES
 All full-body animations loop over 4.8 seconds. Raw GIF/WebP animations cannot respond to reduced-motion preferences by themselves.
 
 MOTION
-The die, meeple and shuffle card packets move independently. Other full-body poses use gentle whole-body floating, rocking, breathing or hopping, with small accents where relevant. The wave fin and card fan remain part of their original still artwork. These are illustrated poses with layered motion, not fully articulated character animation.
+The die, meeple and shuffle card packets move independently. The meeple uses eight generated views of an extruded wooden piece, with visible sides and thickness as it turns; its still and reduced-motion pose show a three-quarter view. The source sheet is design/mascot/source/meeple-turntable.png, packaged by meeple-turntable.cjs. Other full-body poses use gentle whole-body floating, rocking, breathing or hopping, with small accents where relevant. The wave fin and card fan remain part of their original still artwork. These are illustrated poses with layered motion, not fully articulated character animation.
+
+The oops dice were corrected to three separate cubes with standard pip layouts and consistent face edges. Existing oops and twirl file paths are unchanged, so current page placements pick up both corrections automatically.
+
+To re-export only these two SVGs after an artwork change:
+  node design/mascot/render-poses.cjs oops twirl
 
 FILES FOR REVIEW AND REBUILD
   public/mascot/preview.html             Visual preview, downloads, small portraits and social card.
