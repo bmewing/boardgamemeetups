@@ -60,7 +60,11 @@ FILES FOR REVIEW AND REBUILD
 
 FAVICONS
   public/favicon.svg; public/favicon.ico; public/favicon.png;
-  public/apple-touch-icon.png; public/icon-192.png; public/icon-512.png.
-index.html already links the browser and Apple touch icons. Layout.tsx uses /favicon.svg for the header logo. The 192px and 512px icons are available for a future app manifest.
+  public/apple-touch-icon.png; public/icon-192.png; public/icon-512.png;
+  public/icon-maskable-192.png; public/icon-maskable-512.png; public/logo.svg.
+All icons except logo.svg show Greg's head; build them with: python design/mascot/build-icons.py
+public/manifest.webmanifest lists the 192/512 and maskable icons, so installing the site on
+Android shows Greg instead of a generic icon. logo.svg keeps the hexagon Greg for the header.
+index.html links the browser icons, the Apple touch icon and the manifest. Layout.tsx uses /logo.svg for the header logo.
 
 No new application dependencies were added for this asset update. Files have not been committed or deployed by Codex.

@@ -12,8 +12,10 @@ The existing React entry point is src/components/mascot/Grouper.tsx. All twelve 
 
 SVGs embed generated raster artwork and animation, so they are not resolution-independent vector drawings. The SVG animations respect system reduced-motion preferences. Raw GIF/WebP files cannot do so by themselves. All full-body animations loop over 4.8 seconds. Shuffle visibly moves two separate card packets; other motion details are documented in the handoff.
 
-Rebuild the original eight poses and icons:
+Rebuild the original eight poses:
   node design/mascot/build-assets.cjs
+Rebuild the favicons, app icons (including Android's maskable ones) and header logo:
+  python design/mascot/build-icons.py
 Rebuild the additional variants, portraits and social card:
   node design/mascot/build-variants.cjs
 
