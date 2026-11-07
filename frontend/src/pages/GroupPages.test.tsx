@@ -275,6 +275,55 @@ describe('GroupPage', () => {
     expect(screen.queryByText('Brass')).not.toBeInTheDocument()
   })
 
+  it("offers to add members you aren't friends with", async () => {
+    const cat = {
+      id: '0190f0e2-0000-7000-8000-000000000003',
+      display_name: 'Cat',
+      avatar_url: null,
+    }
+    const dee = {
+      id: '0190f0e2-0000-7000-8000-000000000004',
+      display_name: 'Dee',
+      avatar_url: null,
+    }
+    let outgoing: { person: typeof ben; since: string }[] = []
+    let sent: unknown
+    renderGroup(
+      {
+        ...group,
+        members: [
+          ...group.members,
+          { person: cat, role: 'member', joined_at: '2026-11-02T00:00:00Z' },
+          { person: dee, role: 'member', joined_at: '2026-11-02T00:00:00Z' },
+        ],
+      },
+      {
+        'GET /api/friends': () =>
+          Response.json({
+            friends: [{ person: cat, since: '2026-11-01T00:00:00Z' }],
+            incoming: [{ person: dee, since: '2026-11-01T00:00:00Z' }],
+            outgoing,
+          }),
+        'GET /api/blocks': () => Response.json([]),
+        'POST /api/friends/requests': async (request) => {
+          sent = await request.json()
+          outgoing = [{ person: ben, since: '2026-11-06T00:00:00Z' }]
+          return Response.json({ person: ben, relation: 'outgoing' })
+        },
+      },
+    )
+
+    await userEvent.click(await screen.findByRole('tab', { name: /Members/ }))
+    const add = await screen.findByRole('button', { name: 'Add Ben as a friend' })
+    expect(screen.getAllByRole('button', { name: /as a friend/ })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: "Accept Dee's friend request" })).toBeInTheDocument()
+
+    await userEvent.click(add)
+
+    expect(await screen.findByText('Request sent')).toBeInTheDocument()
+    expect(sent).toEqual({ user_id: ben.id })
+  })
+
   it('invites someone picked from the suggestions, and marks members', async () => {
     let sent: unknown
     const cat = {

@@ -24,6 +24,7 @@ import {
   useFriendAction,
   usePerson,
   usePersonGames,
+  useSendFriendRequest,
 } from '../api/friends'
 import { GameCard } from '../components/GameCard'
 import {
@@ -115,6 +116,7 @@ function TheirGames({ profile }: { profile: PersonProfile }) {
 
 function Standing({ profile }: { profile: PersonProfile }) {
   const act = useFriendAction()
+  const send = useSendFriendRequest()
   const navigate = useNavigate()
   const { person, relation } = profile
   const run = (action: 'accept' | 'decline' | 'remove') => act.mutate({ userId: person.id, action })
@@ -129,6 +131,15 @@ function Standing({ profile }: { profile: PersonProfile }) {
     <Stack gap="xs" align="flex-end">
       <Group gap="xs">
         {relation === 'friends' && <Badge variant="light">Friends</Badge>}
+        {relation === 'none' && (
+          <Button
+            size="xs"
+            loading={send.isPending}
+            onClick={() => send.mutate({ user_id: person.id })}
+          >
+            Add friend
+          </Button>
+        )}
         {relation === 'incoming' && (
           <>
             <Button size="xs" loading={act.isPending} onClick={() => run('accept')}>
@@ -170,6 +181,11 @@ function Standing({ profile }: { profile: PersonProfile }) {
       {act.isError && (
         <Text size="sm" c="red">
           {act.error.message}
+        </Text>
+      )}
+      {send.isError && (
+        <Text size="sm" c="red">
+          {send.error.message}
         </Text>
       )}
     </Stack>
