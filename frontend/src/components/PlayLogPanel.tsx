@@ -19,6 +19,7 @@ import type { Person } from '../api/friends'
 import type { Meetup } from '../api/groups'
 import { type PlayIn, type PlayLog, usePlayLog, useSavePlayLog } from '../api/votes'
 import { GameSearchSelect } from './GameSearchSelect'
+import { Grouper } from './mascot/Grouper'
 
 type Draft = Omit<PlayIn, 'players' | 'winners'> & {
   key: number // stays put while plays are added, moved and removed
@@ -312,11 +313,16 @@ export function PlayLogPanel({ meetup, members }: { meetup: Meetup; members: Per
   const data = log.data
   if (!data.logged && !data.can_log) return null
   const playedTitles = titles(data.plays.map((p) => ({ game_id: p.game.id, name: p.game.name })))
+  // Greg brings out the trophy once someone, or the whole table in a co-op, has a win logged.
+  const someoneWon = data.logged && data.plays.some((p) => (p.coop ? p.coop_won : p.winners.length))
 
   return (
     <Stack gap="xs">
       <Group justify="space-between">
-        <Title order={4}>What we played</Title>
+        <Group gap="xs" wrap="nowrap">
+          {someoneWon && <Grouper pose="winner" size={64} label="" style={{ margin: '-10px 0' }} />}
+          <Title order={4}>What we played</Title>
+        </Group>
         {data.can_log && (
           <Button size="xs" variant={data.logged ? 'subtle' : 'filled'} onClick={open}>
             {data.logged ? 'Edit' : 'Log what we played'}

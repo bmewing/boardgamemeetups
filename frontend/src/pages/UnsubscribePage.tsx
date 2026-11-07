@@ -1,7 +1,8 @@
-import { Alert, Anchor, Button, Center, Group, Loader, Stack, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { Link, useParams, useSearchParams } from 'react-router'
 
 import { EMAIL_KINDS, emailKind, useEmailSettingsByLink, useUnsubscribe } from '../api/email'
+import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
 
 /** Where an email's "stop these emails" link lands. Works without signing in. It asks for
  * a click rather than unsubscribing on load, since mail scanners open links too. */
@@ -13,11 +14,7 @@ export function UnsubscribePage() {
   const unsubscribe = useUnsubscribe(token)
 
   if (settings.isPending) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
+    return <LoadingNote>Loading your email settings…</LoadingNote>
   }
 
   const settingsLink = (
@@ -29,9 +26,10 @@ export function UnsubscribePage() {
     return (
       <Stack maw={520}>
         <Title order={2}>Email settings</Title>
-        <Alert color="red">
-          {settings.error.message} You can choose which emails you get on {settingsLink}.
-        </Alert>
+        <ErrorNote error={settings.error} />
+        <Text size="sm" c="dimmed" ta="center">
+          You can also choose which emails you get on {settingsLink}.
+        </Text>
       </Stack>
     )
   }

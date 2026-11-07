@@ -6,6 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.email import Email, EmailKind, Message, to_address
 from app.models import Meetup
 from app.notify import send_due_reminders
@@ -317,6 +318,23 @@ async def test_emails_escape_what_people_typed() -> None:
     assert "&lt;b&gt;Ann&lt;/b&gt; &amp; co" in email.html
     assert 'href="https://a/?x=1&amp;y=2"' in email.html
     assert "<b>Ann</b> & co" in email.text
+
+
+def test_emails_open_with_greg_once_the_site_has_an_address() -> None:
+    message = Message(subject="Hi", paragraphs=["Hello"])
+    settings = get_settings()
+    original = settings.app_url
+    try:
+        settings.app_url = ""
+        assert "<img" not in to_address("x@example.com", message).html
+
+        settings.app_url = "https://games.example"
+        email = to_address("x@example.com", message)
+        assert '<img src="https://games.example/mascot/grouper-head-128.png"' in email.html
+        assert email.html.index("Board Game Group") < email.html.index("Hello")
+        assert "Board Game Group" not in email.text
+    finally:
+        settings.app_url = original
 
 
 def test_dates_read_naturally() -> None:

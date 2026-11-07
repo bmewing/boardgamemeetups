@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Skeleton } from '@mantine/core'
+import { Badge, Button, Group, Skeleton } from '@mantine/core'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 
@@ -6,7 +6,8 @@ import { useMyGames } from '../api/collection'
 import { useFriends } from '../api/friends'
 import { type GroupSummary, type MeetupBrief, useGroups } from '../api/groups'
 import { useMe } from '../api/me'
-import { MeepleHex } from '../components/landing/MeepleHex'
+import { Grouper } from '../components/mascot/Grouper'
+import { ErrorNote } from '../components/mascot/MascotNote'
 import { PlayerPiece } from '../components/pieces/PlayerPiece'
 import {
   calendarDate,
@@ -136,7 +137,12 @@ function NextUp({ next }: { next: Upcoming }) {
 function NothingPlanned({ hasGroups }: { hasGroups: boolean }) {
   return (
     <div className={classes.nothing}>
-      <MeepleHex size={96} />
+      <Grouper
+        pose={hasGroups ? 'snooze' : 'wave'}
+        size={120}
+        label=""
+        className={classes.nothingArt}
+      />
       <div>
         <p className={classes.nothingTitle}>
           {hasGroups ? 'Nothing on the calendar yet' : 'Start your first group'}
@@ -315,6 +321,8 @@ export function Dashboard({ footer }: { footer?: ReactNode }) {
   ]
 
   const name = me.data?.display_name
+  // The empty card brings its own Grouper, so the greeting only waves when there's a date to show.
+  const quiet = !groups.isPending && !next
   return (
     <div className={classes.page}>
       <header className={classes.hello}>
@@ -331,9 +339,10 @@ export function Dashboard({ footer }: { footer?: ReactNode }) {
                 : 'Nothing on the calendar yet. Time to fix that.'}
           </p>
         </div>
+        {!quiet && <Grouper pose="wave" size={112} label="" className={classes.helloArt} />}
       </header>
 
-      {groups.isError && <Alert color="red">{groups.error.message}</Alert>}
+      {groups.isError && <ErrorNote error={groups.error} onRetry={groups.refetch} />}
 
       <div className={classes.grid}>
         <div className={classes.main}>

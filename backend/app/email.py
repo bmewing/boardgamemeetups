@@ -217,6 +217,7 @@ def _render(
     text = "\n\n".join(text_parts) + "\n\n--\n" + text_footer + "\n"
     body = (
         f'<div style="{BODY_STYLE}">'
+        + _masthead()
         + "".join(html_parts)
         + '<hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0 12px">'
         + f'<p style="font-size:12px;color:#868e96">{html_footer}</p></div>'
@@ -224,6 +225,21 @@ def _render(
     return Email(to=to, subject=message.subject, text=text, html=body, headers=headers)
 
 
+def _masthead() -> str:
+    """Greg's face and the app's name above every HTML email, once the site has an address."""
+    app_url = get_settings().app_url
+    if not app_url:
+        return ""
+    face = html.escape(f"{app_url}/mascot/grouper-head-128.png")
+    return (
+        '<p style="margin:0 0 20px">'
+        f'<img src="{face}" width="48" height="48" alt="" style="{FACE_STYLE}">'
+        f'<strong style="{NAME_STYLE}">Board Game Group</strong></p>'
+    )
+
+
+FACE_STYLE = "vertical-align:middle;border:0;margin-right:10px"
+NAME_STYLE = "vertical-align:middle;font-size:17px;color:#514b23"
 BODY_STYLE = (
     "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"
     "font-size:15px;line-height:1.5;color:#212529;max-width:560px"

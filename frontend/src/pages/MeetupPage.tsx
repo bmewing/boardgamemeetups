@@ -18,7 +18,7 @@ import {
   Title,
 } from '@mantine/core'
 import { useDebouncedValue, useDisclosure } from '@mantine/hooks'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { useMoods } from '../api/collection'
@@ -37,6 +37,8 @@ import {
   useUpdateMeetup,
 } from '../api/groups'
 import { GameCard } from '../components/GameCard'
+import { Grouper } from '../components/mascot/Grouper'
+import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { widenedLabel } from '../components/gameFacts'
 import {
   endTime,
@@ -121,7 +123,7 @@ function MoodSummary({ rsvps }: { rsvps: Rsvp[] }) {
 
 const guestLabel = (n: number) => (n === 0 ? 'Just me' : `Me + ${n}`)
 
-function Answer({ meetup }: { meetup: Meetup }) {
+function Answer({ meetup, onGoing }: { meetup: Meetup; onGoing?: () => void }) {
   const rsvp = useRsvp(meetup.id)
   const moods = useMoods()
   if (meetup.status === 'cancelled') return null
@@ -135,7 +137,9 @@ function Answer({ meetup }: { meetup: Meetup }) {
   const current = rsvp.isPending && rsvp.variables ? rsvp.variables : saved
   const save = (changes: Partial<RsvpIn>) => {
     const next = { ...current, ...changes }
-    if (next.response) rsvp.mutate({ ...next, response: next.response })
+    if (!next.response) return
+    const nowGoing = next.response === 'yes' && saved.response !== 'yes'
+    rsvp.mutate({ ...next, response: next.response }, { onSuccess: () => nowGoing && onGoing?.() })
   }
   const mightCome = current.response === 'yes' || current.response === 'maybe'
   const limit = meetup.group.plus_one_limit
@@ -501,26 +505,43 @@ function Organize({ meetup }: { meetup: Meetup }) {
   )
 }
 
+// One loop of Greg's celebration.
+const CHEER_MS = 4800
+
+/** Greg cheers for one loop after a good moment, then goes back to dealing. */
+function useCheer() {
+  const [cheering, setCheering] = useState(false)
+  const timer = useRef<number | undefined>(undefined)
+  useEffect(() => {
+    // Fetch the cheer now so the swap doesn't flash an empty frame.
+    new Image().src = `${import.meta.env.BASE_URL}mascot/grouper-cheer.svg`
+    return () => window.clearTimeout(timer.current)
+  }, [])
+  const cheer = useCallback(() => {
+    setCheering(true)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setCheering(false), CHEER_MS)
+  }, [])
+  return [cheering, cheer] as const
+}
+
 export function MeetupPage() {
   const { meetupId = '' } = useParams()
   const meetup = useMeetup(meetupId)
+  const [cheering, cheer] = useCheer()
 
   if (meetup.isPending) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
+    return <LoadingNote>Setting up the table…</LoadingNote>
   }
-  if (meetup.isError) return <Alert color="red">{meetup.error.message}</Alert>
+  if (meetup.isError) return <ErrorNote error={meetup.error} onRetry={meetup.refetch} />
   if (meetup.data === null) {
     return (
-      <Stack>
+      <MascotNote pose="think">
         <Text>This date doesn't exist, or it's in a group you're not in.</Text>
         <Anchor component={Link} to="/groups">
           Back to Groups
         </Anchor>
-      </Stack>
+      </MascotNote>
     )
   }
 
@@ -533,21 +554,28 @@ export function MeetupPage() {
         ← {m.group.name}
       </Anchor>
       <Group justify="space-between" align="flex-start">
-        <Stack gap={2}>
-          <Title order={2} td={m.status === 'cancelled' ? 'line-through' : undefined}>
-            {formatLongDate(m.local_date)}
-          </Title>
-          <Text>
-            {formatTime(m.local_time)} – {endTime(m.local_time, m.duration_minutes)}
-            {elsewhere && (
-              <Text span c="dimmed" size="sm">
-                {' '}
-                ({m.group.time_zone} time)
-              </Text>
-            )}
-          </Text>
-          {m.location && <Text c="dimmed">{m.location}</Text>}
-        </Stack>
+        <Group gap="md" wrap="nowrap">
+          <Grouper
+            pose={m.status === 'cancelled' ? 'snooze' : cheering ? 'cheer' : 'deal'}
+            size={96}
+            label=""
+          />
+          <Stack gap={2}>
+            <Title order={2} td={m.status === 'cancelled' ? 'line-through' : undefined}>
+              {formatLongDate(m.local_date)}
+            </Title>
+            <Text>
+              {formatTime(m.local_time)} – {endTime(m.local_time, m.duration_minutes)}
+              {elsewhere && (
+                <Text span c="dimmed" size="sm">
+                  {' '}
+                  ({m.group.time_zone} time)
+                </Text>
+              )}
+            </Text>
+            {m.location && <Text c="dimmed">{m.location}</Text>}
+          </Stack>
+        </Group>
         {runsGroup(m.my_role) && <Organize meetup={m} />}
       </Group>
       <AddToCalendar meetup={m} />
@@ -559,7 +587,7 @@ export function MeetupPage() {
           </Text>
         </Card>
       )}
-      <Answer meetup={m} />
+      <Answer meetup={m} onGoing={cheer} />
       <Stack gap="sm">
         <People title="Going" people={by('yes')} />
         <People title="Maybe" people={by('maybe')} />
@@ -568,7 +596,7 @@ export function MeetupPage() {
         <MoodSummary rsvps={m.rsvps} />
       </Stack>
       <PlayLogPanel meetup={m} members={[...m.rsvps.map((r) => r.person), ...m.no_answer]} />
-      <VotePanel meetup={m} />
+      <VotePanel meetup={m} onLocked={cheer} />
       <FittingGames meetup={m} />
     </Stack>
   )

@@ -1,0 +1,66 @@
+GREG THE GROUPER: ASSETS AND INTEGRATION HANDOFF
+
+All paths below are relative to frontend/. The original eight poses are already integrated in several pages. Preserve those placements when using the additional variants.
+
+REACT ENTRY POINT
+  src/components/mascot/Grouper.tsx
+  src/components/mascot/Grouper.css
+  src/components/mascot/MascotNote.tsx (existing message-layout helper)
+
+From a file directly inside src/pages/:
+  import { Grouper } from '../components/mascot/Grouper'
+
+  <Grouper pose="oops" size={112} animated={false} label="" />
+  <Grouper pose="winner" size={112} label="" />
+  <Grouper pose="shuffle" size={112} label="" />
+  <Grouper pose="head" size={40} label="" />
+
+Grouper accepts pose, size, animated, label and className. An empty label marks decorative art. The head pose is always still and uses responsive PNG sizes. Animated web SVGs respect prefers-reduced-motion.
+
+NEW VARIANTS AND INTENDED USE
+  oops: Greg with a sheepish expression beside spilled dice. Use beside recoverable errors, with the original error text and retry action still visible. Files: public/mascot/grouper-oops.svg and .png; public/mascot/anim/grouper-oops.gif and .webp.
+  winner: Greg proudly holding a gold trophy. Use for a recorded competitive winner or a cooperative win in src/components/PlayLogPanel.tsx. Keep general vote/RSVP success on cheer. Files follow grouper-winner with the same locations and extensions.
+  shuffle: Greg with two independently moving card packets. Use for loading and preparing results, with visible loading text or an accessible status. Files follow grouper-shuffle with the same locations and extensions. Idle is for calm decorative moments, not loading.
+  head: Tight smiling face for inline notes, avatars and email headers. Use below about 60px instead of full-body art. public/mascot/grouper-head.png is 512px; grouper-head-32.png, -48.png, -64.png, -128.png and -256.png are native smaller sizes. Static grouper-head.svg and grouper-head.webp also exist. There is no animated head GIF or animated head WebP.
+  social: public/share.jpg is the new 1200x630 image (compressed JPEG, about 95 KB) with Greg and the Board Game Group name. index.html uses it for Open Graph and a large Twitter/X summary card. Its source is design/mascot/source/social.png.
+
+Page-level use of the new oops, winner, shuffle and head variants remains available for Claude to integrate. This asset update registers all four in Grouper; it does not replace all error boxes or loaders across the app.
+
+ALL POSE NAMES
+  toss, twirl, wave, deal, think, snooze, cheer, idle, oops, winner, shuffle, head.
+
+PUBLIC URL PATTERN
+  /mascot/grouper-oops.svg
+  /mascot/grouper-oops.png
+  /mascot/anim/grouper-oops.webp
+  /mascot/anim/grouper-oops.gif
+  /mascot/grouper-head-48.png
+  /share.jpg
+The public/ directory prefix is omitted in website URLs. The React component handles the configured Vite base URL.
+
+FORMAT CHOICES
+  SVG: self-contained generated raster art plus web animation; preferred on the website.
+  PNG: transparent 512px still, including props.
+  Animated WebP: transparent 256px portable animation.
+  GIF: cream-background 256px animation, suitable for email or sharing.
+  Head portraits: static artwork in PNG/WebP/SVG; native PNG sizes for small placements.
+All full-body animations loop over 4.8 seconds. Raw GIF/WebP animations cannot respond to reduced-motion preferences by themselves.
+
+MOTION
+The die, meeple and shuffle card packets move independently. Other full-body poses use gentle whole-body floating, rocking, breathing or hopping, with small accents where relevant. The wave fin and card fan remain part of their original still artwork. These are illustrated poses with layered motion, not fully articulated character animation.
+
+FILES FOR REVIEW AND REBUILD
+  public/mascot/preview.html             Visual preview, downloads, small portraits and social card.
+  design/mascot/asset-map.json           Complete exact file paths and public URLs.
+  design/mascot/source/                  High-resolution transparent originals, reference and social master.
+  design/mascot/generation-prompts.json  Exact built-in image generation prompts.
+  design/mascot/build-assets.cjs         Rebuild the original eight poses and favicon files.
+  design/mascot/build-variants.cjs       Rebuild oops, winner, shuffle, head sizes and share.jpg.
+  design/mascot/README.txt               Runtime and rebuilding notes.
+
+FAVICONS
+  public/favicon.svg; public/favicon.ico; public/favicon.png;
+  public/apple-touch-icon.png; public/icon-192.png; public/icon-512.png.
+index.html already links the browser and Apple touch icons. Layout.tsx uses /favicon.svg for the header logo. The 192px and 512px icons are available for a future app manifest.
+
+No new application dependencies were added for this asset update. Files have not been committed or deployed by Codex.

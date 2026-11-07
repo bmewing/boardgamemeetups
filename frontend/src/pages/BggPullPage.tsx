@@ -1,9 +1,10 @@
-import { Alert, Anchor, Button, Center, Loader, Stack, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Stack, Text, Title } from '@mantine/core'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { type ImportResult, useBggPullPreview } from '../api/collection'
 import { useMe } from '../api/me'
+import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
 import { PreviewView, ResultView } from '../components/ImportPreview'
 
 export function BggPullPage() {
@@ -17,9 +18,9 @@ export function BggPullPage() {
 
   let body
   if (me.isPending) {
-    body = <Loader />
+    body = <LoadingNote />
   } else if (me.isError) {
-    body = <Alert color="red">{me.error.message}</Alert>
+    body = <ErrorNote error={me.error} onRetry={me.refetch} />
   } else if (!me.data.bgg_username) {
     body = (
       <Alert title="Add your BGG username first">
@@ -32,16 +33,9 @@ export function BggPullPage() {
   } else if (result) {
     body = <ResultView result={result} onAgain={start} againLabel="Pull again" />
   } else if (pull.isPending) {
-    body = (
-      <Center py="xl">
-        <Stack align="center" gap="xs">
-          <Loader />
-          <Text c="dimmed" size="sm">
-            Asking BoardGameGeek… big collections can take up to a minute.
-          </Text>
-        </Stack>
-      </Center>
-    )
+    body = <LoadingNote>Asking BoardGameGeek… big collections can take up to a minute.</LoadingNote>
+  } else if (pull.isError) {
+    body = <ErrorNote error={pull.error} onRetry={start} title="BoardGameGeek didn’t answer" />
   } else if (pull.isSuccess) {
     body = (
       <PreviewView key={pull.submittedAt} preview={pull.data} source="bgg" onApplied={setResult} />
@@ -59,8 +53,7 @@ export function BggPullPage() {
             Last pulled {new Date(last).toLocaleString()}.
           </Text>
         )}
-        {pull.isError && <Alert color="red">{pull.error.message}</Alert>}
-        <Button onClick={start}>{pull.isError ? 'Try again' : 'Fetch from BGG'}</Button>
+        <Button onClick={start}>Fetch from BGG</Button>
       </Stack>
     )
   }

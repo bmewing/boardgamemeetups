@@ -1,0 +1,23 @@
+/* Motion lives inside each self-contained SVG, including its reduced-motion rule. */
+.grp {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  object-fit: contain;
+  user-select: none;
+}
+
+/* Loading notes wait a beat before showing, so fast loads never flash Greg. */
+.grp-late {
+  animation: grp-appear 0.2s ease 0.3s both;
+}
+
+@keyframes grp-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

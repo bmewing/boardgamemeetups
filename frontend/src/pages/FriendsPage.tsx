@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Center, Loader, Menu, Stack, Text, Title } from '@mantine/core'
+import { Alert, Button, Card, Menu, Stack, Text, Title } from '@mantine/core'
 import type { ReactNode } from 'react'
 
 import {
@@ -11,6 +11,7 @@ import {
 import { InviteLinks } from '../components/InviteLinks'
 import { PersonPicker } from '../components/PersonPicker'
 import { PersonRow } from '../components/PersonRow'
+import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -75,12 +76,8 @@ export function FriendsPage() {
         />
       </Section>
 
-      {friends.isPending && (
-        <Center py="xl">
-          <Loader />
-        </Center>
-      )}
-      {friends.isError && <Alert color="red">{friends.error.message}</Alert>}
+      {friends.isPending && <LoadingNote>Loading your friends…</LoadingNote>}
+      {friends.isError && <ErrorNote error={friends.error} onRetry={friends.refetch} />}
       {act.isError && <Alert color="red">{act.error.message}</Alert>}
 
       {friends.data && friends.data.incoming.length > 0 && (

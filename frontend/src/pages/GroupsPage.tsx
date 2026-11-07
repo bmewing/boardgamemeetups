@@ -3,10 +3,8 @@ import {
   Badge,
   Button,
   Card,
-  Center,
   Checkbox,
   Group,
-  Loader,
   Modal,
   NumberInput,
   Stack,
@@ -28,6 +26,7 @@ import {
 } from '../api/groups'
 import { useMe } from '../api/me'
 import { CalendarFeedCard } from '../components/CalendarFeedCard'
+import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { formatShortDate, formatTime, ROLE_LABELS } from '../components/meetupFormat'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
 import { plural } from '../components/userGameFields'
@@ -197,12 +196,8 @@ export function GroupsPage() {
       </Group>
       <NewGroup opened={creating} onClose={close} />
 
-      {groups.isPending && (
-        <Center py="xl">
-          <Loader />
-        </Center>
-      )}
-      {groups.isError && <Alert color="red">{groups.error.message}</Alert>}
+      {groups.isPending && <LoadingNote>Loading your groups…</LoadingNote>}
+      {groups.isError && <ErrorNote error={groups.error} onRetry={groups.refetch} />}
 
       {groups.data && groups.data.invites.length > 0 && (
         <Stack gap="xs">
@@ -215,9 +210,12 @@ export function GroupsPage() {
 
       {groups.data &&
         (groups.data.groups.length === 0 ? (
-          <Text c="dimmed">
-            You're not in any groups yet. Make one and invite people, or ask a friend to invite you.
-          </Text>
+          <MascotNote pose="wave" title="Find your table">
+            <Text c="dimmed" maw={460}>
+              You're not in any groups yet. Make one and invite people, or ask a friend to invite
+              you.
+            </Text>
+          </MascotNote>
         ) : (
           <Stack gap="xs">
             {groups.data.groups.map((group) => (

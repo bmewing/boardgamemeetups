@@ -4,9 +4,9 @@ import type { ReactNode } from 'react'
 
 import { Die } from '../components/landing/Die'
 import { Meeple } from '../components/landing/Meeple'
-import { MeepleHex } from '../components/landing/MeepleHex'
 import { useInView } from '../components/landing/motion'
 import { TonightsPickDemo } from '../components/landing/TonightsPickDemo'
+import { Grouper } from '../components/mascot/Grouper'
 import { palette } from '../theme'
 import classes from './LandingPage.module.css'
 
@@ -86,7 +86,7 @@ export function LandingPage() {
             </p>
           </div>
           <div className={classes.heroArt}>
-            <MeepleHex size={340} />
+            <Grouper pose="toss" size={360} className={classes.heroFish} />
             <div className={classes.heroDie}>
               <Die size={64} />
               <span className={classes.dieHint}>go on, roll it</span>

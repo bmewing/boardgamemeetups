@@ -1,12 +1,9 @@
 import {
-  Alert,
   Anchor,
   Badge,
   Button,
-  Center,
   Group,
   Image,
-  Loader,
   Modal,
   SimpleGrid,
   Stack,
@@ -19,6 +16,7 @@ import { Link, useParams } from 'react-router'
 
 import { type GameDetail, useGame, useUpdateCustomGame } from '../api/games'
 import { useMe } from '../api/me'
+import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
 import { CustomGameForm } from '../components/CustomGameForm'
 import { bestWithLabel, playersLabel, playtimeLabel, weightLabel } from '../components/gameFacts'
 import { MyGamePanel } from '../components/MyGamePanel'
@@ -104,13 +102,9 @@ export function GamePage() {
   const me = useMe()
 
   if (game.isPending) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
+    return <LoadingNote>Loading the game…</LoadingNote>
   }
-  if (game.isError) return <Alert color="red">{game.error.message}</Alert>
+  if (game.isError) return <ErrorNote error={game.error} onRetry={game.refetch} />
 
   const g = game.data
   const facts = [

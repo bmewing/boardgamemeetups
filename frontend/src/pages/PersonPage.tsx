@@ -1,12 +1,9 @@
 import {
   ActionIcon,
-  Alert,
   Anchor,
   Badge,
   Button,
-  Center,
   Group,
-  Loader,
   Menu,
   SegmentedControl,
   Stack,
@@ -35,6 +32,7 @@ import {
   WISHLIST_LABELS,
 } from '../components/userGameFields'
 import { PlayerPiece } from '../components/pieces/PlayerPiece'
+import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
 
 type Shelf = 'owned' | 'wanted' | 'all'
 
@@ -76,14 +74,8 @@ function TheirGames({ profile }: { profile: PersonProfile }) {
   if (!profile.games_visible) {
     return <Text c="dimmed">{profile.person.display_name} doesn't share their games with you.</Text>
   }
-  if (games.isPending) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
-  }
-  if (games.isError) return <Alert color="red">{games.error.message}</Alert>
+  if (games.isPending) return <LoadingNote>Loading their games…</LoadingNote>
+  if (games.isError) return <ErrorNote error={games.error} onRetry={games.refetch} />
   if (games.data.length === 0) {
     return <Text c="dimmed">{profile.person.display_name} hasn't added any games yet.</Text>
   }
@@ -196,14 +188,8 @@ export function PersonPage() {
   const { userId = '' } = useParams()
   const profile = usePerson(userId)
 
-  if (profile.isPending) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
-  }
-  if (profile.isError) return <Alert color="red">{profile.error.message}</Alert>
+  if (profile.isPending) return <LoadingNote />
+  if (profile.isError) return <ErrorNote error={profile.error} onRetry={profile.refetch} />
   if (profile.data === null) {
     return (
       <Stack>

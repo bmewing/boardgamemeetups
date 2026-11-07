@@ -1,15 +1,4 @@
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  Center,
-  Group,
-  Loader,
-  Modal,
-  Stack,
-  Text,
-} from '@mantine/core'
+import { Badge, Button, Card, Group, Modal, Stack, Text } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 
@@ -24,6 +13,7 @@ import type { GameSummary } from '../api/games'
 import { GameCard } from './GameCard'
 import { GameSearchSelect } from './GameSearchSelect'
 import { OWNERSHIP_LABELS, plural } from './userGameFields'
+import { ErrorNote, LoadingNote } from './mascot/MascotNote'
 
 // BGG's "Like to have", the middle of its five wishlist priorities.
 const WISHLIST_PRIORITY = 3
@@ -177,18 +167,9 @@ export function FindMissingBaseGames() {
 
   let body
   if (find.isPending) {
-    body = (
-      <Center py="lg">
-        <Stack align="center" gap="xs">
-          <Loader />
-          <Text size="sm" c="dimmed">
-            Checking your expansions…
-          </Text>
-        </Stack>
-      </Center>
-    )
+    body = <LoadingNote size={88}>Checking your expansions…</LoadingNote>
   } else if (find.isError) {
-    body = <Alert color="red">{find.error.message}</Alert>
+    body = <ErrorNote error={find.error} onRetry={() => find.mutate()} />
   } else if (find.data) {
     const { unchecked, hidden } = find.data
     body = (

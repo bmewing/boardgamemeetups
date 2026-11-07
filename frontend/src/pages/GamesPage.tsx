@@ -1,15 +1,4 @@
-import {
-  Alert,
-  Anchor,
-  Chip,
-  Group,
-  Loader,
-  Modal,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core'
+import { Anchor, Chip, Group, Loader, Modal, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue, useDisclosure } from '@mantine/hooks'
 import { useNavigate, useSearchParams } from 'react-router'
 
@@ -17,6 +6,7 @@ import { type UserGame, type UserGameUpdate, useMyGames, useUpdateMyGame } from 
 import { type GameSummary, useAddCustomGame, useGameSearch } from '../api/games'
 import { CustomGameForm } from '../components/CustomGameForm'
 import { GameCard } from '../components/GameCard'
+import { ErrorNote, MascotNote } from '../components/mascot/MascotNote'
 import { isOwned } from '../components/userGameFields'
 
 // BGG's "Like to have", the middle of its five wishlist priorities.
@@ -119,9 +109,18 @@ export function GamesPage() {
         rightSection={search.isFetching ? <Loader size="xs" /> : null}
         autoFocus
       />
-      {search.isError && <Alert color="red">{search.error.message}</Alert>}
+      {search.isError && <ErrorNote error={search.error} onRetry={search.refetch} />}
+      {!query.trim() && (
+        <MascotNote pose="twirl" title="What's your next game?">
+          <Text c="dimmed" maw={420}>
+            Search for a game to mark it as yours, wishlist it, or say you want to play it.
+          </Text>
+        </MascotNote>
+      )}
       {search.data?.length === 0 && !search.isFetching && (
-        <Text c="dimmed">No games found for “{debounced.trim()}”.</Text>
+        <MascotNote pose="think">
+          <Text c="dimmed">No games found for “{debounced.trim()}”.</Text>
+        </MascotNote>
       )}
       <Stack gap="xs">
         {search.data?.map((game) => (

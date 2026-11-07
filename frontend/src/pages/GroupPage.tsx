@@ -59,6 +59,7 @@ import { MeetupForm } from '../components/MeetupForm'
 import { PersonPicker } from '../components/PersonPicker'
 import { PersonRow } from '../components/PersonRow'
 import { ScheduleEditor } from '../components/ScheduleEditor'
+import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { tableFit } from '../components/tableFit'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
 
@@ -149,10 +150,12 @@ function DatesTab({ group }: { group: GroupData }) {
         />
       </Modal>
       {group.upcoming.length === 0 ? (
-        <Text c="dimmed">
-          No dates coming up.{' '}
-          {runs ? 'Set a schedule in Settings, or add a date.' : 'The organizers will add some.'}
-        </Text>
+        <MascotNote pose="snooze" size={112}>
+          <Text c="dimmed">
+            No dates coming up.{' '}
+            {runs ? 'Set a schedule in Settings, or add a date.' : 'The organizers will add some.'}
+          </Text>
+        </MascotNote>
       ) : (
         <Stack gap="xs">
           {group.upcoming.map((m) => (
@@ -548,22 +551,16 @@ export function GroupPage() {
   const { groupId = '' } = useParams()
   const group = useGroup(groupId)
 
-  if (group.isPending) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
-  }
-  if (group.isError) return <Alert color="red">{group.error.message}</Alert>
+  if (group.isPending) return <LoadingNote>Loading the group…</LoadingNote>
+  if (group.isError) return <ErrorNote error={group.error} onRetry={group.refetch} />
   if (group.data === null) {
     return (
-      <Stack>
+      <MascotNote pose="think">
         <Text>This group doesn't exist, or you're not in it.</Text>
         <Anchor component={Link} to="/groups">
           Back to Groups
         </Anchor>
-      </Stack>
+      </MascotNote>
     )
   }
 

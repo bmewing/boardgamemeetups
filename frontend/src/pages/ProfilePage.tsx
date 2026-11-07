@@ -2,11 +2,9 @@ import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
 import {
   Alert,
   Button,
-  Center,
   Divider,
   Group,
   Input,
-  Loader,
   Modal,
   SegmentedControl,
   Stack,
@@ -23,6 +21,7 @@ import { EMAIL_KINDS } from '../api/email'
 import { useDeleteMe, useMe, useUpdateMe } from '../api/me'
 import { PiecePicker } from '../components/pieces/PiecePicker'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
+import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
 
 const VISIBILITY_OPTIONS = [
   { value: 'private', label: 'Only me' },
@@ -183,13 +182,9 @@ export function ProfilePage() {
   const me = useMe()
 
   if (me.isPending) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
+    return <LoadingNote>Loading your profile…</LoadingNote>
   }
-  if (me.isError) return <Alert color="red">{me.error.message}</Alert>
+  if (me.isError) return <ErrorNote error={me.error} onRetry={me.refetch} />
 
   return (
     <Stack maw={520}>
