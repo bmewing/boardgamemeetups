@@ -102,6 +102,19 @@ describe('ProfilePage', () => {
     expect(sent).toEqual([{ email_opt_outs: ['rsvp_reminder'] }, { email_opt_outs: [] }])
   })
 
+  it('shows the linked Discord account and unlinks it', async () => {
+    mockApi({
+      'GET /api/me': () => Response.json({ ...profile, discord_username: 'sam_d' }),
+      'DELETE /api/me/discord': () => Response.json(profile),
+    })
+    renderWithProviders(<ProfilePage />)
+
+    expect(await screen.findByText(/Linked to @sam_d/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Unlink Discord' }))
+
+    expect(await screen.findByText(/Not linked/)).toBeInTheDocument()
+  })
+
   it('deletes the account after confirmation and signs out', async () => {
     let deleted = false
     mockApi({

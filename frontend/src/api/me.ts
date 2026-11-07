@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type UserProfileUpdate } from './client'
 import { detailOf } from './collection'
 
-const ME_KEY = ['me'] as const
+export const ME_KEY = ['me'] as const
 
 /** The API refuses every request from a banned account with a 403. */
 export class AccountSuspendedError extends Error {}

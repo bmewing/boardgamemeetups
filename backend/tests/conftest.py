@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from app.auth import get_jwks_client
 from app.config import get_settings
 from app.db import get_session
+from app.discord.client import Edit, Message, get_discord
 from app.email import Email, get_mailer
 from app.main import app
 from app.models import Base
@@ -122,6 +123,47 @@ def outbox() -> Outbox:
     box = Outbox()
     app.dependency_overrides[get_mailer] = lambda: box
     return box
+
+
+class FakeDiscord:
+    """Stands in for Discord's API: keeps what the bot would have posted, edited and
+    deleted. Messages listed in `gone` were deleted in Discord."""
+
+    enabled = True
+
+    def __init__(self) -> None:
+        self.posts: list[tuple[str, str, Message]] = []  # channel, message id, message
+        self.edits: list[tuple[str, str, Message]] = []
+        self.deleted: list[tuple[str, str]] = []
+        self.gone: set[str] = set()
+        self.failing = False
+        self._next_id = 9_000_000
+
+    async def post(self, channel_id: str, message: Message) -> str | None:
+        if self.failing:
+            return None
+        self._next_id += 1
+        self.posts.append((channel_id, str(self._next_id), message))
+        return str(self._next_id)
+
+    async def edit(self, channel_id: str, message_id: str, message: Message) -> Edit:
+        if self.failing:
+            return Edit.FAILED
+        if message_id in self.gone:
+            return Edit.GONE
+        self.edits.append((channel_id, message_id, message))
+        return Edit.DONE
+
+    async def delete(self, channel_id: str, message_id: str) -> None:
+        self.deleted.append((channel_id, message_id))
+
+
+@pytest.fixture(autouse=True)
+def discord() -> FakeDiscord:
+    """No test ever talks to Discord."""
+    fake = FakeDiscord()
+    app.dependency_overrides[get_discord] = lambda: fake
+    return fake
 
 
 @pytest.fixture

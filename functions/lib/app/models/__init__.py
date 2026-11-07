@@ -3,6 +3,7 @@
 from app.db import Base
 from app.models.bgg_throttle import BggThrottle
 from app.models.calendar import CalendarFeed
+from app.models.discord import DiscordCard, DiscordChannel
 from app.models.friend import Friendship, FriendshipStatus, InviteLink, UserBlock
 from app.models.game import CUSTOM_GAME_IDS, Game, PlayerCountVotes, is_custom_id
 from app.models.group import (
@@ -44,6 +45,8 @@ __all__ = [
     "BringAssignment",
     "CalendarFeed",
     "CollectionVisibility",
+    "DiscordCard",
+    "DiscordChannel",
     "Friendship",
     "FriendshipStatus",
     "Game",

@@ -55,6 +55,7 @@ class UserRead(BaseModel):
     piece: Piece | None  # null: hasn't picked (shown as a meeple)
     piece_color: PieceColor | None
     time_zone: str
+    discord_username: str | None  # the Discord account linked through the bot
     bgg_username: str | None
     bgg_pulled_at: datetime | None
     collection_visibility: CollectionVisibility

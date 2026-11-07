@@ -1088,8 +1088,8 @@ export interface paths {
         /**
          * Run Scheduled
          * @description Called every hour by a GitHub Actions workflow. Open to anyone: it only does what's
-         *     due (tops up each group's dates, fills in unlogged plays, sends reminders), and never
-         *     sends a reminder twice.
+         *     due (tops up each group's dates, fills in unlogged plays, sends reminders, posts Discord
+         *     cards a week ahead), and never sends a reminder or posts a card twice.
          */
         post: operations["run_scheduled_api_notifications_run_post"];
         delete?: never;
@@ -1198,6 +1198,48 @@ export interface paths {
          *     remains, so signing in again starts a fresh, empty account; ban instead to keep them out.
          */
         delete: operations["delete_user_api_admin_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/discord/link/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read Link
+         * @description Which Discord account a link from the bot is for, to show before linking.
+         */
+        get: operations["read_link_api_discord_link__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/discord": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Link Discord
+         * @description Link the Discord account a link from the bot is for. Opening the link proves it's
+         *     yours, so it moves here if it was linked to another account.
+         */
+        put: operations["link_discord_api_me_discord_put"];
+        post?: never;
+        /** Unlink Discord */
+        delete: operations["unlink_discord_api_me_discord_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1390,6 +1432,16 @@ export interface components {
             filled: number;
             /** Remaining */
             remaining: number;
+        };
+        /** DiscordLinkIn */
+        DiscordLinkIn: {
+            /** Token */
+            token: string;
+        };
+        /** DiscordLinkRead */
+        DiscordLinkRead: {
+            /** Discord Username */
+            discord_username: string;
         };
         /**
          * EmailKind
@@ -2441,6 +2493,8 @@ export interface components {
         RunResult: {
             /** Reminded Dates */
             reminded_dates: number;
+            /** Announced Dates */
+            announced_dates: number;
         };
         /** SharedGameRead */
         SharedGameRead: {
@@ -2580,6 +2634,8 @@ export interface components {
             piece_color: components["schemas"]["PieceColor"] | null;
             /** Time Zone */
             time_zone: string;
+            /** Discord Username */
+            discord_username: string | null;
             /** Bgg Username */
             bgg_username: string | null;
             /** Bgg Pulled At */
@@ -4943,6 +4999,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_link_api_discord_link__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscordLinkRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_discord_api_me_discord_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscordLinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_discord_api_me_discord_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
                 };
             };
         };
