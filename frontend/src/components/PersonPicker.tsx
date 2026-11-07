@@ -24,6 +24,8 @@ const RELATION_LABELS: Partial<Record<PersonMatch['relation'], string>> = {
  * A box that suggests people as you type their username, and also takes a full email
  * address. `onPick` gets whoever was picked from the list, or the email typed in.
  * `unavailable` names people to show but not pick (say, already in the group).
+ * `suggestions` are offered before anything is typed (narrowed by the first letter or so),
+ * such as your friends who aren't in the group yet.
  */
 export function PersonPicker({
   label,
@@ -31,6 +33,7 @@ export function PersonPicker({
   actionLabel,
   busy = false,
   unavailable = {},
+  suggestions = [],
   onPick,
   onTyping,
 }: {
@@ -39,6 +42,7 @@ export function PersonPicker({
   actionLabel: string
   busy?: boolean
   unavailable?: Record<string, string>
+  suggestions?: Person[]
   onPick: (pick: PersonPick, person: Person | null) => void
   onTyping?: () => void
 }) {
@@ -47,8 +51,13 @@ export function PersonPicker({
   const [chosen, setChosen] = useState<Person | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [query] = useDebouncedValue(text, 200)
+  const searching = query.trim().length >= 2
   const search = usePeopleSearch(chosen ? '' : query)
-  const matches = search.data ?? []
+  const typed = text.trim().toLowerCase()
+  const suggested: PersonMatch[] = suggestions
+    .filter((p) => p.display_name.toLowerCase().includes(typed))
+    .map((person) => ({ person, relation: 'friends' }))
+  const matches = searching ? (search.data ?? []) : suggested
 
   const choose = (person: Person) => {
     setChosen(person)
@@ -103,7 +112,7 @@ export function PersonPicker({
     )
   })
 
-  const showDropdown = !chosen && query.trim().length >= 2
+  const showDropdown = !chosen && (searching || suggested.length > 0)
   return (
     <form onSubmit={submit}>
       <Group align="flex-end" gap="xs" wrap="nowrap">
@@ -138,7 +147,7 @@ export function PersonPicker({
             />
           </Combobox.Target>
           <Combobox.Dropdown hidden={!showDropdown}>
-            <Combobox.Options>
+            <Combobox.Options mah={280} style={{ overflowY: 'auto' }}>
               {options.length > 0 ? (
                 options
               ) : (

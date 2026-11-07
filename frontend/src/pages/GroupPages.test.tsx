@@ -365,6 +365,61 @@ describe('GroupPage', () => {
     expect(await screen.findByText(/Invited Cat/)).toBeInTheDocument()
     expect(sent).toEqual({ user_id: cat.id })
   })
+
+  it("offers your friends who aren't in the group before you type", async () => {
+    let sent: unknown
+    const cat = {
+      id: '0190f0e2-0000-7000-8000-000000000003',
+      display_name: 'Cat',
+      avatar_url: null,
+    }
+    const dee = {
+      id: '0190f0e2-0000-7000-8000-000000000004',
+      display_name: 'Dee',
+      avatar_url: null,
+    }
+    const since = '2026-11-01T00:00:00Z'
+    renderGroup(group, {
+      'GET /api/friends': () =>
+        Response.json({
+          friends: [
+            { person: ben, since },
+            { person: cat, since },
+            { person: dee, since },
+          ],
+          incoming: [],
+          outgoing: [],
+        }),
+      'GET /api/blocks': () => Response.json([]),
+      [`POST /api/groups/${GROUP_ID}/invites`]: async (request) => {
+        sent = await request.json()
+        return Response.json(
+          {
+            invite: { id: 'i1', person: dee, email: null, invited_by: ann, created_at: since },
+            on_app: true,
+          },
+          { status: 201 },
+        )
+      },
+    })
+
+    await userEvent.click(await screen.findByRole('tab', { name: /Members/ }))
+    await userEvent.click(screen.getByLabelText(/Invite someone/))
+
+    expect(await screen.findByRole('option', { name: /Cat/ })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Dee/ })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /Ben/ })).not.toBeInTheDocument() // a member
+
+    await userEvent.type(screen.getByLabelText(/Invite someone/), 'd')
+    await waitFor(() =>
+      expect(screen.queryByRole('option', { name: /Cat/ })).not.toBeInTheDocument(),
+    )
+    await userEvent.click(screen.getByRole('option', { name: /Dee/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Invite' }))
+
+    expect(await screen.findByText(/Invited Dee/)).toBeInTheDocument()
+    expect(sent).toEqual({ user_id: dee.id })
+  })
 })
 
 describe('MeetupPage', () => {
