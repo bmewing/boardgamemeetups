@@ -84,7 +84,7 @@ export function Layout() {
           <Group h="100%" justify="space-between" wrap="nowrap">
             <Group gap="md" wrap="nowrap">
               <Link to="/" className={classes.brand} aria-label="Board Game Group home">
-                <img src="/favicon.svg" alt="" className={classes.logo} />
+                <img src="/logo.svg" alt="" className={classes.logo} />
                 <span className={classes.wordmark}>Board Game Group</span>
               </Link>
               {isAuthenticated && !suspended && (

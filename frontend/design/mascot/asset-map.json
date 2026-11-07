@@ -394,6 +394,22 @@
     "icon-512.png": {
       "file": "public/icon-512.png",
       "url": "/icon-512.png"
+    },
+    "icon-maskable-192.png": {
+      "file": "public/icon-maskable-192.png",
+      "url": "/icon-maskable-192.png"
+    },
+    "icon-maskable-512.png": {
+      "file": "public/icon-maskable-512.png",
+      "url": "/icon-maskable-512.png"
+    },
+    "manifest.webmanifest": {
+      "file": "public/manifest.webmanifest",
+      "url": "/manifest.webmanifest"
+    },
+    "logo.svg": {
+      "file": "public/logo.svg",
+      "url": "/logo.svg"
     }
   },
   "social": {

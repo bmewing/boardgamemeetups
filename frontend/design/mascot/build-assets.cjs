@@ -14,7 +14,6 @@ const runtimeRequire = createRequire(path.join(runtime, 'mascot-runtime.cjs'))
 const sharp = runtimeRequire('sharp')
 const { chromium } = runtimeRequire('playwright')
 const out = path.resolve(__dirname, '../../public/mascot')
-const publicDir = path.dirname(out)
 const poses = ['idle', 'toss', 'twirl', 'wave', 'think', 'snooze', 'cheer', 'deal']
 
 const motion = `
@@ -95,47 +94,7 @@ async function main() {
       `<svg xmlns="http://www.w3.org/2000/svg" class="grp-stage" data-pose="${pose}" viewBox="0 0 240 240" width="512" height="512" role="img" aria-label="Grouper: ${pose}"><style>${motion}</style><g class="grp-body"><image href="${images[pose]}" width="240" height="240"/>${extras}</g></svg>`
     await fs.writeFile(path.join(out, `grouper-${pose}.svg`), scenes[pose])
   }
-  for (const [filename, size] of [
-    ['favicon.png', 48],
-    ['apple-touch-icon.png', 180],
-    ['icon-192.png', 192],
-    ['icon-512.png', 512],
-  ]) {
-    await sharp(path.join(__dirname, 'source/favicon.png'))
-      .resize(size, size)
-      .png()
-      .toFile(path.join(publicDir, filename))
-  }
-  const icon = await sharp(path.join(__dirname, 'source/favicon.png'))
-    .resize(128, 128)
-    .png()
-    .toBuffer()
-  await fs.writeFile(
-    path.join(publicDir, 'favicon.svg'),
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><image width="128" height="128" href="data:image/png;base64,${icon.toString('base64')}"/></svg>`,
-  )
-  // ICO directory entries with PNG payloads retain alpha at every tab size.
-  const sizes = [16, 32, 48]
-  const payloads = await Promise.all(
-    sizes.map((size) =>
-      sharp(path.join(__dirname, 'source/favicon.png')).resize(size, size).png().toBuffer(),
-    ),
-  )
-  const header = Buffer.alloc(6 + sizes.length * 16)
-  header.writeUInt16LE(1, 2)
-  header.writeUInt16LE(sizes.length, 4)
-  let offset = header.length
-  sizes.forEach((size, i) => {
-    const p = 6 + i * 16
-    header[p] = size
-    header[p + 1] = size
-    header.writeUInt16LE(1, p + 4)
-    header.writeUInt16LE(32, p + 6)
-    header.writeUInt32LE(payloads[i].length, p + 8)
-    header.writeUInt32LE(offset, p + 12)
-    offset += payloads[i].length
-  })
-  await fs.writeFile(path.join(publicDir, 'favicon.ico'), Buffer.concat([header, ...payloads]))
+  // Favicons, app icons and the header logo come from design/mascot/build-icons.py.
 
   const browser = await chromium.launch({
     headless: true,
