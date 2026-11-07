@@ -1,0 +1,407 @@
+{
+  "description": "Greg the Grouper asset catalog. Paths are relative to frontend/. Original poses are already placed in several pages; oops, winner, shuffle and head are ready for page-level integration.",
+  "component": "src/components/mascot/Grouper.tsx",
+  "componentStyles": "src/components/mascot/Grouper.css",
+  "preview": {
+    "file": "public/mascot/preview.html",
+    "url": "/mascot/preview.html"
+  },
+  "sources": "design/mascot/source/",
+  "prompts": "design/mascot/generation-prompts.json",
+  "poses": {
+    "toss": {
+      "suggestedUse": "Landing page and Tonight's Pick",
+      "suggestedPageFiles": [
+        "src/pages/LandingPage.tsx",
+        "src/components/landing/TonightsPickDemo.tsx"
+      ],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-toss.svg",
+        "url": "/mascot/grouper-toss.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-toss.png",
+        "url": "/mascot/grouper-toss.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-toss.webp",
+        "url": "/mascot/anim/grouper-toss.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-toss.gif",
+        "url": "/mascot/anim/grouper-toss.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "twirl": {
+      "suggestedUse": "Game browsing and collections",
+      "suggestedPageFiles": ["src/pages/GamesPage.tsx", "src/pages/CollectionPage.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-twirl.svg",
+        "url": "/mascot/grouper-twirl.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-twirl.png",
+        "url": "/mascot/grouper-twirl.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-twirl.webp",
+        "url": "/mascot/anim/grouper-twirl.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-twirl.gif",
+        "url": "/mascot/anim/grouper-twirl.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "wave": {
+      "suggestedUse": "Dashboard welcome and invitations",
+      "suggestedPageFiles": ["src/pages/Dashboard.tsx", "src/pages/InvitePage.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-wave.svg",
+        "url": "/mascot/grouper-wave.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-wave.png",
+        "url": "/mascot/grouper-wave.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-wave.webp",
+        "url": "/mascot/anim/grouper-wave.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-wave.gif",
+        "url": "/mascot/anim/grouper-wave.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "deal": {
+      "suggestedUse": "Meetup and game-night planning",
+      "suggestedPageFiles": ["src/pages/MeetupPage.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-deal.svg",
+        "url": "/mascot/grouper-deal.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-deal.png",
+        "url": "/mascot/grouper-deal.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-deal.webp",
+        "url": "/mascot/anim/grouper-deal.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-deal.gif",
+        "url": "/mascot/anim/grouper-deal.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "think": {
+      "suggestedUse": "Empty search results and empty collections",
+      "suggestedPageFiles": ["src/pages/GamesPage.tsx", "src/pages/CollectionPage.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-think.svg",
+        "url": "/mascot/grouper-think.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-think.png",
+        "url": "/mascot/grouper-think.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-think.webp",
+        "url": "/mascot/anim/grouper-think.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-think.gif",
+        "url": "/mascot/anim/grouper-think.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "snooze": {
+      "suggestedUse": "No upcoming meetups and a future not-found page",
+      "suggestedPageFiles": ["src/pages/Dashboard.tsx", "src/pages/GroupPage.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-snooze.svg",
+        "url": "/mascot/grouper-snooze.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-snooze.png",
+        "url": "/mascot/grouper-snooze.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-snooze.webp",
+        "url": "/mascot/anim/grouper-snooze.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-snooze.gif",
+        "url": "/mascot/anim/grouper-snooze.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "cheer": {
+      "suggestedUse": "Successful vote or RSVP confirmation",
+      "suggestedPageFiles": ["src/pages/MeetupPage.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-cheer.svg",
+        "url": "/mascot/grouper-cheer.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-cheer.png",
+        "url": "/mascot/grouper-cheer.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-cheer.webp",
+        "url": "/mascot/anim/grouper-cheer.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-cheer.gif",
+        "url": "/mascot/anim/grouper-cheer.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "idle": {
+      "suggestedUse": "Calm decorative moments; use shuffle for loading",
+      "suggestedPageFiles": [],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-idle.svg",
+        "url": "/mascot/grouper-idle.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-idle.png",
+        "url": "/mascot/grouper-idle.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-idle.webp",
+        "url": "/mascot/anim/grouper-idle.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-idle.gif",
+        "url": "/mascot/anim/grouper-idle.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "oops": {
+      "suggestedUse": "Recoverable errors and retry messages",
+      "suggestedPageFiles": ["src/pages/MeetupPage.tsx", "src/components/PlayLogPanel.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-oops.svg",
+        "url": "/mascot/grouper-oops.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-oops.png",
+        "url": "/mascot/grouper-oops.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-oops.webp",
+        "url": "/mascot/anim/grouper-oops.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-oops.gif",
+        "url": "/mascot/anim/grouper-oops.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "winner": {
+      "suggestedUse": "Recorded play winners and cooperative wins; bragging rights",
+      "suggestedPageFiles": ["src/components/PlayLogPanel.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-winner.svg",
+        "url": "/mascot/grouper-winner.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-winner.png",
+        "url": "/mascot/grouper-winner.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-winner.webp",
+        "url": "/mascot/anim/grouper-winner.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-winner.gif",
+        "url": "/mascot/anim/grouper-winner.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "shuffle": {
+      "suggestedUse": "Loading and preparing results; use instead of idle",
+      "suggestedPageFiles": ["src/pages/MeetupPage.tsx", "src/pages/GamesPage.tsx"],
+      "animatedWeb": {
+        "file": "public/mascot/grouper-shuffle.svg",
+        "url": "/mascot/grouper-shuffle.svg",
+        "respectsReducedMotion": true
+      },
+      "still": {
+        "file": "public/mascot/grouper-shuffle.png",
+        "url": "/mascot/grouper-shuffle.png",
+        "size": 512,
+        "transparent": true
+      },
+      "animatedWebp": {
+        "file": "public/mascot/anim/grouper-shuffle.webp",
+        "url": "/mascot/anim/grouper-shuffle.webp",
+        "size": 256,
+        "transparent": true
+      },
+      "emailGif": {
+        "file": "public/mascot/anim/grouper-shuffle.gif",
+        "url": "/mascot/anim/grouper-shuffle.gif",
+        "size": 256,
+        "background": "#ffeedb"
+      },
+      "loopSeconds": 4.8
+    },
+    "head": {
+      "suggestedUse": "Inline notes, email headers and avatars below about 60 pixels",
+      "animated": false,
+      "still": {
+        "file": "public/mascot/grouper-head.png",
+        "url": "/mascot/grouper-head.png",
+        "size": 512,
+        "transparent": true
+      },
+      "svg": {
+        "file": "public/mascot/grouper-head.svg",
+        "url": "/mascot/grouper-head.svg",
+        "animated": false
+      },
+      "webp": {
+        "file": "public/mascot/grouper-head.webp",
+        "url": "/mascot/grouper-head.webp",
+        "size": 512,
+        "animated": false,
+        "transparent": true
+      },
+      "sizes": [
+        {
+          "file": "public/mascot/grouper-head-32.png",
+          "url": "/mascot/grouper-head-32.png",
+          "size": 32
+        },
+        {
+          "file": "public/mascot/grouper-head-48.png",
+          "url": "/mascot/grouper-head-48.png",
+          "size": 48
+        },
+        {
+          "file": "public/mascot/grouper-head-64.png",
+          "url": "/mascot/grouper-head-64.png",
+          "size": 64
+        },
+        {
+          "file": "public/mascot/grouper-head-128.png",
+          "url": "/mascot/grouper-head-128.png",
+          "size": 128
+        },
+        {
+          "file": "public/mascot/grouper-head-256.png",
+          "url": "/mascot/grouper-head-256.png",
+          "size": 256
+        }
+      ]
+    }
+  },
+  "icons": {
+    "favicon.svg": {
+      "file": "public/favicon.svg",
+      "url": "/favicon.svg"
+    },
+    "favicon.ico": {
+      "file": "public/favicon.ico",
+      "url": "/favicon.ico"
+    },
+    "favicon.png": {
+      "file": "public/favicon.png",
+      "url": "/favicon.png"
+    },
+    "apple-touch-icon.png": {
+      "file": "public/apple-touch-icon.png",
+      "url": "/apple-touch-icon.png"
+    },
+    "icon-192.png": {
+      "file": "public/icon-192.png",
+      "url": "/icon-192.png"
+    },
+    "icon-512.png": {
+      "file": "public/icon-512.png",
+      "url": "/icon-512.png"
+    }
+  },
+  "social": {
+    "height": 630,
+    "source": "design/mascot/source/social.png",
+    "file": "public/share.jpg",
+    "metadata": "index.html",
+    "url": "/share.jpg",
+    "width": 1200
+  }
+}

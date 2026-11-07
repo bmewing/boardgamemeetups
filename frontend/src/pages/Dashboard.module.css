@@ -35,6 +35,11 @@
   font-size: 17px;
 }
 
+.helloArt {
+  flex: none;
+  margin: -12px 0 -16px;
+}
+
 /* ---- layout ---- */
 
 .grid {
@@ -199,6 +204,10 @@
   background: var(--bgg-surface);
   border: 2px dashed var(--mantine-color-default-border);
   border-radius: 18px;
+}
+
+.nothingArt {
+  flex: none;
 }
 
 .nothingTitle {
@@ -372,6 +381,13 @@
 @keyframes pulse {
   50% {
     opacity: 0.35;
+  }
+}
+
+@media (max-width: 36em) {
+  .helloArt {
+    width: 76px;
+    margin: 0;
   }
 }
 

@@ -1,22 +1,13 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import {
-  Alert,
-  Anchor,
-  Button,
-  Card,
-  Center,
-  Group,
-  Loader,
-  Stack,
-  Text,
-  Title,
-} from '@mantine/core'
+import { Anchor, Button, Card, Center, Group, Stack, Text, Title } from '@mantine/core'
 import { useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
 import { useAcceptInvite, useInvite } from '../api/friends'
 import { useMe } from '../api/me'
 import { forgetInvite, rememberInvite } from '../auth/pendingInvite'
+import { Grouper } from '../components/mascot/Grouper'
+import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { PlayerPiece } from '../components/pieces/PlayerPiece'
 
 export function InvitePage() {
@@ -33,21 +24,17 @@ export function InvitePage() {
   }, [isAuthenticated])
 
   if (invite.isPending || isLoading) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    )
+    return <LoadingNote>Opening your invite…</LoadingNote>
   }
-  if (invite.isError) return <Alert color="red">{invite.error.message}</Alert>
+  if (invite.isError) return <ErrorNote error={invite.error} onRetry={invite.refetch} />
   if (invite.data === null) {
     return (
-      <Stack align="center" py="xl">
+      <MascotNote pose="snooze">
         <Text>This invite link has expired or been turned off.</Text>
         <Text size="sm" c="dimmed">
           Ask whoever sent it for a new one.
         </Text>
-      </Stack>
+      </MascotNote>
     )
   }
 
@@ -102,7 +89,8 @@ export function InvitePage() {
     <Center py="xl">
       <Card withBorder padding="xl" maw={420} w="100%">
         <Stack align="center" gap="md">
-          <Group>
+          <Group gap={0} align="flex-end">
+            <Grouper pose="wave" size={120} label="" />
             <PlayerPiece person={inviter} size={56} label="" />
           </Group>
           <Title order={3} ta="center">

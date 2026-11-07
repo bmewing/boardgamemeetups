@@ -5,12 +5,10 @@ import {
   Badge,
   Button,
   Card,
-  Center,
   Checkbox,
   FileInput,
   Group,
   Image,
-  Loader,
   Radio,
   Select,
   Stack,
@@ -36,6 +34,7 @@ import {
 import { GameSearchSelect } from '../components/GameSearchSelect'
 import { PreviewView, ResultView } from '../components/ImportPreview'
 import { plural } from '../components/userGameFields'
+import { LoadingNote } from '../components/mascot/MascotNote'
 
 const COLUMN_OPTIONS: { value: ImportColumn; label: string }[] = [
   { value: 'name', label: 'Game name' },
@@ -415,16 +414,7 @@ export function FileImportPage() {
   } else if (preview) {
     body = <PreviewView preview={preview} source="file" onApplied={setResult} />
   } else if (working) {
-    body = (
-      <Center py="xl">
-        <Stack align="center" gap="xs">
-          <Loader />
-          <Text c="dimmed" size="sm">
-            Reading {file?.name}…
-          </Text>
-        </Stack>
-      </Center>
-    )
+    body = <LoadingNote>Reading {file?.name}…</LoadingNote>
   } else if (file && match.isSuccess && !isBggExport) {
     body = (
       <ReviewStep

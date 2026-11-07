@@ -15,6 +15,7 @@ import { HomePage } from './pages/HomePage'
 import { InvitePage } from './pages/InvitePage'
 import { PrivacyPage, TermsPage } from './pages/LegalPages'
 import { MeetupPage } from './pages/MeetupPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { PersonPage } from './pages/PersonPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { UnsubscribePage } from './pages/UnsubscribePage'
@@ -127,6 +128,7 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

@@ -122,7 +122,15 @@ function Ballot({ meetup, state }: { meetup: Meetup; state: VoteState }) {
   )
 }
 
-function LockButton({ meetup, state }: { meetup: Meetup; state: VoteState }) {
+function LockButton({
+  meetup,
+  state,
+  onLocked,
+}: {
+  meetup: Meetup
+  state: VoteState
+  onLocked?: () => void
+}) {
   const [opened, { open, close }] = useDisclosure(false)
   const lock = useLockPick(meetup.id)
   const most = Math.max(0, ...state.nominations.map((n) => n.votes.length))
@@ -165,7 +173,14 @@ function LockButton({ meetup, state }: { meetup: Meetup; state: VoteState }) {
             <Button
               disabled={chosen.length === 0}
               loading={lock.isPending}
-              onClick={() => lock.mutate(chosen, { onSuccess: close })}
+              onClick={() =>
+                lock.mutate(chosen, {
+                  onSuccess: () => {
+                    close()
+                    onLocked?.()
+                  },
+                })
+              }
             >
               Lock
             </Button>
@@ -253,7 +268,7 @@ function Pick({
 }
 
 /** Nominating and voting on what to play, then the pick and who's bringing it. */
-export function VotePanel({ meetup }: { meetup: Meetup }) {
+export function VotePanel({ meetup, onLocked }: { meetup: Meetup; onLocked?: () => void }) {
   const vote = useVote(meetup.id)
   const unlock = useUnlockPick(meetup.id)
   const me = useMe()
@@ -282,7 +297,7 @@ export function VotePanel({ meetup }: { meetup: Meetup }) {
               Unlock
             </Button>
           ) : (
-            <LockButton meetup={meetup} state={state} />
+            <LockButton meetup={meetup} state={state} onLocked={onLocked} />
           ))}
       </Group>
       {state.locked ? (

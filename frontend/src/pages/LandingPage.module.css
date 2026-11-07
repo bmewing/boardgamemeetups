@@ -106,6 +106,10 @@
   justify-content: center;
 }
 
+.heroFish {
+  margin-right: 10%;
+}
+
 .heroDie {
   position: absolute;
   right: 4%;

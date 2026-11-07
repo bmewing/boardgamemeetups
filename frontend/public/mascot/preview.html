@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Greg the Grouper — Board Game Group</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #ffeedb;
+        --card: #fff9f0;
+        --ink: #514b23;
+        --muted: #706c54;
+        --line: #ded5bc;
+        --accent: #1d7874;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: 'Trebuchet MS', system-ui, sans-serif;
+        transition: background 0.2s;
+      }
+      body.dark {
+        color-scheme: dark;
+        --paper: #25283a;
+        --card: #303447;
+        --ink: #ffeedb;
+        --muted: #c3c4cd;
+        --line: #4c5064;
+        --accent: #83d2c4;
+      }
+      main {
+        max-width: 1180px;
+        margin: auto;
+        padding: 42px 32px 56px;
+      }
+      .eyebrow {
+        margin: 0 0 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-weight: bold;
+        color: var(--accent);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin-bottom: 28px;
+      }
+      header img {
+        width: 76px;
+        height: 76px;
+      }
+      h1 {
+        font-size: clamp(32px, 4vw, 48px);
+        letter-spacing: -0.045em;
+        margin: 0 0 7px;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+      button {
+        color: var(--ink);
+        background: var(--card);
+        border: 1px solid var(--line);
+        padding: 9px 15px;
+        border-radius: 100px;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+      }
+      button:hover {
+        border-color: var(--accent);
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .hint {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      article {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .art {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 12px 0;
+      }
+      .art img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1;
+      }
+      .caption {
+        padding: 9px 18px 17px;
+      }
+      h2 {
+        margin: 0 0 5px;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+      }
+      .caption p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .links {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      a {
+        font-size: 11px;
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .favicon-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 24px;
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      .favicon-strip h2 {
+        font-size: 18px;
+        margin: 0;
+      }
+      .favicon-strip p {
+        margin: 5px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 20px;
+        font-size: 12px;
+        background: var(--card);
+      }
+      .sizes {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .sizes span {
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 25px;
+        line-height: 1.6;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .hint {
+          margin-left: 0;
+          width: 100%;
+        }
+      }
+      @media (max-width: 480px) {
+        main {
+          padding: 24px 16px;
+        }
+        header {
+          gap: 12px;
+        }
+        header img {
+          width: 56px;
+          height: 56px;
+        }
+        .grid {
+          gap: 10px;
+        }
+        .caption {
+          padding: 8px 12px 15px;
+        }
+        .links {
+          gap: 8px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Board Game Group · The mascot collection</p>
+      <header>
+        <img src="../icon-192.png" alt="Grouper head in a hexagon" />
+        <div>
+          <h1>Meet Greg.</h1>
+          <p>A familiar face for every kind of game night.</p>
+        </div>
+      </header>
+      <div class="toolbar">
+        <button id="motion" type="button" aria-pressed="true">Motion on</button>
+        <button id="theme" type="button" aria-pressed="false">Dark background</button>
+        <span class="hint">Transparent artwork · System reduced-motion settings respected</span>
+      </div>
+      <section class="grid" aria-label="Four new Greg variants" style="margin-bottom: 16px">
+        <article>
+          <div class="art">
+            <img
+              data-pose="oops"
+              src="grouper-oops.svg"
+              alt="Greg looking sheepish beside spilled dice"
+            />
+          </div>
+          <div class="caption">
+            <h2>Oops. My roll.</h2>
+            <p>Errors · Retry messages</p>
+            <div class="links">
+              <a href="grouper-oops.png" download>PNG</a
+              ><a href="anim/grouper-oops.gif" download>GIF</a
+              ><a href="anim/grouper-oops.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img
+              data-pose="winner"
+              src="grouper-winner.svg"
+              alt="Greg proudly holding a winner's trophy"
+            />
+          </div>
+          <div class="caption">
+            <h2>Bragging rights</h2>
+            <p>Winners · Play logs</p>
+            <div class="links">
+              <a href="grouper-winner.png" download>PNG</a
+              ><a href="anim/grouper-winner.gif" download>GIF</a
+              ><a href="anim/grouper-winner.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img
+              data-pose="shuffle"
+              src="grouper-shuffle.svg"
+              alt="Greg shuffling two packets of cards"
+            />
+          </div>
+          <div class="caption">
+            <h2>Working on it</h2>
+            <p>Loading · Preparing results</p>
+            <div class="links">
+              <a href="grouper-shuffle.png" download>PNG</a
+              ><a href="anim/grouper-shuffle.gif" download>GIF</a
+              ><a href="anim/grouper-shuffle.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img data-pose="head" src="grouper-head.png" alt="A close-up of Greg's smiling face" />
+          </div>
+          <div class="caption">
+            <h2>A familiar little face</h2>
+            <p>Inline notes · Email headers · Avatars</p>
+            <div class="links">
+              <a href="grouper-head.png" download>512px PNG</a
+              ><a href="grouper-head-48.png" download>48px PNG</a
+              ><a href="grouper-head.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+      </section>
+      <section class="grid" aria-label="Original eight Greg poses">
+        <article>
+          <div class="art">
+            <img data-pose="toss" src="grouper-toss.svg" alt="Grouper tossing a die" />
+          </div>
+          <div class="caption">
+            <h2>Roll with it</h2>
+            <p>Landing page · Tonight’s pick</p>
+            <div class="links">
+              <a href="grouper-toss.png" download>PNG</a
+              ><a href="anim/grouper-toss.gif" download>GIF</a
+              ><a href="anim/grouper-toss.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img data-pose="twirl" src="grouper-twirl.svg" alt="Grouper spinning a meeple" />
+          </div>
+          <div class="caption">
+            <h2>Your next move</h2>
+            <p>Games · Your collection</p>
+            <div class="links">
+              <a href="grouper-twirl.png" download>PNG</a
+              ><a href="anim/grouper-twirl.gif" download>GIF</a
+              ><a href="anim/grouper-twirl.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img data-pose="wave" src="grouper-wave.svg" alt="Grouper raising a fin in welcome" />
+          </div>
+          <div class="caption">
+            <h2>Hey, game friends</h2>
+            <p>Dashboard · Invitations</p>
+            <div class="links">
+              <a href="grouper-wave.png" download>PNG</a
+              ><a href="anim/grouper-wave.gif" download>GIF</a
+              ><a href="anim/grouper-wave.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img data-pose="deal" src="grouper-deal.svg" alt="Grouper holding a fan of cards" />
+          </div>
+          <div class="caption">
+            <h2>Deal me in</h2>
+            <p>Meetups · Game night</p>
+            <div class="links">
+              <a href="grouper-deal.png" download>PNG</a
+              ><a href="anim/grouper-deal.gif" download>GIF</a
+              ><a href="anim/grouper-deal.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img
+              data-pose="think"
+              src="grouper-think.svg"
+              alt="Grouper pondering with a fin to its chin"
+            />
+          </div>
+          <div class="caption">
+            <h2>Hmm, what to play?</h2>
+            <p>Search · Empty states</p>
+            <div class="links">
+              <a href="grouper-think.png" download>PNG</a
+              ><a href="anim/grouper-think.gif" download>GIF</a
+              ><a href="anim/grouper-think.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img data-pose="snooze" src="grouper-snooze.svg" alt="Grouper sleeping peacefully" />
+          </div>
+          <div class="caption">
+            <h2>Between game nights</h2>
+            <p>Nothing scheduled · 404</p>
+            <div class="links">
+              <a href="grouper-snooze.png" download>PNG</a
+              ><a href="anim/grouper-snooze.gif" download>GIF</a
+              ><a href="anim/grouper-snooze.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img
+              data-pose="cheer"
+              src="grouper-cheer.svg"
+              alt="Grouper celebrating with confetti"
+            />
+          </div>
+          <div class="caption">
+            <h2>That’s a win!</h2>
+            <p>Votes · RSVPs · Good news</p>
+            <div class="links">
+              <a href="grouper-cheer.png" download>PNG</a
+              ><a href="anim/grouper-cheer.gif" download>GIF</a
+              ><a href="anim/grouper-cheer.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+        <article>
+          <div class="art">
+            <img data-pose="idle" src="grouper-idle.svg" alt="Grouper smiling calmly" />
+          </div>
+          <div class="caption">
+            <h2>Happy to be here</h2>
+            <p>Quiet corners · Relaxed company</p>
+            <div class="links">
+              <a href="grouper-idle.png" download>PNG</a
+              ><a href="anim/grouper-idle.gif" download>GIF</a
+              ><a href="anim/grouper-idle.webp" download>WebP</a>
+            </div>
+          </div>
+        </article>
+      </section>
+      <section class="favicon-strip" aria-label="Head portrait at actual sizes">
+        <div>
+          <h2>Greg at a glance.</h2>
+          <p>A head portrait for places smaller than 60 pixels.</p>
+        </div>
+        <div class="sizes">
+          <span
+            ><img src="grouper-head-32.png" alt="32 pixel Greg portrait" width="32" height="32" />32
+            px</span
+          >
+          <span
+            ><img src="grouper-head-48.png" alt="48 pixel Greg portrait" width="48" height="48" />48
+            px</span
+          >
+          <span
+            ><img src="grouper-head-64.png" alt="64 pixel Greg portrait" width="64" height="64" />64
+            px</span
+          >
+        </div>
+      </section>
+      <section class="favicon-strip" aria-label="Social link preview">
+        <div>
+          <h2>Game night, shared.</h2>
+          <p>The 1200 × 630 social preview · <a href="../share.jpg" download>Download JPEG</a></p>
+        </div>
+        <img
+          src="../share.jpg"
+          alt="Greg tossing a die beside Board Game Group: Game night, sorted."
+          width="1200"
+          height="630"
+          style="width: 100%; height: auto; border-radius: 16px"
+        />
+      </section>
+      <section class="favicon-strip" aria-label="Favicon at actual sizes">
+        <div>
+          <h2>A little face in your tabs.</h2>
+          <p>The same Grouper, simplified for small spaces.</p>
+        </div>
+        <div class="tab">
+          <img src="../favicon.svg" alt="" width="16" height="16" />Board Game Group
+          <span aria-hidden="true">×</span>
+        </div>
+        <div class="sizes">
+          <span
+            ><img src="../favicon.svg" alt="16 pixel favicon" width="16" height="16" />16 px</span
+          ><span
+            ><img src="../favicon.svg" alt="32 pixel favicon" width="32" height="32" />32 px</span
+          ><span
+            ><img src="../favicon.svg" alt="48 pixel favicon" width="48" height="48" />48 px</span
+          >
+        </div>
+      </section>
+      <footer>
+        The die, meeple and card packets move independently. Head portraits are still images. The
+        other poses use gentle floating, rocking, breathing, or hopping motion.
+      </footer>
+    </main>
+    <script>
+      const motionButton = document.getElementById('motion')
+      motionButton.addEventListener('click', () => {
+        const enabled = motionButton.getAttribute('aria-pressed') !== 'true'
+        motionButton.setAttribute('aria-pressed', String(enabled))
+        motionButton.textContent = enabled ? 'Motion on' : 'Motion off'
+        document.querySelectorAll('[data-pose]').forEach((image) => {
+          image.src = `grouper-${image.dataset.pose}.${enabled ? 'svg' : 'png'}`
+        })
+      })
+      document.getElementById('theme').addEventListener('click', (event) => {
+        const dark = document.body.classList.toggle('dark')
+        event.currentTarget.setAttribute('aria-pressed', String(dark))
+        event.currentTarget.textContent = dark ? 'Light background' : 'Dark background'
+      })
+    </script>
+  </body>
+</html>

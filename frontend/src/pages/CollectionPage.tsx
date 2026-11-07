@@ -1,13 +1,10 @@
 import {
-  Alert,
   Badge,
   Box,
   Button,
   Card,
-  Center,
   Group,
   Image,
-  Loader,
   NumberInput,
   SegmentedControl,
   Select,
@@ -29,6 +26,7 @@ import {
 import { GameCard } from '../components/GameCard'
 import { playerRange, widenedLabel } from '../components/gameFacts'
 import { GameAnswersEditor } from '../components/GameAnswersEditor'
+import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { FindMissingBaseGames } from '../components/MissingBaseGames'
 import { RemoveGameButton } from '../components/RemoveGameButton'
 import {
@@ -261,9 +259,7 @@ export function CollectionPage() {
     return (
       <Stack>
         {header}
-        <Center py="xl">
-          <Loader />
-        </Center>
+        <LoadingNote>Pulling your games off the shelf…</LoadingNote>
       </Stack>
     )
   }
@@ -271,7 +267,7 @@ export function CollectionPage() {
     return (
       <Stack>
         {header}
-        <Alert color="red">{games.error.message}</Alert>
+        <ErrorNote error={games.error} onRetry={games.refetch} />
       </Stack>
     )
   }
@@ -279,10 +275,12 @@ export function CollectionPage() {
     return (
       <Stack>
         {header}
-        <Text c="dimmed">
-          No games yet. Pull your collection from BoardGameGeek, import a spreadsheet, or search for
-          a game to add it.
-        </Text>
+        <MascotNote pose="twirl" size={160} title="Your shelf is empty">
+          <Text c="dimmed" maw={460}>
+            No games yet. Pull your collection from BoardGameGeek, import a spreadsheet, or search
+            for a game to add it.
+          </Text>
+        </MascotNote>
       </Stack>
     )
   }
@@ -343,7 +341,11 @@ export function CollectionPage() {
           ]}
         />
       </Group>
-      {shown.length === 0 && <Text c="dimmed">No games match these filters.</Text>}
+      {shown.length === 0 && (
+        <MascotNote pose="think" size={112}>
+          <Text c="dimmed">No games match these filters.</Text>
+        </MascotNote>
+      )}
       {view === 'list' ? (
         <Stack gap="xs">
           {shown.map((row) => (
