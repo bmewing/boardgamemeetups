@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from sqlalchemy import (
@@ -5,8 +6,10 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     Float,
+    ForeignKey,
     Index,
     Integer,
+    Sequence,
     String,
     false,
     func,
@@ -23,11 +26,26 @@ EMPTY_ARRAY = text("'{}'")
 PlayerCountVotes = dict[str, dict[str, int]]
 
 
-class Game(Base):
-    """A BoardGameGeek item, cached locally.
+# Games people add that aren't on BGG count down from -1, so they never clash with BGG's ids.
+CUSTOM_GAME_IDS = Sequence(
+    "custom_game_ids",
+    start=-1,
+    increment=-1,
+    maxvalue=-1,
+    minvalue=-(2**31),
+    metadata=Base.metadata,
+)
 
-    Rows can start as stubs (name and year only, from the ranks CSV or a BGG search) and gain
-    full details the first time they are looked at; `details_fetched_at` says which is which.
+
+class Game(Base):
+    """A BoardGameGeek item, cached locally, or a game someone added that BGG doesn't list.
+
+    BGG rows can start as stubs (name and year only, from the ranks CSV or a BGG search) and
+    gain full details the first time they are looked at; `details_fetched_at` says which is
+    which.
+
+    Custom games (negative ids, see `is_custom`) are never looked up on BGG, and stay out of
+    searches and import matching: people find them in each other's collections instead.
     """
 
     __tablename__ = "games"
@@ -66,8 +84,22 @@ class Game(Base):
     )
     player_count_votes: Mapped[PlayerCountVotes | None] = mapped_column(JSONB)
 
+    # Who added a custom game; they can edit it. Null for BGG games, or if they've left.
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+
     details_fetched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    @property
+    def is_custom(self) -> bool:
+        return is_custom_id(self.id)
+
+
+def is_custom_id(game_id: int) -> bool:
+    """Whether this id is a game someone added (not on BGG)."""
+    return game_id < 0

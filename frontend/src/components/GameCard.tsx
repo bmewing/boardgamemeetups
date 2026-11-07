@@ -75,6 +75,11 @@ export function GameCard({
               Expansion
             </Badge>
           )}
+          {game.is_custom && (
+            <Badge size="xs" variant="light" color="olive">
+              Not on BGG
+            </Badge>
+          )}
         </Group>
         {facts.length > 0 && (
           <Text size="sm" c="dimmed">

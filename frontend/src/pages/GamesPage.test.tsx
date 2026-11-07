@@ -1,9 +1,10 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import type { UserGame, UserGameUpdate } from '../api/collection'
-import type { GameSummary } from '../api/games'
+import type { CustomGameIn, GameSummary } from '../api/games'
 import { blankUserGame } from '../components/userGameFields'
 import { mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
@@ -24,6 +25,7 @@ const wingspan: GameSummary = {
   bgg_rank: 38,
   best_with: [3],
   base_game_ids: [],
+  is_custom: false,
 }
 
 const expansion: GameSummary = {
@@ -94,5 +96,35 @@ describe('GamesPage', () => {
     await userEvent.type(screen.getByLabelText('Search BoardGameGeek'), 'zzzz')
 
     expect(await screen.findByText('No games found for “zzzz”.')).toBeInTheDocument()
+  })
+
+  it("adds a game that isn't on BGG and opens its page", async () => {
+    let sent: CustomGameIn | null = null
+    mockApi({
+      'GET /api/games/search': () => Response.json([]),
+      'GET /api/me/games': () => Response.json([]),
+      'POST /api/games': async (request) => {
+        sent = (await request.json()) as CustomGameIn
+        return Response.json({ ...wingspan, id: -3, name: sent.name, is_custom: true })
+      },
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/games" element={<GamesPage />} />
+        <Route path="/games/:gameId" element={<p>Game page</p>} />
+      </Routes>,
+      { route: '/games?q=Kitchen%20Table%20Heist' },
+    )
+
+    expect(await screen.findByText('No games found for “Kitchen Table Heist”.'))
+    await userEvent.click(screen.getByRole('button', { name: 'Add it yourself' }))
+    // The search is the starting name.
+    expect(await screen.findByLabelText(/Name/)).toHaveValue('Kitchen Table Heist')
+    await userEvent.type(screen.getByLabelText('Fewest players'), '2')
+    await userEvent.type(screen.getByLabelText('Most players'), '6')
+    await userEvent.click(screen.getByRole('button', { name: 'Add game' }))
+
+    expect(await screen.findByText('Game page')).toBeInTheDocument()
+    expect(sent).toMatchObject({ name: 'Kitchen Table Heist', min_players: 2, max_players: 6 })
   })
 })

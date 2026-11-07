@@ -23,6 +23,7 @@ const game = (id: number, name: string, isExpansion = false): GameSummary => ({
   bgg_rank: null,
   best_with: [],
   base_game_ids: [],
+  is_custom: false,
 })
 const brief = (g: GameSummary) => ({
   id: g.id,

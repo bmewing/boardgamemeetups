@@ -18,7 +18,16 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bgg import CollectionEntry
-from app.models import Game, Ownership, PlaytimeFeel, RemovedGame, Source, User, UserGame
+from app.models import (
+    Game,
+    Ownership,
+    PlaytimeFeel,
+    RemovedGame,
+    Source,
+    User,
+    UserGame,
+    is_custom_id,
+)
 
 # The UserGame columns a user (or an import) can set, with what each must hold.
 WishlistPriority = Annotated[int, Field(ge=1, le=5)]
@@ -138,7 +147,8 @@ def diff_import(
             diffs.append(diff)
 
     for game_id, row in rows.items():
-        if game_id in incoming:
+        # A game that isn't on BGG can't be missing from a BGG collection.
+        if game_id in incoming or is_custom_id(game_id):
             continue
         changes = [
             FieldChange(name, _plain(current), DEFAULTS[name], ChangeKind.NOT_ON_SOURCE)

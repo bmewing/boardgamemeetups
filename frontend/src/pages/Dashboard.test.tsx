@@ -52,6 +52,7 @@ const ownedGame = {
     bgg_rank: 500,
     best_with: [4],
     base_game_ids: [],
+    is_custom: false,
   },
   ownership: 'owned',
   wishlist_priority: null,

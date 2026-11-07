@@ -23,6 +23,7 @@ const game = (id: number, name: string, extra: Partial<GameSummary> = {}): GameS
   bgg_rank: null,
   best_with: [],
   base_game_ids: [],
+  is_custom: false,
   ...extra,
 })
 

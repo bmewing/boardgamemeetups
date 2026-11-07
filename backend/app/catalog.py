@@ -1,6 +1,7 @@
 """The local game catalog: a cache of BGG data that fills itself in as games are looked at."""
 
 import logging
+import uuid
 from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -12,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bgg import BggClient, BggError, CollectionEntry, GameDetails, SearchHit
 from app.config import get_settings
-from app.models import Game
+from app.models import Game, UserGame, is_custom_id
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,9 @@ async def refresh_details(
     """
     now = datetime.now(UTC)
     wanted = [
-        g.id for g in games if (g.details_fetched_at is None if only_missing else _is_stale(g, now))
+        g.id
+        for g in games
+        if not g.is_custom and (g.details_fetched_at is None if only_missing else _is_stale(g, now))
     ]
     if not wanted:
         return
@@ -158,7 +161,8 @@ def _search_statement(query: str, limit: int, include_expansions: bool) -> Any:
                 name.contains(q, autoescape=True),
                 name.op("%")(q),
                 literal(q).op("<%")(name),
-            )
+            ),
+            Game.id > 0,  # games people added themselves are found in collections instead
         )
         .order_by(
             tier,
@@ -175,6 +179,21 @@ def _search_statement(query: str, limit: int, include_expansions: bool) -> Any:
     return stmt
 
 
+async def _own_custom_games(session: AsyncSession, user_id: uuid.UUID, query: str) -> list[Game]:
+    """Games not on BGG that are in this user's list and whose names contain the query."""
+    stmt = (
+        select(Game)
+        .join(UserGame, UserGame.game_id == Game.id)
+        .where(
+            UserGame.user_id == user_id,
+            Game.id < 0,
+            func.lower(Game.name).contains(query.strip().lower(), autoescape=True),
+        )
+        .order_by(Game.name)
+    )
+    return list((await session.scalars(stmt)).all())
+
+
 async def search_games(
     session: AsyncSession,
     bgg: BggClient,
@@ -182,7 +201,10 @@ async def search_games(
     *,
     limit: int = 20,
     include_expansions: bool = True,
+    user_id: uuid.UUID | None = None,
 ) -> list[Game]:
+    """Search BGG's games, plus, for `user_id`, the games not on BGG that are in their list."""
+    own = await _own_custom_games(session, user_id, query) if user_id else []
     stmt = _search_statement(query, limit, include_expansions)
     games = list((await session.scalars(stmt)).all())
     if not games:
@@ -197,11 +219,13 @@ async def search_games(
         games = list((await session.scalars(stmt)).all())
     # Search results show thumbnails and player counts, so fill in any stubs.
     await refresh_details(session, bgg, games, only_missing=True)
-    return games
+    return (own + games)[:limit]
 
 
 async def get_game(session: AsyncSession, bgg: BggClient, game_id: int) -> Game | None:
     game = await session.get(Game, game_id)
+    if game is None and is_custom_id(game_id):
+        return None  # not something BGG would know
     if game is None:
         try:
             details = await bgg.things([game_id])

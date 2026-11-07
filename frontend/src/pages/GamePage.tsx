@@ -2,19 +2,24 @@ import {
   Alert,
   Anchor,
   Badge,
+  Button,
   Center,
   Group,
   Image,
   Loader,
+  Modal,
   SimpleGrid,
   Stack,
   Table,
   Text,
   Title,
 } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { Link, useParams } from 'react-router'
 
-import { type GameDetail, useGame } from '../api/games'
+import { type GameDetail, useGame, useUpdateCustomGame } from '../api/games'
+import { useMe } from '../api/me'
+import { CustomGameForm } from '../components/CustomGameForm'
 import { bestWithLabel, playersLabel, playtimeLabel, weightLabel } from '../components/gameFacts'
 import { MyGamePanel } from '../components/MyGamePanel'
 
@@ -49,9 +54,54 @@ function PlayerCountVotes({ game }: { game: GameDetail }) {
   )
 }
 
+/** Whoever added a game that isn't on BGG can fix its details. */
+function EditCustomGame({ game }: { game: GameDetail }) {
+  const [opened, { open, close }] = useDisclosure(false)
+  const update = useUpdateCustomGame(game.id)
+  return (
+    <>
+      <Button size="xs" variant="default" w="fit-content" onClick={open}>
+        Edit details
+      </Button>
+      <Modal opened={opened} onClose={close} title={`Edit ${game.name}`}>
+        <CustomGameForm
+          initial={game}
+          submitLabel="Save"
+          busy={update.isPending}
+          error={update.error?.message}
+          onCancel={close}
+          onSubmit={({
+            name,
+            year_published,
+            min_players,
+            max_players,
+            min_playtime,
+            max_playtime,
+            min_age,
+          }) =>
+            update.mutate(
+              {
+                name,
+                year_published,
+                min_players,
+                max_players,
+                min_playtime,
+                max_playtime,
+                min_age,
+              },
+              { onSuccess: close },
+            )
+          }
+        />
+      </Modal>
+    </>
+  )
+}
+
 export function GamePage() {
   const gameId = Number(useParams().gameId)
   const game = useGame(gameId)
+  const me = useMe()
 
   if (game.isPending) {
     return (
@@ -120,9 +170,21 @@ export function GamePage() {
               {g.mechanics.join(', ')}
             </Text>
           )}
-          <Anchor href={g.bgg_url} target="_blank" size="sm">
-            View on BoardGameGeek
-          </Anchor>
+          {g.bgg_url ? (
+            <Anchor href={g.bgg_url} target="_blank" size="sm">
+              View on BoardGameGeek
+            </Anchor>
+          ) : (
+            <Group gap="xs">
+              <Badge variant="light" color="olive">
+                Not on BGG
+              </Badge>
+              <Text size="sm" c="dimmed">
+                Added by someone here, so it has no BGG ratings or player-count votes.
+              </Text>
+            </Group>
+          )}
+          {g.is_custom && me.data && g.created_by_id === me.data.id && <EditCustomGame game={g} />}
         </Stack>
       </SimpleGrid>
       <MyGamePanel game={g} />
