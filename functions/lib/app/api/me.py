@@ -12,6 +12,7 @@ from app.db import SessionDep
 from app.email import EmailKind
 from app.groups import hand_over_groups
 from app.models import CollectionVisibility, User
+from app.pieces import Piece, PieceColor
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -51,6 +52,8 @@ class UserRead(BaseModel):
     email: str | None
     display_name: str
     avatar_url: str | None
+    piece: Piece | None  # null: hasn't picked (shown as a meeple)
+    piece_color: PieceColor | None
     time_zone: str
     bgg_username: str | None
     bgg_pulled_at: datetime | None
@@ -65,6 +68,12 @@ class UserUpdate(BaseModel):
     bgg_username: BggUsername = None
     collection_visibility: CollectionVisibility | None = None
     email_opt_outs: list[EmailKind] | None = None
+    piece: Piece | None = None
+    piece_color: PieceColor | None = None
+
+
+# Fields that may be cleared by sending null; the rest are required on the user.
+CLEARABLE = {"bgg_username", "piece", "piece_color"}
 
 
 @router.get("")
@@ -86,10 +95,9 @@ async def update_me(changes: UserUpdate, user: CurrentUser, session: SessionDep)
         if clash is not None:
             raise NAME_TAKEN
     for field, value in changes.model_dump(exclude_unset=True).items():
-        # bgg_username may be cleared; the other fields are required on the user.
         if field == "email_opt_outs" and value is not None:
             user.email_opt_outs = sorted(set(value))
-        elif value is not None or field == "bgg_username":
+        elif value is not None or field in CLEARABLE:
             setattr(user, field, value)
     try:
         await session.commit()

@@ -24,6 +24,7 @@ from app.models import (
     User,
     UserGame,
 )
+from app.pieces import Piece, PieceColor
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -76,6 +77,8 @@ class AdminUserRead(BaseModel):
     display_name: str
     email: str | None
     avatar_url: str | None
+    piece: Piece | None
+    piece_color: PieceColor | None
     is_admin: bool
     banned_at: datetime | None
     ban_reason: str | None
@@ -182,6 +185,8 @@ def _read(user: User, games_owned: int, groups: int) -> AdminUserRead:
         display_name=user.display_name,
         email=user.email,
         avatar_url=user.avatar_url,
+        piece=user.piece,
+        piece_color=user.piece_color,
         is_admin=user.is_admin,
         banned_at=user.banned_at,
         ban_reason=user.ban_reason,

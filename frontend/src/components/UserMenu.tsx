@@ -1,9 +1,10 @@
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import { Avatar, Badge, Button, Group, Indicator, Menu, UnstyledButton } from '@mantine/core'
+import { Badge, Button, Group, Indicator, Menu, UnstyledButton } from '@mantine/core'
 import { Link } from 'react-router'
 
 import { useFriends } from '../api/friends'
 import { useMe } from '../api/me'
+import { PlayerPiece } from './pieces/PlayerPiece'
 
 export function UserMenu() {
   const { isAuthenticated, isLoading, login, register, logout } = useKindeAuth()
@@ -29,7 +30,11 @@ export function UserMenu() {
       <Menu.Target>
         <UnstyledButton aria-label="Account menu">
           <Indicator disabled={asking === 0} color="red" size={10} offset={4}>
-            <Avatar src={me.data?.avatar_url} name={name} color="initials" radius="xl" />
+            {me.data ? (
+              <PlayerPiece person={me.data} size={38} label="" />
+            ) : (
+              <span style={{ display: 'block', width: 38, height: 38 }} />
+            )}
           </Indicator>
         </UnstyledButton>
       </Menu.Target>

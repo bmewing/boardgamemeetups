@@ -1,7 +1,6 @@
 import {
   Alert,
   Anchor,
-  Avatar,
   Badge,
   Button,
   Card,
@@ -56,6 +55,7 @@ import { PlayLogPanel } from '../components/PlayLogPanel'
 import { ReasonChips } from '../components/Rollup'
 import { lengthLabel, minutesTonight } from '../components/rollupFormat'
 import { plural } from '../components/userGameFields'
+import { PlayerPiece } from '../components/pieces/PlayerPiece'
 
 const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
@@ -79,13 +79,7 @@ function People({ title, people }: { title: string; people: Attendee[] }) {
         {people.map(({ person: p, guests: brings = 0, moods = [] }) => (
           <Anchor key={p.id} component={Link} to={`/people/${p.id}`} c="inherit">
             <Group gap={6} wrap="nowrap" align="flex-start">
-              <Avatar
-                src={p.avatar_url}
-                name={p.display_name}
-                color="initials"
-                radius="xl"
-                size="sm"
-              />
+              <PlayerPiece person={p} size={26} label="" />
               <Stack gap={0}>
                 <Text size="sm">
                   {p.display_name}

@@ -2,7 +2,6 @@ import {
   ActionIcon,
   Alert,
   Anchor,
-  Avatar,
   Badge,
   Button,
   Center,
@@ -35,6 +34,7 @@ import {
   teaches,
   WISHLIST_LABELS,
 } from '../components/userGameFields'
+import { PlayerPiece } from '../components/pieces/PlayerPiece'
 
 type Shelf = 'owned' | 'wanted' | 'all'
 
@@ -220,13 +220,7 @@ export function PersonPage() {
     <Stack>
       <Group justify="space-between" align="flex-start">
         <Group gap="md" wrap="nowrap">
-          <Avatar
-            src={person.avatar_url}
-            name={person.display_name}
-            color="initials"
-            radius="xl"
-            size="lg"
-          />
+          <PlayerPiece person={person} size={56} label="" />
           <div>
             <Title order={2}>{person.display_name}</Title>
             {relation === 'self' && (

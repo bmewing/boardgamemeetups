@@ -6,12 +6,18 @@ from sqlalchemy import ARRAY, DateTime, Enum, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+from app.pieces import Piece, PieceColor
 
 
 class CollectionVisibility(StrEnum):
     PRIVATE = "private"
     FRIENDS = "friends"
     PUBLIC = "public"
+
+
+def _values(enum: type[StrEnum]) -> list[str]:
+    """Store a StrEnum as its values in a plain string column (no Postgres enum type)."""
+    return [member.value for member in enum]
 
 
 class User(Base):
@@ -27,6 +33,14 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(String(320), index=True)
     display_name: Mapped[str] = mapped_column(String(80))
     avatar_url: Mapped[str | None] = mapped_column(String(2048))
+    # The game piece that stands for this user (app.pieces). Null: a meeple, and a color
+    # worked out from their id.
+    piece: Mapped[Piece | None] = mapped_column(
+        Enum(Piece, native_enum=False, length=32, values_callable=_values)
+    )
+    piece_color: Mapped[PieceColor | None] = mapped_column(
+        Enum(PieceColor, native_enum=False, length=16, values_callable=_values)
+    )
     time_zone: Mapped[str] = mapped_column(String(64), default="UTC")
     bgg_username: Mapped[str | None] = mapped_column(String(64))
     # When this user last applied a pull from BGG (not just previewed one).
@@ -36,7 +50,7 @@ class User(Base):
             CollectionVisibility,
             native_enum=False,
             length=16,
-            values_callable=lambda enum: [member.value for member in enum],
+            values_callable=_values,
         ),
         default=CollectionVisibility.FRIENDS,
     )

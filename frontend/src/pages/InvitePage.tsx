@@ -2,7 +2,6 @@ import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
 import {
   Alert,
   Anchor,
-  Avatar,
   Button,
   Card,
   Center,
@@ -18,6 +17,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { useAcceptInvite, useInvite } from '../api/friends'
 import { useMe } from '../api/me'
 import { forgetInvite, rememberInvite } from '../auth/pendingInvite'
+import { PlayerPiece } from '../components/pieces/PlayerPiece'
 
 export function InvitePage() {
   const { token = '' } = useParams()
@@ -103,13 +103,7 @@ export function InvitePage() {
       <Card withBorder padding="xl" maw={420} w="100%">
         <Stack align="center" gap="md">
           <Group>
-            <Avatar
-              src={inviter.avatar_url}
-              name={inviter.display_name}
-              color="initials"
-              radius="xl"
-              size="lg"
-            />
+            <PlayerPiece person={inviter} size={56} label="" />
           </Group>
           <Title order={3} ta="center">
             {inviter.display_name} invited you to be friends

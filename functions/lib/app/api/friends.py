@@ -36,6 +36,7 @@ from app.models import (
     UserBlock,
     UserGame,
 )
+from app.pieces import Piece, PieceColor
 
 router = APIRouter(tags=["friends"])
 
@@ -59,10 +60,18 @@ class PersonRead(BaseModel):
     id: uuid.UUID
     display_name: str
     avatar_url: str | None
+    piece: Piece | None  # null: hasn't picked (shown as a meeple)
+    piece_color: PieceColor | None
 
     @classmethod
     def of(cls, user: User) -> Self:
-        return cls(id=user.id, display_name=user.display_name, avatar_url=user.avatar_url)
+        return cls(
+            id=user.id,
+            display_name=user.display_name,
+            avatar_url=user.avatar_url,
+            piece=user.piece,
+            piece_color=user.piece_color,
+        )
 
 
 class FriendRead(BaseModel):

@@ -133,3 +133,24 @@ async def test_delete_account(
 
     assert response.status_code == 204
     assert await count_users(db_session, "kp_leaving") == 0
+
+
+async def test_pick_a_game_piece(client: AsyncClient, make_token: TokenFactory) -> None:
+    headers = bearer(make_token("kp_piece"))
+    fresh = (await client.get("/api/me", headers=headers)).json()
+    assert (fresh["piece"], fresh["piece_color"]) == (None, None)
+
+    picked = await client.patch(
+        "/api/me", headers=headers, json={"piece": "top_hat", "piece_color": "plum"}
+    )
+    assert picked.status_code == 200, picked.text
+    assert (picked.json()["piece"], picked.json()["piece_color"]) == ("top_hat", "plum")
+
+    # Other changes leave it alone; null goes back to the meeple.
+    renamed = await client.patch("/api/me", headers=headers, json={"display_name": "Hatter"})
+    assert renamed.json()["piece"] == "top_hat"
+    cleared = await client.patch("/api/me", headers=headers, json={"piece": None})
+    assert (cleared.json()["piece"], cleared.json()["piece_color"]) == (None, "plum")
+
+    unknown = await client.patch("/api/me", headers=headers, json={"piece": "spaceship"})
+    assert unknown.status_code == 422

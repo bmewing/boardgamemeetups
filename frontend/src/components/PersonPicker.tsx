@@ -1,18 +1,9 @@
-import {
-  Avatar,
-  Badge,
-  Button,
-  Combobox,
-  Group,
-  Loader,
-  Text,
-  TextInput,
-  useCombobox,
-} from '@mantine/core'
+import { Badge, Button, Combobox, Group, Loader, Text, TextInput, useCombobox } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { type FormEvent, useState } from 'react'
 
 import { type Person, type PersonMatch, type PersonPick, usePeopleSearch } from '../api/friends'
+import { PlayerPiece } from './pieces/PlayerPiece'
 
 const RELATION_LABELS: Partial<Record<PersonMatch['relation'], string>> = {
   friends: 'Friend',
@@ -92,13 +83,7 @@ export function PersonPicker({
     return (
       <Combobox.Option value={person.id} key={person.id} disabled={Boolean(reason)}>
         <Group gap="sm" wrap="nowrap">
-          <Avatar
-            src={person.avatar_url}
-            name={person.display_name}
-            color="initials"
-            radius="xl"
-            size="sm"
-          />
+          <PlayerPiece person={person} size={26} label="" />
           <Text size="sm" style={{ flex: 1 }}>
             {person.display_name}
           </Text>

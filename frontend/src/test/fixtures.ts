@@ -5,6 +5,8 @@ export const profile: UserProfile = {
   email: 'sam@example.com',
   display_name: 'Sam',
   avatar_url: null,
+  piece: null,
+  piece_color: null,
   time_zone: 'UTC',
   bgg_username: null,
   bgg_pulled_at: null,

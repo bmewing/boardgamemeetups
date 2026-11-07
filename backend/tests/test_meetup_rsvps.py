@@ -122,6 +122,9 @@ async def test_moods_guests_and_the_headcount(
     assert [p["id"] for p in detail["no_answer"]] == [eve.id]
     # Ann, her guest and Cat; a maybe's guests don't count yet.
     assert (detail["yes"], detail["headcount"]) == (2, 3)
+    # Who's going, so their pieces can go round the table. (They come in the order people
+    # said yes, but every answer in a test shares one transaction, and so one time.)
+    assert sorted(p["id"] for p in detail["going"]) == sorted([ann.id, cat.id])
     listed = (await client.get(f"/api/groups/{group['id']}", headers=eve.headers)).json()
     assert [m["headcount"] for m in listed["upcoming"] if m["id"] == meetup] == [3]
 

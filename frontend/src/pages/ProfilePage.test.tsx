@@ -35,6 +35,33 @@ describe('ProfilePage', () => {
     expect(authorization).toBe('Bearer test-token')
   })
 
+  it('picks a piece and a color separately, each saving on its own', async () => {
+    const sent: unknown[] = []
+    let current = profile
+    mockApi({
+      'GET /api/me': () => Response.json(current),
+      'PATCH /api/me': async (request) => {
+        const body = (await request.json()) as Partial<typeof profile>
+        sent.push(body)
+        current = { ...current, ...body }
+        return Response.json(current)
+      },
+    })
+    renderWithProviders(<ProfilePage />)
+
+    // No pick yet: a meeple.
+    const meeple = await screen.findByRole('radio', { name: 'Meeple' })
+    expect(meeple).toBeChecked()
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Top hat' }))
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Top hat' })).toBeChecked())
+    await userEvent.click(screen.getByRole('radio', { name: 'Plum' }))
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Plum' })).toBeChecked())
+
+    expect(sent).toEqual([{ piece: 'top_hat' }, { piece_color: 'plum' }])
+    expect(screen.getByRole('img', { name: 'Plum top hat' })).toBeInTheDocument()
+  })
+
   it('blocks saving a blank display name', async () => {
     mockApi({ 'GET /api/me': () => Response.json(profile) })
     renderWithProviders(<ProfilePage />)

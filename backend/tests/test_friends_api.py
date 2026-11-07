@@ -176,7 +176,13 @@ async def test_invite_link_makes_friends_once(
     accepted = await client.post(f"/api/invites/{link['token']}/accept", headers=ben.headers)
     again = await client.post(f"/api/invites/{link['token']}/accept", headers=ben.headers)
 
-    assert preview.json()["inviter"] == {"id": ann.id, "display_name": "Ann", "avatar_url": None}
+    assert preview.json()["inviter"] == {
+        "id": ann.id,
+        "display_name": "Ann",
+        "avatar_url": None,
+        "piece": None,
+        "piece_color": None,
+    }
     assert accepted.json()["relation"] == again.json()["relation"] == "friends"
     assert (await friends_of(client, ben))["friends"] == [ann.id]
     links = (await client.get("/api/invite-links", headers=ann.headers)).json()

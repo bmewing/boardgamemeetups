@@ -1220,6 +1220,8 @@ export interface components {
             email: string | null;
             /** Avatar Url */
             avatar_url: string | null;
+            piece: components["schemas"]["Piece"] | null;
+            piece_color: components["schemas"]["PieceColor"] | null;
             /** Is Admin */
             is_admin: boolean;
             /** Banned At */
@@ -1964,6 +1966,8 @@ export interface components {
             no: number;
             /** Headcount */
             headcount: number;
+            /** Going */
+            going: components["schemas"]["PersonRead"][];
             my_response: components["schemas"]["RsvpResponse"] | null;
         };
         /**
@@ -2041,6 +2045,8 @@ export interface components {
             no: number;
             /** Headcount */
             headcount: number;
+            /** Going */
+            going: components["schemas"]["PersonRead"][];
             my_response: components["schemas"]["RsvpResponse"] | null;
             /** Notes */
             notes: string | null;
@@ -2239,7 +2245,19 @@ export interface components {
             display_name: string;
             /** Avatar Url */
             avatar_url: string | null;
+            piece: components["schemas"]["Piece"] | null;
+            piece_color: components["schemas"]["PieceColor"] | null;
         };
+        /**
+         * Piece
+         * @enum {string}
+         */
+        Piece: "meeple" | "pawn" | "cube" | "die" | "rook" | "knight" | "crown" | "top_hat" | "race_car" | "dog" | "thimble" | "boot" | "battleship" | "iron" | "wheelbarrow" | "cat" | "duck" | "rocket";
+        /**
+         * PieceColor
+         * @enum {string}
+         */
+        PieceColor: "teal" | "coral" | "gold" | "cream" | "slate" | "plum" | "leaf" | "sky" | "orange";
         /** PlayIn */
         PlayIn: {
             /** Game Id */
@@ -2508,6 +2526,8 @@ export interface components {
             display_name: string;
             /** Avatar Url */
             avatar_url: string | null;
+            piece: components["schemas"]["Piece"] | null;
+            piece_color: components["schemas"]["PieceColor"] | null;
             /** Time Zone */
             time_zone: string;
             /** Bgg Username */
@@ -2548,6 +2568,8 @@ export interface components {
             collection_visibility?: components["schemas"]["CollectionVisibility"] | null;
             /** Email Opt Outs */
             email_opt_outs?: components["schemas"]["EmailKind"][] | null;
+            piece?: components["schemas"]["Piece"] | null;
+            piece_color?: components["schemas"]["PieceColor"] | null;
         };
         /** ValidationError */
         ValidationError: {
