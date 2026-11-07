@@ -237,4 +237,59 @@ describe('Logging what was played', () => {
     )
     expect(await screen.findByText('Ben won')).toBeInTheDocument()
   })
+
+  it('logs several games in the order played, including another round of one', async () => {
+    const coup = { ...azul, id: 2, name: 'Coup' }
+    const notLogged: PlayLog = {
+      logged: false,
+      assumed: false,
+      logged_at: null,
+      can_log: true,
+      attendees: [],
+      plays: [],
+      suggested_attendees: [ben, sam],
+      suggested_games: [
+        { game: azul, coop: false },
+        { game: coup, coop: false },
+      ],
+    }
+    let sent: { plays: { game_id: number }[] } | undefined
+    renderMeetup(meetupAt('2020-01-01T19:00:00Z'), {
+      [`GET /api/meetups/${MEETUP_ID}/vote`]: () =>
+        Response.json({ ...openVote, locked: true, can_vote: false }),
+      [`GET /api/meetups/${MEETUP_ID}/log`]: () => Response.json(notLogged),
+      [`PUT /api/meetups/${MEETUP_ID}/log`]: async (request) => {
+        sent = await request.json()
+        const row = (game: GameSummary) => ({
+          game,
+          coop: false,
+          coop_won: null,
+          players: [ben, sam],
+          winners: [],
+        })
+        return Response.json({
+          ...notLogged,
+          logged: true,
+          attendees: [ben, sam],
+          plays: [row(coup), row(azul), row(coup)],
+        })
+      },
+    })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Log what we played' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getAllByLabelText('Add a game we played').length).toBeGreaterThan(0)
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Move Coup earlier' }))
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Played again' })[1]) // Azul
+    expect(within(dialog).getByText('2. Azul · round 1')).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remove Azul · round 2' }))
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Played again' })[0]) // Coup
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Move Coup · round 2 later' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(sent?.plays.map((p) => p.game_id)).toEqual([2, 1, 2]))
+    expect(await screen.findByText('3. Coup · round 2')).toBeInTheDocument()
+    expect(screen.getByText('2. Azul')).toBeInTheDocument()
+  })
 })

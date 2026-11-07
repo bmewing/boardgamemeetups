@@ -1893,7 +1893,7 @@ export interface components {
         };
         /**
          * LogIn
-         * @description The whole log; it replaces what was there.
+         * @description The whole log, in the order the games were played; it replaces what was there.
          */
         LogIn: {
             /** Attendees */
