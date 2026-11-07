@@ -38,6 +38,7 @@ import {
   useRemoveMember,
   useUpdateGroup,
 } from '../api/groups'
+import { useFriends } from '../api/friends'
 import { useMe } from '../api/me'
 import { useMoods } from '../api/collection'
 import { GameCard } from '../components/GameCard'
@@ -236,6 +237,11 @@ function MembersTab({ group }: { group: GroupData }) {
   const inGroup = Object.fromEntries(group.members.map((m) => [m.person.id, 'In group']))
   for (const i of group.invites) if (i.person) inGroup[i.person.id] = 'Invited'
 
+  const friends = useFriends()
+  const friendsToInvite = (friends.data?.friends ?? [])
+    .map((f) => f.person)
+    .filter((p) => !inGroup[p.id])
+
   const sent = invite.data
   return (
     <Stack>
@@ -247,6 +253,7 @@ function MembersTab({ group }: { group: GroupData }) {
             actionLabel="Invite"
             busy={invite.isPending}
             unavailable={inGroup}
+            suggestions={friendsToInvite}
             onTyping={() => invite.reset()}
             onPick={(pick) => invite.mutate(pick)}
           />
