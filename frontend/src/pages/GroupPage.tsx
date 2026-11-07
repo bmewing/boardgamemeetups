@@ -53,6 +53,7 @@ import {
   todayIso,
   toInputTime,
 } from '../components/meetupFormat'
+import { AddFriendButton } from '../components/AddFriendButton'
 import { MeetupForm } from '../components/MeetupForm'
 import { PersonPicker } from '../components/PersonPicker'
 import { PersonRow } from '../components/PersonRow'
@@ -286,6 +287,7 @@ function MembersTab({ group }: { group: GroupData }) {
             person={m.person}
             note={m.role === 'member' ? undefined : ROLE_LABELS[m.role]}
           >
+            <AddFriendButton person={m.person} meId={meId} />
             <MemberMenu group={group} member={m} meId={meId} />
           </PersonRow>
         ))}

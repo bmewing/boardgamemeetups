@@ -78,4 +78,36 @@ describe('PersonPage', () => {
     expect(await screen.findByText("Ben doesn't share their games with you.")).toBeInTheDocument()
     expect(screen.getByText('Request sent')).toBeInTheDocument()
   })
+
+  it("sends a friend request to someone you aren't friends with", async () => {
+    let profile: PersonProfile = { person: ben, relation: 'none', games_visible: false }
+    let sent: unknown
+    mockApi({
+      [`GET /api/people/${BEN_ID}`]: () => Response.json(profile),
+      'POST /api/friends/requests': async (request) => {
+        sent = await request.json()
+        profile = { ...profile, relation: 'outgoing' }
+        return Response.json({ person: ben, relation: 'outgoing' })
+      },
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/people/:userId" element={<PersonPage />} />
+      </Routes>,
+      { route: `/people/${BEN_ID}` },
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Add friend' }))
+
+    expect(await screen.findByText('Request sent')).toBeInTheDocument()
+    expect(sent).toEqual({ user_id: BEN_ID })
+    expect(screen.queryByRole('button', { name: 'Add friend' })).not.toBeInTheDocument()
+  })
+
+  it('offers no friend request to a friend', async () => {
+    renderPerson({ person: ben, relation: 'friends', games_visible: true })
+
+    expect(await screen.findByText('Friends')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add friend' })).not.toBeInTheDocument()
+  })
 })
