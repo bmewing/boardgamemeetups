@@ -42,6 +42,8 @@ const pat: AdminUser = {
   display_name: 'Pat',
   email: 'pat@example.com',
   avatar_url: null,
+  piece: null,
+  piece_color: null,
   is_admin: false,
   banned_at: null,
   ban_reason: null,

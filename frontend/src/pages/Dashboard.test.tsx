@@ -21,6 +21,7 @@ const brief = (over: Partial<MeetupBrief> = {}): MeetupBrief => ({
   maybe: 1,
   no: 0,
   headcount: 3,
+  going: [],
   my_response: null,
   ...over,
 })
@@ -121,11 +122,19 @@ describe('Dashboard', () => {
           group_name: 'Board Gamers',
           group_description: null,
           member_count: 3,
-          invited_by: { id: 'u2', display_name: 'Ben', avatar_url: null },
+          invited_by: {
+            id: 'u2',
+            display_name: 'Ben',
+            avatar_url: null,
+            piece: null,
+            piece_color: null,
+          },
           created_at: '2026-11-04T00:00:00Z',
         },
       ],
-      incoming: [{ id: 'u3', display_name: 'Cy', avatar_url: null }],
+      incoming: [
+        { id: 'u3', display_name: 'Cy', avatar_url: null, piece: null, piece_color: null },
+      ],
     })
 
     expect(await screen.findByText('Waiting on you')).toBeInTheDocument()

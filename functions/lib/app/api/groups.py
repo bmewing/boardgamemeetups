@@ -68,6 +68,7 @@ class MeetupBrief(BaseModel):
     maybe: int
     no: int
     headcount: int  # members going plus the guests they're bringing
+    going: list[PersonRead]  # members going, in the order they said so
     my_response: RsvpResponse | None
 
 
@@ -198,6 +199,7 @@ async def meetup_briefs(
     counts: dict[uuid.UUID, dict[RsvpResponse, int]] = defaultdict(dict)
     guests_going: dict[uuid.UUID, int] = defaultdict(int)
     mine: dict[uuid.UUID, RsvpResponse] = {}
+    going: dict[uuid.UUID, list[PersonRead]] = defaultdict(list)
     if ids:
         tallies = await session.execute(
             select(
@@ -219,6 +221,14 @@ async def meetup_briefs(
             )
         )
         mine = {meetup_id: response for meetup_id, response in own}
+        yeses = await session.execute(
+            select(MeetupRsvp.meetup_id, User)
+            .join(User, User.id == MeetupRsvp.user_id)
+            .where(MeetupRsvp.meetup_id.in_(ids), MeetupRsvp.response == RsvpResponse.YES)
+            .order_by(MeetupRsvp.responded_at, User.id)
+        )
+        for meetup_id, person in yeses:
+            going[meetup_id].append(PersonRead.of(person))
     return [
         MeetupBrief(
             id=m.id,
@@ -234,6 +244,7 @@ async def meetup_briefs(
             maybe=counts[m.id].get(RsvpResponse.MAYBE, 0),
             no=counts[m.id].get(RsvpResponse.NO, 0),
             headcount=counts[m.id].get(RsvpResponse.YES, 0) + guests_going[m.id],
+            going=going[m.id],
             my_response=mine.get(m.id),
         )
         for m in meetups

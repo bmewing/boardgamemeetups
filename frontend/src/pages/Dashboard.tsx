@@ -6,8 +6,8 @@ import { useMyGames } from '../api/collection'
 import { useFriends } from '../api/friends'
 import { type GroupSummary, type MeetupBrief, useGroups } from '../api/groups'
 import { useMe } from '../api/me'
-import { Meeple } from '../components/landing/Meeple'
 import { MeepleHex } from '../components/landing/MeepleHex'
+import { PlayerPiece } from '../components/pieces/PlayerPiece'
 import {
   calendarDate,
   endTime,
@@ -16,11 +16,8 @@ import {
   ROLE_LABELS,
 } from '../components/meetupFormat'
 import { plural } from '../components/userGameFields'
-import { palette } from '../theme'
 import classes from './Dashboard.module.css'
 
-// Navy would vanish on the dark-mode ticket, so the seats use a lighter slate instead.
-const SEAT_COLORS = [palette.coral, palette.teal, '#c9a94b', '#fffaf3', '#8d91ac']
 const MAX_SEATS = 8
 
 function greeting(hour = new Date().getHours()) {
@@ -65,18 +62,26 @@ function Panel({
   )
 }
 
-/** The headcount as meeples around the table. */
-function Seats({ count }: { count: number }) {
-  const shown = Math.min(count, MAX_SEATS)
+/** Who's going, as their pieces around the table; the guests they bring are plain meeples. */
+function Seats({ meetup }: { meetup: MeetupBrief }) {
+  const count = meetup.headcount
+  const guests = Math.max(count - meetup.going.length, 0)
+  const seats = [
+    ...meetup.going.map((person) => ({ key: person.id, person, name: person.display_name })),
+    ...Array.from({ length: guests }, (_, i) => ({
+      key: `guest-${i}`,
+      person: { id: `guest-${i}`, piece: 'meeple' as const, piece_color: 'cream' as const },
+      name: 'A guest',
+    })),
+  ].slice(0, MAX_SEATS)
   return (
     <div className={classes.seats} aria-label={plural(count, 'person', 'people') + ' going'}>
-      {Array.from({ length: shown }, (_, i) => (
-        <Meeple
-          key={i}
-          color={SEAT_COLORS[i % SEAT_COLORS.length]}
-          outline={palette.olive}
-          width={26}
-          height={26}
+      {seats.map((seat, i) => (
+        <PlayerPiece
+          key={seat.key}
+          person={seat.person}
+          size={26}
+          label=""
           className={classes.seat}
           style={{ animationDelay: `${i * 70}ms` }}
         />
@@ -110,7 +115,7 @@ function NextUp({ next }: { next: Upcoming }) {
           {formatTime(meetup.local_time)} – {endTime(meetup.local_time, meetup.duration_minutes)}
           {meetup.location ? ` · ${meetup.location}` : ''}
         </span>
-        <Seats count={meetup.headcount} />
+        <Seats meetup={meetup} />
         <Group gap="xs" mt={4}>
           {answered ? (
             <Badge variant="light" color={answered === 'no' ? 'gray' : 'meeple'} size="lg">

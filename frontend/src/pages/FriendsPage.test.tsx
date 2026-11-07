@@ -11,11 +11,15 @@ const ben: Person = {
   id: '0190f0e2-0000-7000-8000-000000000002',
   display_name: 'Ben',
   avatar_url: null,
+  piece: null,
+  piece_color: null,
 }
 const cat: Person = {
   id: '0190f0e2-0000-7000-8000-000000000003',
   display_name: 'Cat',
   avatar_url: null,
+  piece: null,
+  piece_color: null,
 }
 const since = '2026-11-03T12:00:00Z'
 const none: Friends = { friends: [], incoming: [], outgoing: [] }

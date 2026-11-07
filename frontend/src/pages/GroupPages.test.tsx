@@ -13,8 +13,20 @@ import { MeetupPage } from './MeetupPage'
 
 const GROUP_ID = '0190f0e2-0000-7000-8000-0000000000a1'
 const MEETUP_ID = '0190f0e2-0000-7000-8000-0000000000b1'
-const ann = { id: profile.id, display_name: 'Sam', avatar_url: null }
-const ben = { id: '0190f0e2-0000-7000-8000-000000000002', display_name: 'Ben', avatar_url: null }
+const ann = {
+  id: profile.id,
+  display_name: 'Sam',
+  avatar_url: null,
+  piece: null,
+  piece_color: null,
+}
+const ben = {
+  id: '0190f0e2-0000-7000-8000-000000000002',
+  display_name: 'Ben',
+  avatar_url: null,
+  piece: null,
+  piece_color: null,
+}
 
 const brief: MeetupBrief = {
   id: MEETUP_ID,
@@ -30,6 +42,7 @@ const brief: MeetupBrief = {
   maybe: 0,
   no: 0,
   headcount: 1,
+  going: [],
   my_response: null,
 }
 
@@ -280,11 +293,15 @@ describe('GroupPage', () => {
       id: '0190f0e2-0000-7000-8000-000000000003',
       display_name: 'Cat',
       avatar_url: null,
+      piece: null,
+      piece_color: null,
     }
     const dee = {
       id: '0190f0e2-0000-7000-8000-000000000004',
       display_name: 'Dee',
       avatar_url: null,
+      piece: null,
+      piece_color: null,
     }
     let outgoing: { person: typeof ben; since: string }[] = []
     let sent: unknown
@@ -330,6 +347,8 @@ describe('GroupPage', () => {
       id: '0190f0e2-0000-7000-8000-000000000003',
       display_name: 'Cat',
       avatar_url: null,
+      piece: null,
+      piece_color: null,
     }
     renderGroup(group, {
       'GET /api/people/search': () =>
@@ -372,11 +391,15 @@ describe('GroupPage', () => {
       id: '0190f0e2-0000-7000-8000-000000000003',
       display_name: 'Cat',
       avatar_url: null,
+      piece: null,
+      piece_color: null,
     }
     const dee = {
       id: '0190f0e2-0000-7000-8000-000000000004',
       display_name: 'Dee',
       avatar_url: null,
+      piece: null,
+      piece_color: null,
     }
     const since = '2026-11-01T00:00:00Z'
     renderGroup(group, {

@@ -8,7 +8,13 @@ import { kindeAuth, mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
 import { InvitePage } from './InvitePage'
 
-const ann = { id: '0190f0e2-0000-7000-8000-000000000009', display_name: 'Ann', avatar_url: null }
+const ann = {
+  id: '0190f0e2-0000-7000-8000-000000000009',
+  display_name: 'Ann',
+  avatar_url: null,
+  piece: null,
+  piece_color: null,
+}
 
 function renderInvite(token = 'tok') {
   renderWithProviders(

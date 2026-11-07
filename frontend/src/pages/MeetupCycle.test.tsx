@@ -12,8 +12,20 @@ import { renderWithProviders } from '../test/render'
 import { MeetupPage } from './MeetupPage'
 
 const MEETUP_ID = '0190f0e2-0000-7000-8000-0000000000c1'
-const sam = { id: profile.id, display_name: 'Sam', avatar_url: null }
-const ben = { id: '0190f0e2-0000-7000-8000-000000000002', display_name: 'Ben', avatar_url: null }
+const sam = {
+  id: profile.id,
+  display_name: 'Sam',
+  avatar_url: null,
+  piece: null,
+  piece_color: null,
+}
+const ben = {
+  id: '0190f0e2-0000-7000-8000-000000000002',
+  display_name: 'Ben',
+  avatar_url: null,
+  piece: null,
+  piece_color: null,
+}
 
 const azul: GameSummary = {
   id: 1,
@@ -47,6 +59,7 @@ function meetupAt(startsAt: string, role: Meetup['my_role'] = 'owner'): Meetup {
     maybe: 0,
     no: 0,
     headcount: 2,
+    going: [],
     my_response: 'yes',
     notes: null,
     group: { id: 'g1', name: 'Crew', time_zone: 'UTC', willing_to_split: false, plus_one_limit: 0 },

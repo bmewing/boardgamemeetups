@@ -10,7 +10,7 @@ import { renderWithProviders } from '../test/render'
 import { PersonPage } from './PersonPage'
 
 const BEN_ID = '0190f0e2-0000-7000-8000-000000000002'
-const ben = { id: BEN_ID, display_name: 'Ben', avatar_url: null }
+const ben = { id: BEN_ID, display_name: 'Ben', avatar_url: null, piece: null, piece_color: null }
 
 function shared(id: number, name: string, changes: Partial<SharedGame>): SharedGame {
   const {

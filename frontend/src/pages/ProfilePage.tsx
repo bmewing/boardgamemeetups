@@ -21,6 +21,7 @@ import { useDisclosure } from '@mantine/hooks'
 import type { UserProfile } from '../api/client'
 import { EMAIL_KINDS } from '../api/email'
 import { useDeleteMe, useMe, useUpdateMe } from '../api/me'
+import { PiecePicker } from '../components/pieces/PiecePicker'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
 
 const VISIBILITY_OPTIONS = [
@@ -197,6 +198,8 @@ export function ProfilePage() {
         Signed in as {me.data.email ?? 'unknown email'}
       </Text>
       <ProfileForm profile={me.data} />
+      <Divider my="md" />
+      <PiecePicker profile={me.data} />
       <Divider my="md" />
       <EmailSettings profile={me.data} />
       <Divider my="md" />

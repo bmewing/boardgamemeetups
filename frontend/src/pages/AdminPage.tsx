@@ -1,7 +1,6 @@
 import {
   ActionIcon,
   Alert,
-  Avatar,
   Badge,
   Box,
   Button,
@@ -38,6 +37,7 @@ import {
 } from '../api/admin'
 import { useMe } from '../api/me'
 import { plural } from '../components/userGameFields'
+import { PlayerPiece } from '../components/pieces/PlayerPiece'
 
 const count = new Intl.NumberFormat()
 const day = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -373,12 +373,7 @@ function Users() {
                   <Table.Tr key={user.id}>
                     <Table.Td>
                       <Group gap="sm" wrap="nowrap">
-                        <Avatar
-                          src={user.avatar_url}
-                          name={user.display_name}
-                          color="initials"
-                          size="sm"
-                        />
+                        <PlayerPiece person={user} size={26} label="" />
                         <div>
                           <Group gap={6} wrap="nowrap">
                             <Text size="sm" fw={500}>
