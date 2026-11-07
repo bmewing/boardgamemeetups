@@ -78,7 +78,7 @@ SUBTITLED_SCORE = 0.9
 
 
 async def _by_id(session: AsyncSession, bgg: BggClient, rows: Sequence[FileRow]) -> dict[int, Game]:
-    ids = {row.bgg_id for row in rows if row.bgg_id}
+    ids = {row.bgg_id for row in rows if row.bgg_id and row.bgg_id > 0}
     if not ids:
         return {}
     known = set(await session.scalars(select(Game.id).where(Game.id.in_(ids))))
@@ -116,10 +116,11 @@ async def _candidates(session: AsyncSession, name: str, year: int | None) -> lis
     lowered = func.lower(Game.name)
     similarity = func.similarity(lowered, q)
     # Two small queries, each served by the name index. Combined with OR, Postgres gives up
-    # on the index and scans every game, about 200 ms a row.
+    # on the index and scans every game, about 200 ms a row. Games people added themselves
+    # (negative ids) never match: an import is only ever matched against BGG's games.
     close = await session.execute(
         select(Game, similarity)
-        .where(or_(lowered == q, lowered.op("%")(q)))
+        .where(or_(lowered == q, lowered.op("%")(q)), Game.id > 0)
         .order_by(
             (lowered == q).desc(), similarity.desc(), Game.bgg_users_rated.desc().nulls_last()
         )
@@ -129,7 +130,7 @@ async def _candidates(session: AsyncSession, name: str, year: int | None) -> lis
     # filtering them here would also cost the index.
     prefixed = await session.execute(
         select(Game, similarity)
-        .where(lowered.like(_like_prefix(f"{q}:"), escape="\\"))
+        .where(lowered.like(_like_prefix(f"{q}:"), escape="\\"), Game.id > 0)
         .order_by(Game.bgg_users_rated.desc().nulls_last())
         .limit(CANDIDATES_FETCHED)
     )

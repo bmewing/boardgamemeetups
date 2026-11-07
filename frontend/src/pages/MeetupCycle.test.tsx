@@ -42,6 +42,7 @@ const azul: GameSummary = {
   bgg_rank: 80,
   best_with: [2],
   base_game_ids: [],
+  is_custom: false,
 }
 
 function meetupAt(startsAt: string, role: Meetup['my_role'] = 'owner'): Meetup {

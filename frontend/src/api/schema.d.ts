@@ -40,17 +40,20 @@ export interface paths {
         patch: operations["update_me_api_me_patch"];
         trace?: never;
     };
-    "/api/games/search": {
+    "/api/games": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Search Games */
-        get: operations["search_games_api_games_search_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Add Custom Game
+         * @description Add a game that isn't on BGG. It goes in your list as owned.
+         */
+        post: operations["add_custom_game_api_games_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -66,6 +69,27 @@ export interface paths {
         };
         /** Read Game */
         get: operations["read_game_api_games__game_id__get"];
+        /**
+         * Update Custom Game
+         * @description Change a game you added. BGG's games come from BGG and can't be changed here.
+         */
+        put: operations["update_custom_game_api_games__game_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/games/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Games */
+        get: operations["search_games_api_games_search_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1323,6 +1347,26 @@ export interface components {
          */
         CollectionVisibility: "private" | "friends" | "public";
         /**
+         * CustomGameIn
+         * @description A game that isn't on BGG: one someone designed, or that BGG just doesn't list.
+         */
+        CustomGameIn: {
+            /** Name */
+            name: string;
+            /** Year Published */
+            year_published?: number | null;
+            /** Min Players */
+            min_players?: number | null;
+            /** Max Players */
+            max_players?: number | null;
+            /** Min Playtime */
+            min_playtime?: number | null;
+            /** Max Playtime */
+            max_playtime?: number | null;
+            /** Min Age */
+            min_age?: number | null;
+        };
+        /**
          * DayOfMonth
          * @description Day X of each month. Months without that day (say the 31st) are skipped.
          */
@@ -1543,6 +1587,8 @@ export interface components {
             best_with: number[];
             /** Base Game Ids */
             base_game_ids: number[];
+            /** Is Custom */
+            is_custom: boolean;
             /** Image Url */
             image_url: string | null;
             /** Playing Time */
@@ -1560,7 +1606,9 @@ export interface components {
             /** Player Count Votes */
             player_count_votes: components["schemas"]["app__api__games__PlayerCountVote"][];
             /** Bgg Url */
-            bgg_url: string;
+            bgg_url: string | null;
+            /** Created By Id */
+            created_by_id: string | null;
         };
         /** GameDiffRead */
         GameDiffRead: {
@@ -1604,6 +1652,8 @@ export interface components {
             best_with: number[];
             /** Base Game Ids */
             base_game_ids: number[];
+            /** Is Custom */
+            is_custom: boolean;
         };
         /** GroupBrief */
         GroupBrief: {
@@ -2734,26 +2784,26 @@ export interface operations {
             };
         };
     };
-    search_games_api_games_search_get: {
+    add_custom_game_api_games_post: {
         parameters: {
-            query: {
-                q: string;
-                include_expansions?: boolean;
-                limit?: number;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomGameIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GameSummary"][];
+                    "application/json": components["schemas"]["GameDetail"];
                 };
             };
             /** @description Validation Error */
@@ -2785,6 +2835,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GameDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_custom_game_api_games__game_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                game_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomGameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_games_api_games_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                include_expansions?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameSummary"][];
                 };
             };
             /** @description Validation Error */

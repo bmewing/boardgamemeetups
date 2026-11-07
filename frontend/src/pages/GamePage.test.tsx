@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { UserGame, UserGameUpdate } from '../api/collection'
 import type { GameDetail } from '../api/games'
 import { blankUserGame } from '../components/userGameFields'
+import { profile } from '../test/fixtures'
 import { mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
 import { GamePage } from './GamePage'
@@ -30,10 +31,12 @@ const azul: GameDetail = {
   best_with: [2],
   recommended_with: [2, 3, 4],
   base_game_ids: [],
+  is_custom: false,
   categories: [],
   mechanics: [],
   player_count_votes: [],
   bgg_url: 'https://boardgamegeek.com/boardgame/230802',
+  created_by_id: null,
 }
 
 /** A fake API for one game, not in the list at first; returns every PUT body, in order. */
@@ -102,5 +105,64 @@ describe('GamePage', () => {
     await waitFor(() =>
       expect(saved).toEqual([{ wishlist_priority: 1 }, { plays: 4 }, { notes: 'Sleeved.' }]),
     )
+  })
+
+  it("marks a game that isn't on BGG and lets whoever added it edit it", async () => {
+    const homebrew: GameDetail = {
+      ...azul,
+      id: -4,
+      name: 'Kitchen Table Heist',
+      is_custom: true,
+      bgg_url: null,
+      bgg_rank: null,
+      created_by_id: profile.id,
+    }
+    let sent: unknown
+    mockApi({
+      'GET /api/me': () => Response.json(profile),
+      'GET /api/games/-4': () => Response.json(homebrew),
+      'GET /api/me/games': () => Response.json([]),
+      'GET /api/moods': () => Response.json([]),
+      'PUT /api/games/-4': async (request) => {
+        sent = await request.json()
+        return Response.json({ ...homebrew, ...(sent as object) })
+      },
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/games/:gameId" element={<GamePage />} />
+      </Routes>,
+      { route: '/games/-4' },
+    )
+
+    expect(await screen.findByText('Not on BGG')).toBeInTheDocument()
+    expect(screen.queryByText('View on BoardGameGeek')).not.toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
+    const name = await screen.findByLabelText(/Name/)
+    await userEvent.clear(name)
+    await userEvent.type(name, 'Kitchen Table Heist 2e')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(sent).toMatchObject({ name: 'Kitchen Table Heist 2e' }))
+    expect(await screen.findByRole('heading', { name: /Kitchen Table Heist 2e/ }))
+  })
+
+  it("doesn't offer to edit a game someone else added", async () => {
+    mockApi({
+      'GET /api/me': () => Response.json(profile),
+      'GET /api/games/-4': () =>
+        Response.json({ ...azul, id: -4, is_custom: true, bgg_url: null, created_by_id: 'x' }),
+      'GET /api/me/games': () => Response.json([]),
+      'GET /api/moods': () => Response.json([]),
+    })
+    renderWithProviders(
+      <Routes>
+        <Route path="/games/:gameId" element={<GamePage />} />
+      </Routes>,
+      { route: '/games/-4' },
+    )
+
+    expect(await screen.findByText('Not on BGG')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit details' })).not.toBeInTheDocument()
   })
 })

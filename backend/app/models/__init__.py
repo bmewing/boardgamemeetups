@@ -4,7 +4,7 @@ from app.db import Base
 from app.models.bgg_throttle import BggThrottle
 from app.models.calendar import CalendarFeed
 from app.models.friend import Friendship, FriendshipStatus, InviteLink, UserBlock
-from app.models.game import Game, PlayerCountVotes
+from app.models.game import CUSTOM_GAME_IDS, Game, PlayerCountVotes, is_custom_id
 from app.models.group import (
     Group,
     GroupInvite,
@@ -38,6 +38,7 @@ from app.models.user_game import (
 )
 
 __all__ = [
+    "CUSTOM_GAME_IDS",
     "Base",
     "BggThrottle",
     "BringAssignment",
@@ -73,4 +74,5 @@ __all__ = [
     "UserGame",
     "UserGameMood",
     "UserGamePlayerCount",
+    "is_custom_id",
 ]

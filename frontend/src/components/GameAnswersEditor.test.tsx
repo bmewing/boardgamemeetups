@@ -23,6 +23,7 @@ const azul = (extra: Partial<UserGame> = {}): UserGame => ({
     bgg_rank: null,
     best_with: [2],
     base_game_ids: [],
+    is_custom: false,
   },
   ownership: 'owned',
   wishlist_priority: null,

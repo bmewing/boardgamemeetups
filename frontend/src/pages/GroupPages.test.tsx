@@ -233,6 +233,7 @@ describe('GroupPage', () => {
       bgg_rank: null,
       best_with: [],
       base_game_ids: [],
+      is_custom: false,
     })
     const rollup = {
       rating: null,
@@ -507,6 +508,7 @@ describe('MeetupPage', () => {
           bgg_rank: 80,
           best_with: [2],
           base_game_ids: [],
+          is_custom: false,
         },
         bringers: [ben],
         fit: 'split',

@@ -17,7 +17,7 @@ export type ChangeIn = components['schemas']['ChangeIn']
 export type ImportResult = components['schemas']['ImportResult']
 export type ImportSource = components['schemas']['ImportApply']['source']
 
-const MY_GAMES_KEY = ['me', 'games'] as const
+export const MY_GAMES_KEY = ['me', 'games'] as const
 
 /** The API's own explanation (FastAPI's `detail`), when it sent a plain one. */
 export function detailOf(error: unknown, fallback: string): string {

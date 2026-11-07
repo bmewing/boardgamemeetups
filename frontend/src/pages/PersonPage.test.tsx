@@ -33,6 +33,7 @@ function shared(id: number, name: string, changes: Partial<SharedGame>): SharedG
     bgg_rank: 100,
     best_with: [],
     base_game_ids: [],
+    is_custom: false,
   })
   return { ...row, ...changes }
 }

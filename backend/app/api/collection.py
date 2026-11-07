@@ -56,7 +56,8 @@ from app.models import (
 
 router = APIRouter(tags=["collection"])
 
-GameId = Annotated[int, Path(ge=1)]
+# BGG's ids, or negative for games people added that aren't on BGG.
+GameId = Annotated[int, Path()]
 MoodId = Annotated[str, Field(min_length=1, max_length=32)]
 # Well past any real game; only there to bound a request.
 MAX_PLAYERS = 100
