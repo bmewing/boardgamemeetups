@@ -1,6 +1,6 @@
 {
   "name": "Board Game Group",
-  "short_name": "Game Group",
+  "short_name": "BGGroup",
   "description": "Organize game nights with your friends: see who's coming, pool everyone's shelves, and let the table pick what to play.",
   "id": "/",
   "start_url": "/",
