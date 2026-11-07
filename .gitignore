@@ -19,3 +19,8 @@ __pycache__/
 
 # Real collections used to try imports by hand
 EXAMPLE_UPLOAD/
+
+# Loose copies of the old icons and share image
+/favicon.png
+/favicon.svg
+/fb.png
