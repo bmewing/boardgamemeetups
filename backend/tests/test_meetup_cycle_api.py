@@ -181,6 +181,36 @@ async def test_logging_what_was_played(
     assert "Played last time" in [r["text"] for r in duo["reasons"]]
 
 
+async def test_a_night_can_repeat_a_game_and_keeps_the_order_played(
+    client: AsyncClient, crew: Crew, games: None, db_session: AsyncSession
+) -> None:
+    group, (ann, ben, *_rest) = crew
+    past = await add_date(client, group, ann, date.today() - timedelta(days=1))
+    url = f"/api/meetups/{past}/log"
+    duo = {"game_id": DUO, "coop": False, "players": [ann.id, ben.id]}
+    filler = {"game_id": BIG, "coop": False, "players": [ann.id]}
+    log: dict[str, Any] = {
+        "attendees": [ann.id, ben.id],
+        "plays": [
+            {**duo, "winners": [ann.id]},
+            filler,
+            {**duo, "winners": [ben.id]},
+        ],
+    }
+
+    saved = await client.put(url, headers=ann.headers, json=log)
+
+    assert saved.status_code == 200, saved.text
+    plays = saved.json()["plays"]
+    assert [p["game"]["id"] for p in plays] == [DUO, BIG, DUO]  # as played, not A-Z
+    assert [ids(p["winners"]) for p in plays] == [[ann.id], [], [ben.id]]
+    assert await plays_of(db_session, ben, DUO) == 2  # each round counts
+
+    # Dropping a round takes just that play back off.
+    await client.put(url, headers=ann.headers, json={**log, "plays": log["plays"][:2]})
+    assert await plays_of(db_session, ben, DUO) == 1
+
+
 async def test_a_week_later_an_unlogged_pick_counts_as_played(
     client: AsyncClient, crew: Crew, games: None, db_session: AsyncSession
 ) -> None:

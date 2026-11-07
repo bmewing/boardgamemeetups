@@ -111,9 +111,13 @@ async def save_log(
         MeetupAttendee(meetup_id=meetup.id, user_id=u) for u in dict.fromkeys(attendees)
     )
     new_pairs: list[tuple[uuid.UUID, int]] = []
-    for line in plays:
+    for position, line in enumerate(plays):
         play = Play(
-            meetup_id=meetup.id, game_id=line.game_id, coop=line.coop, coop_won=line.coop_won
+            meetup_id=meetup.id,
+            game_id=line.game_id,
+            position=position,
+            coop=line.coop,
+            coop_won=line.coop_won,
         )
         session.add(play)
         await session.flush()
@@ -154,6 +158,7 @@ async def fill_unlogged(session: AsyncSession, group: Group) -> None:
             select(Game)
             .join(MeetupNomination, MeetupNomination.game_id == Game.id)
             .where(MeetupNomination.meetup_id == meetup.id, MeetupNomination.picked.is_(True))
+            .order_by(Game.name)
         )
         plays = [PlayLine(g.id, coop_by_default(g), players=yes) for g in picked]
         await save_log(session, meetup, yes, plays, assumed=True)

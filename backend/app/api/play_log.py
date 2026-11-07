@@ -1,4 +1,5 @@
-"""What was played at a date: which games, who came, who played, and who won.
+"""What was played at a date: which games, in what order, who came, who played, and who won.
+A game can be played more than once in a night; each time counts as a play.
 
 The owner or an admin logs it once the date has started. A date with a locked pick that
 nobody logs within a week is filled in as played as picked by the members who said yes.
@@ -82,7 +83,7 @@ class PlayIn(BaseModel):
 
 
 class LogIn(BaseModel):
-    """The whole log; it replaces what was there."""
+    """The whole log, in the order the games were played; it replaces what was there."""
 
     attendees: list[uuid.UUID] = Field(max_length=100)
     plays: list[PlayIn] = Field(max_length=MAX_GAMES)
@@ -93,8 +94,6 @@ class LogIn(BaseModel):
         for play in self.plays:
             if not set(play.players) <= came:
                 raise ValueError("Players have to be among the people who came.")
-        if len({p.game_id for p in self.plays}) != len(self.plays):
-            raise ValueError("Each game goes in once.")
         return self
 
 
@@ -116,7 +115,7 @@ async def _read(session: AsyncSession, meetup: Meetup, me: GroupMember) -> LogRe
             select(Play, Game)
             .join(Game, Game.id == Play.game_id)
             .where(Play.meetup_id == meetup.id)
-            .order_by(Game.name)
+            .order_by(Play.position, Game.name)
         )
     ).all()
     players: dict[uuid.UUID, list[tuple[User, bool]]] = defaultdict(list)
@@ -192,7 +191,7 @@ async def save_play_log(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "Only members can be marked as coming."
         )
-    game_ids = [p.game_id for p in body.plays]
+    game_ids = list({p.game_id for p in body.plays})
     known = set(await session.scalars(select(Game.id).where(Game.id.in_(game_ids))))
     if missing := sorted(set(game_ids) - known):
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown games: {missing}")

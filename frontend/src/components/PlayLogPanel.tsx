@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Alert,
   Button,
   Card,
@@ -20,9 +21,23 @@ import { type PlayIn, type PlayLog, usePlayLog, useSavePlayLog } from '../api/vo
 import { GameSearchSelect } from './GameSearchSelect'
 
 type Draft = Omit<PlayIn, 'players' | 'winners'> & {
+  key: number // stays put while plays are added, moved and removed
   name: string
   players: string[]
   winners: string[]
+}
+let lastKey = 0
+const newKey = () => ++lastKey
+
+/** "Azul", or "Azul · round 2" when a game was played more than once that night. */
+function titles(plays: { game_id: number; name: string }[]): string[] {
+  const seen = new Map<number, number>()
+  return plays.map((p) => {
+    const round = (seen.get(p.game_id) ?? 0) + 1
+    seen.set(p.game_id, round)
+    const repeated = plays.filter((q) => q.game_id === p.game_id).length > 1
+    return repeated ? `${p.name} · round ${round}` : p.name
+  })
 }
 const names = (people: { display_name: string }[]) => people.map((p) => p.display_name).join(', ')
 const COOP_RESULTS = [
@@ -36,6 +51,7 @@ function startingDraft(log: PlayLog): { attendees: string[]; plays: Draft[] } {
     return {
       attendees: log.attendees.map((p) => p.id),
       plays: log.plays.map((p) => ({
+        key: newKey(),
         game_id: p.game.id,
         name: p.game.name,
         coop: p.coop,
@@ -49,6 +65,7 @@ function startingDraft(log: PlayLog): { attendees: string[]; plays: Draft[] } {
   return {
     attendees,
     plays: log.suggested_games.map((g) => ({
+      key: newKey(),
       game_id: g.game.id,
       name: g.game.name,
       coop: g.coop,
@@ -77,6 +94,19 @@ function LogEditor({
   const came = members.filter((m) => attendees.includes(m.id))
   const change = (i: number, changes: Partial<Draft>) =>
     setPlays((all) => all.map((p, j) => (j === i ? { ...p, ...changes } : p)))
+  const move = (i: number, by: -1 | 1) =>
+    setPlays((all) => {
+      const next = [...all]
+      ;[next[i], next[i + by]] = [next[i + by], next[i]]
+      return next
+    })
+  const playAgain = (i: number) =>
+    setPlays((all) => [
+      ...all.slice(0, i + 1),
+      { ...all[i], key: newKey(), coop_won: null, winners: [] },
+      ...all.slice(i + 1),
+    ])
+  const title = titles(plays)
 
   return (
     <Stack>
@@ -110,11 +140,13 @@ function LogEditor({
       </Stack>
 
       {plays.map((p, i) => (
-        <Card key={p.game_id} withBorder padding="sm">
+        <Card key={p.key} withBorder padding="sm">
           <Stack gap="xs">
             <Group justify="space-between">
-              <Text fw={600}>{p.name}</Text>
-              <Group gap="xs">
+              <Text fw={600}>
+                {i + 1}. {title[i]}
+              </Text>
+              <Group gap={4}>
                 <Switch
                   size="xs"
                   label="Co-op"
@@ -123,15 +155,35 @@ function LogEditor({
                     change(i, { coop: e.currentTarget.checked, coop_won: null, winners: [] })
                   }
                 />
-                <Button
-                  size="xs"
+                <Button size="xs" variant="subtle" onClick={() => playAgain(i)}>
+                  Played again
+                </Button>
+                <ActionIcon
                   variant="subtle"
                   color="gray"
-                  aria-label={`Remove ${p.name}`}
+                  aria-label={`Move ${title[i]} earlier`}
+                  disabled={i === 0}
+                  onClick={() => move(i, -1)}
+                >
+                  ↑
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  aria-label={`Move ${title[i]} later`}
+                  disabled={i === plays.length - 1}
+                  onClick={() => move(i, 1)}
+                >
+                  ↓
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  aria-label={`Remove ${title[i]}`}
                   onClick={() => setPlays((all) => all.filter((_, j) => j !== i))}
                 >
                   ✕
-                </Button>
+                </ActionIcon>
               </Group>
             </Group>
             <Text size="xs" c="dimmed">
@@ -194,26 +246,32 @@ function LogEditor({
         </Card>
       ))}
 
-      <GameSearchSelect
-        ariaLabel="Add a game that was played"
-        onPick={(game) =>
-          setPlays((all) =>
-            all.some((p) => p.game_id === game.id)
-              ? all
-              : [
-                  ...all,
-                  {
-                    game_id: game.id,
-                    name: game.name,
-                    coop: false,
-                    coop_won: null,
-                    players: attendees,
-                    winners: [],
-                  },
-                ],
-          )
-        }
-      />
+      <Stack gap={4}>
+        <Text size="sm" fw={500}>
+          Add a game we played
+        </Text>
+        <Text size="xs" c="dimmed">
+          Openers, fillers, wrap-ups: add each game in the order you played it. Use “Played again”
+          for another round of the same game.
+        </Text>
+        <GameSearchSelect
+          ariaLabel="Add a game we played"
+          onPick={(game) =>
+            setPlays((all) => [
+              ...all,
+              {
+                key: newKey(),
+                game_id: game.id,
+                name: game.name,
+                coop: false,
+                coop_won: null,
+                players: attendees,
+                winners: [],
+              },
+            ])
+          }
+        />
+      </Stack>
       {save.isError && <Alert color="red">{save.error.message}</Alert>}
       <Group justify="flex-end">
         <Button
@@ -222,7 +280,7 @@ function LogEditor({
             save.mutate(
               {
                 attendees,
-                plays: plays.map(({ name: _name, ...play }) => play),
+                plays: plays.map(({ key: _key, name: _name, ...play }) => play),
               },
               { onSuccess: onDone },
             )
@@ -253,6 +311,7 @@ export function PlayLogPanel({ meetup, members }: { meetup: Meetup; members: Per
   }
   const data = log.data
   if (!data.logged && !data.can_log) return null
+  const playedTitles = titles(data.plays.map((p) => ({ game_id: p.game.id, name: p.game.name })))
 
   return (
     <Stack gap="xs">
@@ -277,9 +336,12 @@ export function PlayLogPanel({ meetup, members }: { meetup: Meetup; members: Per
               ? `Came: ${names(data.attendees)}`
               : 'Nobody recorded as coming'}
           </Text>
-          {data.plays.map((p) => (
-            <Card key={p.game.id} withBorder padding="xs">
-              <Text fw={600}>{p.game.name}</Text>
+          {data.plays.map((p, i) => (
+            <Card key={i} withBorder padding="xs">
+              <Text fw={600}>
+                {data.plays.length > 1 && `${i + 1}. `}
+                {playedTitles[i]}
+              </Text>
               <Text size="sm">{result(p)}</Text>
               <Text size="xs" c="dimmed">
                 Played by {names(p.players) || 'nobody recorded'}

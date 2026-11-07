@@ -76,11 +76,12 @@ class MeetupAttendee(Base):
 
 class Play(Base):
     """One game played at a date. Co-op games record whether the table won; competitive
-    games record who won on `PlayPlayer`. No scores, no length."""
+    games record who won on `PlayPlayer`. No scores, no length. A night can have several,
+    the same game more than once (a few rounds of a filler); `position` is the order they
+    were played in."""
 
     __tablename__ = "plays"
     __table_args__ = (
-        Index("uq_plays_meetup_game", "meetup_id", "game_id", unique=True),
         CheckConstraint("coop OR coop_won IS NULL", name="coop_result_only_for_coop"),
     )
 
@@ -89,6 +90,7 @@ class Play(Base):
         ForeignKey("meetups.id", ondelete="CASCADE"), index=True
     )
     game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     coop: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     coop_won: Mapped[bool | None] = mapped_column(Boolean)  # null: not recorded
 
