@@ -18,6 +18,7 @@ import {
 } from '../components/meetupFormat'
 import { plural } from '../components/userGameFields'
 import classes from './Dashboard.module.css'
+import { NextAchievement } from '../components/achievements/NextAchievement'
 
 const MAX_SEATS = 8
 
@@ -374,6 +375,25 @@ export function Dashboard({ footer }: { footer?: ReactNode }) {
 
         <div className={classes.side}>
           <WaitingOnYou todos={todos} />
+          {me.data && groups.data && (
+            <NextAchievement
+              profile={me.data}
+              // Joining needs an invite to say yes to.
+              ruledOut={groups.data.invites.length ? [] : ['join_group']}
+              wrap={(title, card) => (
+                <Panel
+                  title={title}
+                  action={
+                    <Button component={Link} to="/profile" size="xs" variant="light">
+                      All
+                    </Button>
+                  }
+                >
+                  {card}
+                </Panel>
+              )}
+            />
+          )}
           <Shelf />
         </div>
       </div>

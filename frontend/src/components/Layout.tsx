@@ -15,6 +15,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useGroups } from '../api/groups'
 import { AccountSuspendedError, useMe } from '../api/me'
 import { useResumeInvite } from '../auth/pendingInvite'
+import { UnlockCelebration } from './achievements/UnlockCelebration'
 import classes from './Layout.module.css'
 import { UserMenu } from './UserMenu'
 
@@ -106,6 +107,7 @@ export function Layout() {
         ) : (
           <Container size="md" py="sm">
             {suspended ? <Suspended message={suspended.message} /> : <Outlet />}
+            {isAuthenticated && me.data && <UnlockCelebration profile={me.data} />}
           </Container>
         )}
       </AppShell.Main>

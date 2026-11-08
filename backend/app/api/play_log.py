@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import achievements
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
 from app.api.meetups import _meetup
@@ -32,6 +33,7 @@ from app.models import (
     PlayPlayer,
     User,
 )
+from app.pieces import Achievement
 from app.plays import PlayLine, coop_by_default, fill_unlogged, going, save_log
 
 router = APIRouter(tags=["play log"])
@@ -201,5 +203,6 @@ async def save_play_log(
         body.attendees,
         [PlayLine(p.game_id, p.coop, p.coop_won, p.players, p.winners) for p in body.plays],
     )
+    await achievements.earn(session, Achievement.LOG_NIGHT, user.id)
     await session.commit()
     return await _read(session, meetup, me)

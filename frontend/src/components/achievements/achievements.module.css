@@ -1,0 +1,73 @@
+.reward {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+/* Not earned yet: a faded silhouette with a padlock on it. */
+.unearned {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.lock {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  color: var(--mantine-color-dimmed);
+}
+
+.swatch {
+  width: 72%;
+  height: 72%;
+  border-radius: 50%;
+  border: 3px solid var(--bgg-ink);
+}
+
+.medal {
+  width: 100%;
+  height: 100%;
+}
+
+.chapters {
+  display: grid;
+  gap: var(--mantine-spacing-lg);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 2px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  min-width: 0;
+
+  &[data-earned] {
+    border-color: var(--bgg-teal);
+    background: var(--mantine-color-meeple-light);
+  }
+}
+
+.itemText {
+  min-width: 0;
+  flex: 1;
+}
+
+.celebrateList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}

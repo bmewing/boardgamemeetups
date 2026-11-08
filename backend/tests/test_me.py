@@ -141,16 +141,16 @@ async def test_pick_a_game_piece(client: AsyncClient, make_token: TokenFactory) 
     assert (fresh["piece"], fresh["piece_color"]) == (None, None)
 
     picked = await client.patch(
-        "/api/me", headers=headers, json={"piece": "top_hat", "piece_color": "plum"}
+        "/api/me", headers=headers, json={"piece": "pawn", "piece_color": "coral"}
     )
     assert picked.status_code == 200, picked.text
-    assert (picked.json()["piece"], picked.json()["piece_color"]) == ("top_hat", "plum")
+    assert (picked.json()["piece"], picked.json()["piece_color"]) == ("pawn", "coral")
 
     # Other changes leave it alone; null goes back to the meeple.
     renamed = await client.patch("/api/me", headers=headers, json={"display_name": "Hatter"})
-    assert renamed.json()["piece"] == "top_hat"
+    assert renamed.json()["piece"] == "pawn"
     cleared = await client.patch("/api/me", headers=headers, json={"piece": None})
-    assert (cleared.json()["piece"], cleared.json()["piece_color"]) == (None, "plum")
+    assert (cleared.json()["piece"], cleared.json()["piece_color"]) == (None, "coral")
 
     unknown = await client.patch("/api/me", headers=headers, json={"piece": "spaceship"})
     assert unknown.status_code == 422

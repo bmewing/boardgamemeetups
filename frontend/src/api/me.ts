@@ -29,9 +29,24 @@ export function useMe() {
 export function useUpdateMe() {
   const queryClient = useQueryClient()
   return useMutation({
+    mutationKey: ME_KEY,
     mutationFn: async (changes: UserProfileUpdate) => {
       const { data, error } = await api.PATCH('/api/me', { body: changes })
       if (error) throw new Error(detailOf(error, 'Could not save your profile'))
+      return data
+    },
+    onSuccess: (profile) => queryClient.setQueryData(ME_KEY, profile),
+  })
+}
+
+/** Say they've seen what they earned, so it stops being marked new. */
+export function useSeeAchievements() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationKey: ME_KEY,
+    mutationFn: async () => {
+      const { data, error } = await api.POST('/api/me/achievements/seen')
+      if (error) throw new Error('Could not update your achievements')
       return data
     },
     onSuccess: (profile) => queryClient.setQueryData(ME_KEY, profile),

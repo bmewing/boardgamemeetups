@@ -58,6 +58,7 @@ import { ReasonChips } from '../components/Rollup'
 import { lengthLabel, minutesTonight } from '../components/rollupFormat'
 import { plural } from '../components/userGameFields'
 import { PlayerPiece } from '../components/pieces/PlayerPiece'
+import { UnlockHint } from '../components/achievements/UnlockHint'
 
 const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
@@ -150,6 +151,7 @@ function Answer({ meetup, onGoing }: { meetup: Meetup; onGoing?: () => void }) {
         <Text size="sm" fw={500}>
           Are you coming?
         </Text>
+        {!saved.response && <UnlockHint achievement="rsvp_yes" text="say you're going" />}
         <SegmentedControl
           fullWidth
           value={current.response ?? ''}

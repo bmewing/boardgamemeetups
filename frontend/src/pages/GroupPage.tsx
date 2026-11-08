@@ -62,6 +62,7 @@ import { ScheduleEditor } from '../components/ScheduleEditor'
 import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { tableFit } from '../components/tableFit'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
+import { UnlockHint } from '../components/achievements/UnlockHint'
 
 const RESPONSE_LABELS = { yes: 'Going', maybe: 'Maybe', no: "Can't go" } as const
 
@@ -248,6 +249,12 @@ function MembersTab({ group }: { group: GroupData }) {
   const sent = invite.data
   return (
     <Stack>
+      {runs && group.members.length < 4 && (
+        <UnlockHint
+          achievement="group_of_4"
+          text={`invite ${4 - group.members.length} more to make a table of four`}
+        />
+      )}
       {runs && (
         <Stack gap="xs">
           <PersonPicker

@@ -11,7 +11,7 @@ from sqlalchemy import ColumnElement, and_, delete, exists, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import notify
+from app import achievements, notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonPick, PersonRead, SharedAnswers, find_person
 from app.api.games import GameSummary
@@ -38,6 +38,7 @@ from app.models import (
     UserBlock,
     UserGame,
 )
+from app.pieces import Achievement
 from app.plays import fill_unlogged
 from app.recommend import Answer, Person, rollup
 from app.schedule import SCHEDULE, Schedule, move_to_time_zone, sync_meetups, today_in
@@ -347,6 +348,7 @@ async def create_group(body: GroupCreate, user: CurrentUser, session: SessionDep
     session.add(group)
     await session.flush()
     session.add(GroupMember(group_id=group.id, user_id=user.id, role=GroupRole.OWNER))
+    await achievements.earn(session, Achievement.START_GROUP, user.id)
     await session.commit()
     return await read_group(group.id, user, session)
 
@@ -437,6 +439,8 @@ async def update_group(
         group.location = changes.location or None
     if "schedule" in sent:
         group.schedule = changes.schedule.model_dump(mode="json") if changes.schedule else None
+        if changes.schedule:
+            await achievements.earn(session, Achievement.SCHEDULE_MEETUP, user.id)
     if "time_zone" in sent and changes.time_zone:
         await move_to_time_zone(session, group, today_in(group.time_zone))
     if "plus_one_limit" in sent and changes.plus_one_limit is not None:
@@ -548,6 +552,15 @@ async def accept_group_invite(
         .values(group_id=group_id, user_id=user.id, role=GroupRole.MEMBER)
         .on_conflict_do_nothing()
     )
+    await achievements.earn(session, Achievement.JOIN_GROUP, user.id)
+    await achievements.earn_recruit(session, invite.invited_by_id, user, invite.created_at)
+    runners = await session.scalars(
+        select(GroupMember.user_id).where(
+            GroupMember.group_id == group_id,
+            GroupMember.role.in_([GroupRole.OWNER, GroupRole.ADMIN]),
+        )
+    )
+    await achievements.earn_counted(session, achievements.Counter.GROUP_SIZE, runners)
     await session.delete(invite)
     await session.commit()
     return await read_group(group_id, user, session)

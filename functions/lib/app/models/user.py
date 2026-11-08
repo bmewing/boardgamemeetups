@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import ARRAY, DateTime, Enum, Index, String, func, text
+from sqlalchemy import ARRAY, DateTime, Enum, ForeignKey, Index, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -71,6 +71,11 @@ class User(Base):
     # A banned account keeps its data but every request it makes is refused.
     banned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ban_reason: Mapped[str | None] = mapped_column(String(500))
+    # Who brought this person to the app: the invite they accepted was made before their
+    # account was (app.achievements.earn_recruit). Set once.
+    referred_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
     # When the account last used the app, to the nearest few minutes (see app.auth).
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

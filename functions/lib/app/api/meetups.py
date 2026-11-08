@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, StringConstraints
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import ics, notify
+from app import achievements, ics, notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
@@ -39,6 +39,7 @@ from app.models import (
     User,
     UserGame,
 )
+from app.pieces import Achievement
 from app.plays import fill_unlogged, recently_played
 from app.recommend import Answer, Person, rollup, score
 from app.rsvp import save_answer
@@ -222,6 +223,7 @@ async def add_meetup(
         status=MeetupStatus.SCHEDULED,
     )
     session.add(meetup)
+    await achievements.earn(session, Achievement.SCHEDULE_MEETUP, user.id)
     await session.commit()
     return await _read(session, meetup, group, me, user)
 

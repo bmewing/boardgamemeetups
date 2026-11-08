@@ -16,7 +16,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import notify
+from app import achievements, notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
@@ -38,6 +38,7 @@ from app.models import (
     User,
     UserGame,
 )
+from app.pieces import Achievement
 from app.plays import going
 
 router = APIRouter(tags=["votes"])
@@ -332,6 +333,7 @@ async def vote(
         .values(nomination_id=nomination.id, user_id=user.id)
         .on_conflict_do_nothing()
     )
+    await achievements.earn(session, Achievement.VOTE, user.id)
     await session.commit()
     return await vote_state(session, meetup, group, me, user)
 
@@ -379,6 +381,12 @@ async def lock_pick(
     for nomination in chosen:
         nomination.picked = True
     meetup.picks_locked_at = datetime.now(UTC)
+    await achievements.earn(session, Achievement.LOCK_PICK, user.id)
+    await achievements.earn(
+        session,
+        Achievement.NOMINATE_PICKED,
+        *(n.nominated_by_id for n in chosen if n.nominated_by_id is not None),
+    )
     coming = (await going(session, meetup.id))[0]
     owners = await _owners_going(session, coming, [n.game_id for n in chosen])
     for nomination in chosen:
@@ -389,6 +397,9 @@ async def lock_pick(
                     game_id=nomination.game_id,
                     user_id=owners[nomination.game_id][0].id,
                 )
+            )
+            await achievements.earn(
+                session, Achievement.BRING_GAME, owners[nomination.game_id][0].id
             )
     await session.commit()
     result = await vote_state(session, meetup, group, me, user)
@@ -459,6 +470,7 @@ async def bring_game(
             set_={"user_id": bringer},
         )
     )
+    await achievements.earn(session, Achievement.BRING_GAME, bringer)
     await session.commit()
     result = await vote_state(session, meetup, group, me, user)
     if bringer != previous:

@@ -6,11 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 from sqlalchemy import select
 
-from app import catalog
+from app import achievements, catalog
 from app.auth import CurrentUser
 from app.bgg import BggClient, BggError
 from app.db import SessionDep
 from app.models import CUSTOM_GAME_IDS, Game, Ownership, Source, UserGame
+from app.pieces import Achievement
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -165,6 +166,7 @@ async def add_custom_game(body: CustomGameIn, user: CurrentUser, session: Sessio
             moods=[],
         )
     )
+    await achievements.earn(session, Achievement.ADD_GAME, user.id)
     await session.commit()
     await session.refresh(game)
     return GameDetail.from_game(game)

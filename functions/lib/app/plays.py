@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import achievements
 from app.models import (
     BringAssignment,
     Game,
@@ -26,6 +27,7 @@ from app.models import (
     Source,
     UserGame,
 )
+from app.pieces import Achievement
 
 COOP_MECHANIC = "Cooperative Game"
 # A date with a locked pick that nobody logs is taken as played as picked after this long.
@@ -127,8 +129,28 @@ async def save_log(
             new_pairs.append((user_id, line.game_id))
     await session.flush()
     await _count(session, new_pairs, 1)
+    await _earn_from_log(session, attendees, plays)
     meetup.logged_at = datetime.now(UTC)
     meetup.log_assumed = assumed
+
+
+async def _earn_from_log(
+    session: AsyncSession, attendees: Sequence[uuid.UUID], plays: Sequence[PlayLine]
+) -> None:
+    """Whoever won, or has now come to enough nights, earns it, and so does whoever brought
+    them to the app. Won counts the same way the log does: a player marked as a winner, or
+    everyone at a co-op table that won."""
+    winners = [
+        u
+        for line in plays
+        for u in line.players
+        if (line.coop_won if line.coop else u in line.winners)
+    ]
+    coop_winners = [u for line in plays if line.coop and line.coop_won for u in line.players]
+    await achievements.earn(session, Achievement.WIN_GAME, *winners)
+    await achievements.earn(session, Achievement.COOP_WIN, *coop_winners)
+    await achievements.earn_counted(session, achievements.Counter.NIGHTS, attendees)
+    await achievements.earn_recruits_attending(session, attendees)
 
 
 async def fill_unlogged(session: AsyncSession, group: Group) -> None:

@@ -8,6 +8,7 @@ import {
   useTurnOffInviteLink,
 } from '../api/friends'
 import { plural } from './userGameFields'
+import { UnlockHint } from './achievements/UnlockHint'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
 
@@ -62,6 +63,7 @@ export function InviteLinks() {
         Anyone who opens a link becomes your friend as soon as they sign in, with no request to
         answer. Links work for 30 days; turn one off if it ends up somewhere it shouldn't.
       </Text>
+      <UnlockHint achievement="recruit" text="someone new to the site signs up with your link" />
       {links.data?.map((link) => (
         <LinkRow key={link.id} link={link} />
       ))}

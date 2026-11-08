@@ -17,6 +17,7 @@ from pydantic import Field, StringConstraints, TypeAdapter
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import achievements
 from app.bgg import CollectionEntry
 from app.models import (
     Game,
@@ -28,6 +29,7 @@ from app.models import (
     UserGame,
     is_custom_id,
 )
+from app.pieces import Achievement
 
 # The UserGame columns a user (or an import) can set, with what each must hold.
 WishlistPriority = Annotated[int, Field(ge=1, le=5)]
@@ -239,6 +241,7 @@ async def apply_changes(
         )
     }
     touched: list[int] = []
+    added = teaches = False
     for game_id, game_changes in by_game.items():
         if game_id not in known:
             result.skipped.append(Skipped(game_id, None, "unknown game"))
@@ -259,13 +262,23 @@ async def apply_changes(
         if row is None:
             row = UserGame(user_id=user.id, game_id=game_id, source=source, **merged)
             session.add(row)
+            added = True
         else:
             for name, value in updates.items():
                 setattr(row, name, value)
         result.applied += len(updates)
         touched.append(game_id)
+        teaches = teaches or bool(merged["can_teach"])
 
     await forget_removals(session, user.id, touched)
+    if touched:
+        await achievements.earn(session, Achievement.IMPORT_COLLECTION, user.id)
+        await session.flush()
+        await achievements.earn_counted(session, achievements.Counter.RATED, [user.id])
+    if added:
+        await achievements.earn(session, Achievement.ADD_GAME, user.id)
+    if teaches:
+        await achievements.earn(session, Achievement.CAN_TEACH, user.id)
     if source is Source.BGG:
         user.bgg_pulled_at = datetime.now(UTC)
     await session.commit()

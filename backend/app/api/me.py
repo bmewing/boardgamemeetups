@@ -3,16 +3,18 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
+from pydantic import AfterValidator, BaseModel, StringConstraints
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import achievements
 from app.auth import TIME_ZONES, CurrentUser
 from app.db import SessionDep
 from app.email import EmailKind
 from app.groups import hand_over_groups
 from app.models import CollectionVisibility, User
-from app.pieces import Piece, PieceColor
+from app.pieces import Achievement, Piece, PieceColor
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -45,9 +47,27 @@ BggUsername = Annotated[
 ]
 
 
-class UserRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class AchievementRead(BaseModel):
+    achievement: Achievement
+    earned_at: datetime | None  # null: not earned yet
+    new: bool  # earned since they last looked
+    progress: int | None  # counted ones only: how far along, up to the goal
+    goal: int | None
 
+
+class PieceRead(BaseModel):
+    piece: Piece
+    unlocked_by: Achievement | None  # null: everyone has it from the start
+    unlocked: bool
+
+
+class ColorRead(BaseModel):
+    color: PieceColor
+    unlocked_by: Achievement | None  # null: everyone has it from the start
+    unlocked: bool
+
+
+class UserRead(BaseModel):
     id: uuid.UUID
     email: str | None
     display_name: str
@@ -61,6 +81,55 @@ class UserRead(BaseModel):
     collection_visibility: CollectionVisibility
     email_opt_outs: list[EmailKind]  # kinds of email turned off
     is_admin: bool  # can open the admin portal
+    achievements: list[AchievementRead]  # every one, in the backend's order
+    pieces: list[PieceRead]  # every piece, in the backend's order, and which they can pick
+    colors: list[ColorRead]
+
+    @classmethod
+    async def of(cls, session: AsyncSession, user: User) -> "UserRead":
+        standing = await achievements.achievements_of(session, user.id)
+        earned = {e.achievement for e in standing if e.earned_at is not None}
+        return cls(
+            id=user.id,
+            email=user.email,
+            display_name=user.display_name,
+            avatar_url=user.avatar_url,
+            piece=user.piece,
+            piece_color=user.piece_color,
+            time_zone=user.time_zone,
+            discord_username=user.discord_username,
+            bgg_username=user.bgg_username,
+            bgg_pulled_at=user.bgg_pulled_at,
+            collection_visibility=user.collection_visibility,
+            email_opt_outs=[EmailKind(kind) for kind in user.email_opt_outs],
+            is_admin=user.is_admin,
+            achievements=[
+                AchievementRead(
+                    achievement=e.achievement,
+                    earned_at=e.earned_at,
+                    new=e.new,
+                    progress=e.progress,
+                    goal=e.goal,
+                )
+                for e in standing
+            ],
+            pieces=[
+                PieceRead(
+                    piece=piece,
+                    unlocked_by=(needs := achievements.PIECE_UNLOCKED_BY.get(piece)),
+                    unlocked=needs is None or needs in earned,
+                )
+                for piece in Piece
+            ],
+            colors=[
+                ColorRead(
+                    color=color,
+                    unlocked_by=(needs := achievements.COLOR_UNLOCKED_BY.get(color)),
+                    unlocked=needs is None or needs in earned,
+                )
+                for color in PieceColor
+            ],
+        )
 
 
 class UserUpdate(BaseModel):
@@ -78,11 +147,13 @@ CLEARABLE = {"bgg_username", "piece", "piece_color"}
 
 
 @router.get("")
-async def read_me(user: CurrentUser) -> UserRead:
-    return UserRead.model_validate(user)
+async def read_me(user: CurrentUser, session: SessionDep) -> UserRead:
+    return await UserRead.of(session, user)
 
 
 NAME_TAKEN = HTTPException(status.HTTP_409_CONFLICT, "That name is taken. Try another.")
+PIECE_LOCKED = HTTPException(status.HTTP_403_FORBIDDEN, "You haven't unlocked that piece yet.")
+COLOR_LOCKED = HTTPException(status.HTTP_403_FORBIDDEN, "You haven't unlocked that color yet.")
 
 
 @router.patch("")
@@ -95,6 +166,23 @@ async def update_me(changes: UserUpdate, user: CurrentUser, session: SessionDep)
         )
         if clash is not None:
             raise NAME_TAKEN
+    # A piece or color someone already has stays theirs, even one that has since been locked.
+    if (
+        changes.piece is not None
+        and changes.piece != user.piece
+        and not await achievements.has_earned(
+            session, user.id, achievements.PIECE_UNLOCKED_BY.get(changes.piece)
+        )
+    ):
+        raise PIECE_LOCKED
+    if (
+        changes.piece_color is not None
+        and changes.piece_color != user.piece_color
+        and not await achievements.has_earned(
+            session, user.id, achievements.COLOR_UNLOCKED_BY.get(changes.piece_color)
+        )
+    ):
+        raise COLOR_LOCKED
     for field, value in changes.model_dump(exclude_unset=True).items():
         if field == "email_opt_outs" and value is not None:
             user.email_opt_outs = sorted(set(value))
@@ -106,7 +194,15 @@ async def update_me(changes: UserUpdate, user: CurrentUser, session: SessionDep)
         await session.rollback()
         raise NAME_TAKEN from exc
     await session.refresh(user)
-    return UserRead.model_validate(user)
+    return await UserRead.of(session, user)
+
+
+@router.post("/achievements/seen")
+async def saw_achievements(user: CurrentUser, session: SessionDep) -> UserRead:
+    """They've seen what they earned, so it stops being marked new."""
+    await achievements.mark_seen(session, user.id)
+    await session.commit()
+    return await UserRead.of(session, user)
 
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
