@@ -51,13 +51,15 @@ function renderPerson(profile: PersonProfile, games: SharedGame[] = []) {
   )
 }
 
+const noAchievements = { achievement_count: 0, recent_achievements: [] }
+
 describe('PersonPage', () => {
   beforeEach(() => {
     signIn()
   })
 
   it("shows a friend's owned games, then their wishlist", async () => {
-    renderPerson({ person: ben, relation: 'friends', games_visible: true }, [
+    renderPerson({ person: ben, relation: 'friends', games_visible: true, ...noAchievements }, [
       shared(1, 'Azul', { ownership: 'owned', rating: 8, can_teach: true, teach_minutes: 10 }),
       shared(2, 'Brass', { wishlist_priority: 1 }),
     ])
@@ -74,14 +76,19 @@ describe('PersonPage', () => {
   })
 
   it("says so when their games aren't shared with you", async () => {
-    renderPerson({ person: ben, relation: 'outgoing', games_visible: false })
+    renderPerson({ person: ben, relation: 'outgoing', games_visible: false, ...noAchievements })
 
     expect(await screen.findByText("Ben doesn't share their games with you.")).toBeInTheDocument()
     expect(screen.getByText('Request sent')).toBeInTheDocument()
   })
 
   it("sends a friend request to someone you aren't friends with", async () => {
-    let profile: PersonProfile = { person: ben, relation: 'none', games_visible: false }
+    let profile: PersonProfile = {
+      person: ben,
+      relation: 'none',
+      games_visible: false,
+      ...noAchievements,
+    }
     let sent: unknown
     mockApi({
       [`GET /api/people/${BEN_ID}`]: () => Response.json(profile),
@@ -106,7 +113,7 @@ describe('PersonPage', () => {
   })
 
   it('offers no friend request to a friend', async () => {
-    renderPerson({ person: ben, relation: 'friends', games_visible: true })
+    renderPerson({ person: ben, relation: 'friends', games_visible: true, ...noAchievements })
 
     expect(await screen.findByText('Friends')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add friend' })).not.toBeInTheDocument()

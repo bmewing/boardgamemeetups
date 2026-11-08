@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import ics
+from app import achievements, ics
 from app.auth import CurrentUser
 from app.calendar import meetup_event
 from app.db import SessionDep
@@ -26,6 +26,7 @@ from app.models import (
     RsvpResponse,
     User,
 )
+from app.pieces import Achievement
 from app.plays import fill_unlogged
 from app.schedule import sync_meetups
 
@@ -77,6 +78,7 @@ async def make_calendar_feed(user: CurrentUser, session: SessionDep) -> Calendar
     await _turn_off(session, user)
     feed = CalendarFeed(token=secrets.token_urlsafe(24), user_id=user.id)
     session.add(feed)
+    await achievements.earn(session, Achievement.STAY_IN_LOOP, user.id)
     await session.commit()
     await session.refresh(feed)
     return CalendarFeedRead(token=feed.token, created_at=feed.created_at)

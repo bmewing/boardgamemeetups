@@ -1,8 +1,8 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { profile } from '../test/fixtures'
+import { earnedProfile, profile } from '../test/fixtures'
 import { fetchMock, kindeAuth, mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
 import { ProfilePage } from './ProfilePage'
@@ -37,7 +37,7 @@ describe('ProfilePage', () => {
 
   it('picks a piece and a color separately, each saving on its own', async () => {
     const sent: unknown[] = []
-    let current = profile
+    let current = { ...profile, ...earnedProfile(['schedule_meetup', 'rate_games']) }
     mockApi({
       'GET /api/me': () => Response.json(current),
       'PATCH /api/me': async (request) => {
@@ -60,6 +60,49 @@ describe('ProfilePage', () => {
 
     expect(sent).toEqual([{ piece: 'top_hat' }, { piece_color: 'plum' }])
     expect(screen.getByRole('img', { name: 'Plum top hat' })).toBeInTheDocument()
+  })
+
+  it("won't pick a locked piece or color, and says how to unlock it", async () => {
+    mockApi({ 'GET /api/me': () => Response.json({ ...profile, piece_color: 'teal' }) })
+    renderWithProviders(<ProfilePage />)
+
+    const rook = await screen.findByRole('radio', { name: /^Rook \(locked/ })
+    expect(rook).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(rook)
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Rook is locked. Start a group to unlock it.',
+    )
+    await userEvent.click(screen.getByRole('radio', { name: /^Sky \(locked/ }))
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Sky is locked. Link Discord or subscribe to the calendar feed to unlock it.',
+    )
+
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ method: 'PATCH' }),
+      undefined,
+    )
+    expect(screen.getByText('8 of 27 pieces and colors unlocked')).toBeInTheDocument()
+  })
+
+  it('shows achievements chapter by chapter, marking new unlocks', async () => {
+    const earned = { ...profile, ...earnedProfile(['start_group', 'rsvp_yes'], ['start_group']) }
+    mockApi({ 'GET /api/me': () => Response.json(earned) })
+    renderWithProviders(<ProfilePage />)
+
+    expect(await screen.findByRole('radio', { name: 'Rook' })).toHaveTextContent('New')
+    expect(screen.getByRole('radio', { name: 'Race car' })).not.toHaveTextContent('New')
+    expect(screen.getByText('2 of 25 earned. Most unlock a piece or a color.')).toBeInTheDocument()
+
+    const running = screen.getByRole('region', { name: 'Running a group' })
+    expect(within(running).getByText('1 / 5')).toBeInTheDocument()
+    expect(within(running).getByText('Founder')).toHaveTextContent('(earned)')
+    const quorum = within(running).getByText('Quorum').closest('li')!
+    expect(quorum).toHaveTextContent('Have 4 people in a group you run · unlocks the wheelbarrow')
+    expect(quorum).toHaveTextContent('0 / 4 so far')
+    expect(within(quorum).getByRole('link', { name: 'Invite people →' })).toHaveAttribute(
+      'href',
+      '/groups',
+    )
   })
 
   it('blocks saving a blank display name', async () => {

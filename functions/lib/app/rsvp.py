@@ -5,6 +5,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import achievements
 from app.models import (
     Group,
     Meetup,
@@ -15,6 +16,7 @@ from app.models import (
     RsvpResponse,
     User,
 )
+from app.pieces import Achievement
 from app.plays import drop_bringing
 
 # Rules out every other mood.
@@ -64,7 +66,9 @@ async def save_answer(
                 [{"meetup_id": meetup.id, "user_id": user.id, "mood_id": m} for m in moods]
             )
         )
-    if response != RsvpResponse.YES:
+    if response == RsvpResponse.YES:
+        await achievements.earn(session, Achievement.RSVP_YES, user.id)
+    else:
         await drop_bringing(session, meetup.id, user.id)
     await session.commit()
 

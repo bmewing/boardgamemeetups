@@ -23,6 +23,7 @@ import {
   useSendFriendRequest,
 } from '../api/friends'
 import { GameCard } from '../components/GameCard'
+import { ACHIEVEMENTS } from '../components/pieces/shapes'
 import {
   isOwned,
   isWanted,
@@ -184,6 +185,24 @@ function Standing({ profile }: { profile: PersonProfile }) {
   )
 }
 
+/** How many achievements they've earned, and their latest few. */
+function Achieved({ profile }: { profile: PersonProfile }) {
+  if (profile.achievement_count === 0) return null
+  return (
+    <Group gap={6} mt={2}>
+      <Text size="sm" c="dimmed">
+        {profile.achievement_count}{' '}
+        {profile.achievement_count === 1 ? 'achievement' : 'achievements'}
+      </Text>
+      {profile.recent_achievements.map((achievement) => (
+        <Badge key={achievement} variant="light" size="sm">
+          {ACHIEVEMENTS[achievement].title}
+        </Badge>
+      ))}
+    </Group>
+  )
+}
+
 export function PersonPage() {
   const { userId = '' } = useParams()
   const profile = usePerson(userId)
@@ -209,6 +228,7 @@ export function PersonPage() {
           <PlayerPiece person={person} size={56} label="" />
           <div>
             <Title order={2}>{person.display_name}</Title>
+            <Achieved profile={profile.data} />
             {relation === 'self' && (
               <Text size="sm" c="dimmed">
                 This is how others see your games.{' '}

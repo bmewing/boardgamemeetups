@@ -9,6 +9,7 @@
 }
 
 .choice {
+  position: relative;
   display: grid;
   place-items: center;
   width: 52px;
@@ -33,6 +34,35 @@
     outline: 2px solid var(--bgg-teal);
     outline-offset: 2px;
   }
+
+  &[data-locked] {
+    cursor: help;
+  }
+
+  &[data-locked]:hover {
+    transform: none;
+  }
+}
+
+/* A locked piece: a faded silhouette (the padlock is achievements/LockBadge). */
+.lockedDrawing {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
+.newBadge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bgg-coral);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 .colors {
@@ -42,6 +72,7 @@
 }
 
 .swatch {
+  position: relative;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -50,6 +81,11 @@
 
   &:hover {
     transform: scale(1.1);
+  }
+
+  &[data-locked] {
+    cursor: help;
+    opacity: 0.45;
   }
 
   &[data-selected] {

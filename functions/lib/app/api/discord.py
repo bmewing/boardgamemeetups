@@ -8,6 +8,7 @@ from fastapi import APIRouter, Header, HTTPException, Path, Request, status
 from pydantic import BaseModel, StringConstraints
 from sqlalchemy import update
 
+from app import achievements
 from app.api.me import UserRead
 from app.auth import CurrentUser
 from app.config import get_settings
@@ -16,6 +17,7 @@ from app.discord.client import DiscordDep
 from app.discord.interactions import handle, signature_ok
 from app.discord.link import read_token
 from app.models import User
+from app.pieces import Achievement
 
 router = APIRouter(tags=["discord"])
 
@@ -81,9 +83,10 @@ async def link_discord(body: DiscordLinkIn, user: CurrentUser, session: SessionD
     )
     user.discord_id = account.id
     user.discord_username = account.username
+    await achievements.earn(session, Achievement.STAY_IN_LOOP, user.id)
     await session.commit()
     await session.refresh(user)
-    return UserRead.model_validate(user)
+    return await UserRead.of(session, user)
 
 
 @router.delete("/me/discord")
@@ -92,4 +95,4 @@ async def unlink_discord(user: CurrentUser, session: SessionDep) -> UserRead:
     user.discord_username = None
     await session.commit()
     await session.refresh(user)
-    return UserRead.model_validate(user)
+    return await UserRead.of(session, user)

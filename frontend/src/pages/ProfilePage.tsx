@@ -20,6 +20,7 @@ import type { UserProfile } from '../api/client'
 import { useUnlinkDiscord } from '../api/discord'
 import { EMAIL_KINDS } from '../api/email'
 import { useDeleteMe, useMe, useUpdateMe } from '../api/me'
+import { AchievementList } from '../components/achievements/AchievementList'
 import { PiecePicker } from '../components/pieces/PiecePicker'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
 import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
@@ -224,6 +225,8 @@ export function ProfilePage() {
       <ProfileForm profile={me.data} />
       <Divider my="md" />
       <PiecePicker profile={me.data} />
+      <Divider my="md" />
+      <AchievementList profile={me.data} />
       <Divider my="md" />
       <EmailSettings profile={me.data} />
       <Divider my="md" />

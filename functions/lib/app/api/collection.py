@@ -11,7 +11,7 @@ from sqlalchemy import any_, delete, func, literal, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import base_games, catalog, collection
+from app import achievements, base_games, catalog, collection
 from app.api.games import BggDep, GameSummary
 from app.auth import CurrentUser
 from app.bgg import BggError, BggStillPreparing, BggUnknownUser
@@ -53,6 +53,7 @@ from app.models import (
     UserGameMood,
     UserGamePlayerCount,
 )
+from app.pieces import Achievement
 
 router = APIRouter(tags=["collection"])
 
@@ -327,6 +328,7 @@ async def update_my_game(
         )
         session.add(row)
         await collection.forget_removals(session, user.id, [game_id])
+        await achievements.earn(session, Achievement.ADD_GAME, user.id)
     else:
         for name, value in updates.items():
             setattr(row, name, value)
@@ -337,6 +339,11 @@ async def update_my_game(
     if not updates and changes.model_fields_set & set(LIST_FIELDS):
         # Only the lists changed, so the row's own onupdate wouldn't fire.
         row.updated_at = func.now()
+    if row.can_teach:
+        await achievements.earn(session, Achievement.CAN_TEACH, user.id)
+    if "rating" in updates:
+        await session.flush()
+        await achievements.earn_counted(session, achievements.Counter.RATED, [user.id])
     await session.commit()
     await session.refresh(row)
     return UserGameRead.build(row, game)

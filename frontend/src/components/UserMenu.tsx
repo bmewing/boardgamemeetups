@@ -25,11 +25,12 @@ export function UserMenu() {
 
   const name = me.data?.display_name ?? ''
   const asking = friends.data?.incoming.length ?? 0
+  const earnedNew = me.data?.achievements.some((a) => a.new) ?? false
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
         <UnstyledButton aria-label="Account menu">
-          <Indicator disabled={asking === 0} color="red" size={10} offset={4}>
+          <Indicator disabled={asking === 0 && !earnedNew} color="red" size={10} offset={4}>
             {me.data ? (
               <PlayerPiece person={me.data} size={38} label="" />
             ) : (
@@ -56,7 +57,17 @@ export function UserMenu() {
         >
           Friends
         </Menu.Item>
-        <Menu.Item component={Link} to="/profile">
+        <Menu.Item
+          component={Link}
+          to="/profile"
+          rightSection={
+            earnedNew && (
+              <Badge size="sm" color="red" aria-label="New achievements">
+                New
+              </Badge>
+            )
+          }
+        >
           Profile
         </Menu.Item>
         {me.data?.is_admin && (

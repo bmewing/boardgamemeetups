@@ -1,6 +1,7 @@
 """ORM models. Import every model module here so Alembic autogenerate sees it."""
 
 from app.db import Base
+from app.models.achievement import UserAchievement
 from app.models.bgg_throttle import BggThrottle
 from app.models.calendar import CalendarFeed
 from app.models.discord import DiscordCard, DiscordChannel
@@ -73,6 +74,7 @@ __all__ = [
     "RsvpResponse",
     "Source",
     "User",
+    "UserAchievement",
     "UserBlock",
     "UserGame",
     "UserGameMood",

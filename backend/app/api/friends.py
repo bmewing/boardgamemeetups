@@ -11,7 +11,7 @@ from sqlalchemy import Select, case, delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import collection, notify
+from app import achievements, collection, notify
 from app.api.collection import PlayerCountRead
 from app.api.games import GameSummary
 from app.auth import CurrentUser
@@ -33,10 +33,11 @@ from app.models import (
     Ownership,
     PlaytimeFeel,
     User,
+    UserAchievement,
     UserBlock,
     UserGame,
 )
-from app.pieces import Piece, PieceColor
+from app.pieces import Achievement, Piece, PieceColor
 
 router = APIRouter(tags=["friends"])
 
@@ -112,6 +113,8 @@ class PersonProfile(BaseModel):
     person: PersonRead
     relation: Relation
     games_visible: bool
+    achievement_count: int
+    recent_achievements: list[Achievement]  # newest first, a few at most
 
 
 class SharedAnswers(BaseModel):
@@ -273,6 +276,8 @@ async def _accept(session: AsyncSession, me: uuid.UUID, other: uuid.UUID) -> Non
     )
     if result.rowcount == 0:  # type: ignore[attr-defined]
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No friend request from this person")
+    await achievements.earn(session, Achievement.MAKE_FRIEND, me, other)
+    await achievements.earn_counted(session, achievements.Counter.FRIENDS, [me, other])
     await session.commit()
 
 
@@ -463,6 +468,9 @@ async def accept_invite(token: InviteToken, user: CurrentUser, session: SessionD
             )
         )
         link.use_count += 1
+        await achievements.earn(session, Achievement.MAKE_FRIEND, user.id, owner.id)
+        await achievements.earn_counted(session, achievements.Counter.FRIENDS, [user.id, owner.id])
+        await achievements.earn_recruit(session, owner.id, user, link.created_at)
         await session.commit()
     return RelationRead(person=PersonRead.of(owner), relation=Relation.FRIENDS)
 
@@ -526,16 +534,28 @@ async def search_people(
     ]
 
 
+RECENT_ACHIEVEMENTS = 3
+
+
 @router.get("/people/{user_id}")
 async def read_person(user_id: UserId, user: CurrentUser, session: SessionDep) -> PersonProfile:
     other = await _get_person(session, user_id)
     if await blocked_either_way(session, user.id, other.id):
         raise PERSON_NOT_FOUND
     current = await relation(session, user.id, other.id)
+    earned = list(
+        await session.scalars(
+            select(UserAchievement.achievement)
+            .where(UserAchievement.user_id == other.id)
+            .order_by(UserAchievement.earned_at.desc(), UserAchievement.achievement)
+        )
+    )
     return PersonProfile(
         person=PersonRead.of(other),
         relation=current,
         games_visible=can_see_games(other, current),
+        achievement_count=len(earned),
+        recent_achievements=earned[:RECENT_ACHIEVEMENTS],
     )
 
 
