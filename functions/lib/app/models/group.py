@@ -37,6 +37,13 @@ def _string_enum[E: StrEnum](enum: type[E]) -> Enum:
     )
 
 
+class GroupKind(StrEnum):
+    """What a group plays. Chosen when the group is made and fixed after that."""
+
+    BOARD_GAMES = "board_games"
+    RPG = "rpg"
+
+
 class GroupRole(StrEnum):
     OWNER = "owner"
     ADMIN = "admin"
@@ -64,6 +71,13 @@ class Group(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(80))
     description: Mapped[str | None] = mapped_column(Text)
+    kind: Mapped[GroupKind] = mapped_column(
+        _string_enum(GroupKind),
+        default=GroupKind.BOARD_GAMES,
+        server_default=GroupKind.BOARD_GAMES.value,
+    )
+    # RPG groups: the system they're playing now, if they've said.
+    rpg_system_id: Mapped[int | None] = mapped_column(ForeignKey("rpg_systems.id"))
     # The owner's time zone when the group was made. Dates are kept as local times here.
     time_zone: Mapped[str] = mapped_column(String(64))
     # Happy to split into several tables, rather than everyone playing one game.
@@ -102,6 +116,8 @@ class GroupMember(Base):
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
     )
     role: Mapped[GroupRole] = mapped_column(_string_enum(GroupRole))
+    # RPG groups: runs the game. Any number of members can be GMs.
+    is_gm: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -163,6 +179,9 @@ class Meetup(Base):
     # from the pick and the yes answers because nobody logged it.
     logged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     log_assumed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # RPG groups: what happened, written by any member once the date has started.
+    recap: Mapped[str | None] = mapped_column(Text)
+    recap_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # When the day-before reminder went out; cleared if the date or time moves.
     reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

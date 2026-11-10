@@ -44,6 +44,12 @@ export function UserMenu() {
         <Menu.Item component={Link} to="/collection">
           My games
         </Menu.Item>
+        <Menu.Item component={Link} to="/characters">
+          My characters
+        </Menu.Item>
+        <Menu.Item component={Link} to="/characters?tab=systems">
+          My RPG systems
+        </Menu.Item>
         <Menu.Item
           component={Link}
           to="/friends"

@@ -36,11 +36,13 @@ import {
   useGroupGames,
   useInviteToGroup,
   useRemoveMember,
+  useSetGm,
   useUpdateGroup,
 } from '../api/groups'
 import { useFriends } from '../api/friends'
 import { useMe } from '../api/me'
 import { useMoods } from '../api/collection'
+import type { RpgSystemSummary } from '../api/rpg'
 import { GameCard } from '../components/GameCard'
 import { widenedLabel } from '../components/gameFacts'
 import { RollupFacts } from '../components/Rollup'
@@ -58,6 +60,8 @@ import { AddFriendButton } from '../components/AddFriendButton'
 import { MeetupForm } from '../components/MeetupForm'
 import { PersonPicker } from '../components/PersonPicker'
 import { PersonRow } from '../components/PersonRow'
+import { PartyTab } from '../components/rpg/PartyTab'
+import { RpgSystemSearchSelect } from '../components/rpg/RpgSystemSearchSelect'
 import { ScheduleEditor } from '../components/ScheduleEditor'
 import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { tableFit } from '../components/tableFit'
@@ -180,14 +184,16 @@ function DatesTab({ group }: { group: GroupData }) {
 
 function MemberMenu({ group, member, meId }: { group: GroupData; member: Member; meId: string }) {
   const change = useChangeRole(group.id)
+  const setGm = useSetGm(group.id)
   const remove = useRemoveMember(group.id)
   const isOwner = group.my_role === 'owner'
+  const canMarkGm = group.kind === 'rpg' && runsGroup(group.my_role)
   const canRemove =
     member.person.id !== meId &&
     member.role !== 'owner' &&
     (isOwner || (group.my_role === 'admin' && member.role === 'member'))
   const canPromote = isOwner && member.role !== 'owner'
-  if (!canRemove && !canPromote) return null
+  if (!canRemove && !canPromote && !canMarkGm) return null
 
   const name = member.person.display_name
   return (
@@ -198,6 +204,13 @@ function MemberMenu({ group, member, meId }: { group: GroupData; member: Member;
         </Button>
       </Menu.Target>
       <Menu.Dropdown>
+        {canMarkGm && (
+          <Menu.Item
+            onClick={() => setGm.mutate({ userId: member.person.id, isGm: !member.is_gm })}
+          >
+            {member.is_gm ? 'Not a GM' : 'Make a GM'}
+          </Menu.Item>
+        )}
         {canPromote && member.role === 'member' && (
           <Menu.Item onClick={() => change.mutate({ userId: member.person.id, role: 'admin' })}>
             Make admin
@@ -302,7 +315,11 @@ function MembersTab({ group }: { group: GroupData }) {
           <PersonRow
             key={m.person.id}
             person={m.person}
-            note={m.role === 'member' ? undefined : ROLE_LABELS[m.role]}
+            note={
+              [m.role === 'member' ? null : ROLE_LABELS[m.role], m.is_gm ? 'GM' : null]
+                .filter(Boolean)
+                .join(' · ') || undefined
+            }
           >
             <AddFriendButton person={m.person} meId={meId} />
             <MemberMenu group={group} member={m} meId={meId} />
@@ -415,6 +432,8 @@ function SettingsTab({ group }: { group: GroupData }) {
   const [description, setDescription] = useState(group.description ?? '')
   const [timeZone, setTimeZone] = useState(group.time_zone)
   const [split, setSplit] = useState(group.willing_to_split)
+  const rpg = group.kind === 'rpg'
+  const [system, setSystem] = useState<RpgSystemSummary | null>(group.rpg_system)
   const [schedule, setSchedule] = useState<Schedule | null>(group.schedule)
   const [startTime, setStartTime] = useState(toInputTime(group.start_time))
   const [duration, setDuration] = useState(group.duration_minutes)
@@ -436,7 +455,7 @@ function SettingsTab({ group }: { group: GroupData }) {
       name,
       description,
       time_zone: timeZone,
-      willing_to_split: split,
+      ...(rpg ? { rpg_system_id: system?.id ?? null } : { willing_to_split: split }),
       schedule,
       start_time: fromInputTime(startTime),
       duration_minutes: duration,
@@ -463,12 +482,16 @@ function SettingsTab({ group }: { group: GroupData }) {
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
           />
-          <Switch
-            label="Happy to split into several tables"
-            description="Then games that seat some of the people coming (leaving at least two for another table) are suggested too."
-            checked={split}
-            onChange={(e) => setSplit(e.currentTarget.checked)}
-          />
+          {rpg ? (
+            <RpgSystemSearchSelect label="System" clearable value={system} onPick={setSystem} />
+          ) : (
+            <Switch
+              label="Happy to split into several tables"
+              description="Then games that seat some of the people coming (leaving at least two for another table) are suggested too."
+              checked={split}
+              onChange={(e) => setSplit(e.currentTarget.checked)}
+            />
+          )}
           <NumberInput
             label="Guests each member can bring"
             description="0 means no guests. Guests count toward how many are playing."
@@ -577,6 +600,11 @@ export function GroupPage() {
       <div>
         <Group gap="xs">
           <Title order={2}>{data.name}</Title>
+          {data.kind === 'rpg' && (
+            <Badge variant="light" color="grape">
+              {data.rpg_system ? data.rpg_system.name : 'RPG'}
+            </Badge>
+          )}
           {data.my_role !== 'member' && <Badge variant="light">{ROLE_LABELS[data.my_role]}</Badge>}
         </Group>
         {data.description && <Text c="dimmed">{data.description}</Text>}
@@ -585,7 +613,11 @@ export function GroupPage() {
         <Tabs.List>
           <Tabs.Tab value="dates">Dates</Tabs.Tab>
           <Tabs.Tab value="members">Members ({data.members.length})</Tabs.Tab>
-          <Tabs.Tab value="games">Games</Tabs.Tab>
+          {data.kind === 'rpg' ? (
+            <Tabs.Tab value="party">Party</Tabs.Tab>
+          ) : (
+            <Tabs.Tab value="games">Games</Tabs.Tab>
+          )}
           {runsGroup(data.my_role) && <Tabs.Tab value="settings">Settings</Tabs.Tab>}
         </Tabs.List>
         <Tabs.Panel value="dates" pt="md">
@@ -594,9 +626,15 @@ export function GroupPage() {
         <Tabs.Panel value="members" pt="md">
           <MembersTab group={data} />
         </Tabs.Panel>
-        <Tabs.Panel value="games" pt="md">
-          <GamesTab group={data} />
-        </Tabs.Panel>
+        {data.kind === 'rpg' ? (
+          <Tabs.Panel value="party" pt="md">
+            <PartyTab group={data} />
+          </Tabs.Panel>
+        ) : (
+          <Tabs.Panel value="games" pt="md">
+            <GamesTab group={data} />
+          </Tabs.Panel>
+        )}
         {runsGroup(data.my_role) && (
           <Tabs.Panel value="settings" pt="md">
             <SettingsTab group={data} />

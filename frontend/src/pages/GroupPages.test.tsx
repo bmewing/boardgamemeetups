@@ -50,6 +50,8 @@ const group: Group = {
   id: GROUP_ID,
   name: 'Thursday Crew',
   description: null,
+  kind: 'board_games',
+  rpg_system: null,
   time_zone: 'UTC',
   willing_to_split: false,
   schedule: { kind: 'weekly', every_weeks: 1, weekday: 3, starts_on: '2026-11-05' },
@@ -59,8 +61,8 @@ const group: Group = {
   plus_one_limit: 0,
   my_role: 'owner',
   members: [
-    { person: ann, role: 'owner', joined_at: '2026-11-01T00:00:00Z' },
-    { person: ben, role: 'member', joined_at: '2026-11-02T00:00:00Z' },
+    { person: ann, role: 'owner', is_gm: false, joined_at: '2026-11-01T00:00:00Z' },
+    { person: ben, role: 'member', is_gm: false, joined_at: '2026-11-02T00:00:00Z' },
   ],
   invites: [],
   upcoming: [
@@ -82,6 +84,7 @@ describe('GroupsPage', () => {
           group_id: GROUP_ID,
           group_name: 'Thursday Crew',
           group_description: null,
+          group_kind: 'board_games',
           member_count: 2,
           invited_by: ben,
           created_at: '2026-11-03T00:00:00Z',
@@ -100,6 +103,7 @@ describe('GroupsPage', () => {
               id: GROUP_ID,
               name: 'Thursday Crew',
               description: null,
+              kind: 'board_games',
               my_role: 'member',
               member_count: 3,
               next_meetup: brief,
@@ -311,8 +315,8 @@ describe('GroupPage', () => {
         ...group,
         members: [
           ...group.members,
-          { person: cat, role: 'member', joined_at: '2026-11-02T00:00:00Z' },
-          { person: dee, role: 'member', joined_at: '2026-11-02T00:00:00Z' },
+          { person: cat, role: 'member', is_gm: false, joined_at: '2026-11-02T00:00:00Z' },
+          { person: dee, role: 'member', is_gm: false, joined_at: '2026-11-02T00:00:00Z' },
         ],
       },
       {
@@ -452,9 +456,13 @@ describe('MeetupPage', () => {
   const meetup: Meetup = {
     ...brief,
     notes: 'Bring snacks',
+    recap: null,
+    recap_updated_at: null,
+    previous_recap: null,
     group: {
       id: GROUP_ID,
       name: 'Thursday Crew',
+      kind: 'board_games',
       time_zone: 'UTC',
       willing_to_split: true,
       plus_one_limit: 0,

@@ -7,6 +7,7 @@ import {
   Group,
   Modal,
   NumberInput,
+  SegmentedControl,
   Stack,
   Text,
   Textarea,
@@ -19,21 +20,26 @@ import { Link, useNavigate } from 'react-router'
 
 import {
   type GroupInviteForMe,
+  type GroupKind,
   type GroupSummary,
   useAnswerGroupInvite,
   useCreateGroup,
   useGroups,
 } from '../api/groups'
 import { useMe } from '../api/me'
+import type { RpgSystemSummary } from '../api/rpg'
 import { CalendarFeedCard } from '../components/CalendarFeedCard'
 import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
 import { formatShortDate, formatTime, ROLE_LABELS } from '../components/meetupFormat'
 import { TimeZoneSelect } from '../components/TimeZoneSelect'
+import { RpgSystemSearchSelect } from '../components/rpg/RpgSystemSearchSelect'
 import { plural } from '../components/userGameFields'
 
 function NewGroup({ opened, onClose }: { opened: boolean; onClose: () => void }) {
   const create = useCreateGroup()
   const navigate = useNavigate()
+  const [kind, setKind] = useState<GroupKind>('board_games')
+  const [system, setSystem] = useState<RpgSystemSummary | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [split, setSplit] = useState(false)
@@ -50,7 +56,9 @@ function NewGroup({ opened, onClose }: { opened: boolean; onClose: () => void })
       {
         name,
         description: description || null,
-        willing_to_split: split,
+        kind,
+        rpg_system_id: kind === 'rpg' ? (system?.id ?? null) : null,
+        willing_to_split: kind === 'board_games' && split,
         time_zone: timeZone,
         plus_one_limit: plusOnes,
       },
@@ -62,6 +70,25 @@ function NewGroup({ opened, onClose }: { opened: boolean; onClose: () => void })
     <Modal opened={opened} onClose={onClose} title="New group">
       <form onSubmit={submit}>
         <Stack>
+          <Stack gap={4}>
+            <Text size="sm" fw={500}>
+              What does the group play?
+            </Text>
+            <SegmentedControl
+              aria-label="What the group plays"
+              value={kind}
+              onChange={(v) => setKind(v as GroupKind)}
+              data={[
+                { value: 'board_games', label: 'Board games' },
+                { value: 'rpg', label: 'Tabletop RPG' },
+              ]}
+            />
+            <Text size="xs" c="dimmed">
+              {kind === 'rpg'
+                ? 'Dates, a party of characters, GMs and session recaps. This can’t be changed later.'
+                : 'Dates, game picks and votes from everyone’s collections. This can’t be changed later.'}
+            </Text>
+          </Stack>
           <TextInput
             label="Name"
             required
@@ -77,12 +104,16 @@ function NewGroup({ opened, onClose }: { opened: boolean; onClose: () => void })
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
           />
-          <Checkbox
-            label="Happy to split into several tables"
-            description="Otherwise everyone plays one game together, so only games that seat everyone coming are suggested."
-            checked={split}
-            onChange={(e) => setSplit(e.currentTarget.checked)}
-          />
+          {kind === 'rpg' ? (
+            <RpgSystemSearchSelect label="System" clearable value={system} onPick={setSystem} />
+          ) : (
+            <Checkbox
+              label="Happy to split into several tables"
+              description="Otherwise everyone plays one game together, so only games that seat everyone coming are suggested."
+              checked={split}
+              onChange={(e) => setSplit(e.currentTarget.checked)}
+            />
+          )}
           <NumberInput
             label="Guests each member can bring"
             description="0 means no guests. Guests count toward how many are playing. You can change this later."
@@ -124,8 +155,9 @@ function InviteCard({ invite }: { invite: GroupInviteForMe }) {
         </Text>
         {invite.group_description && <Text size="sm">{invite.group_description}</Text>}
         <Text size="xs" c="dimmed">
-          Joining shares your games and your answers about them, but never your notes, with the
-          group's members.
+          {invite.group_kind === 'rpg'
+            ? 'An RPG group. Joining shares what you say about RPG systems, but never your notes, with its members.'
+            : "Joining shares your games and your answers about them, but never your notes, with the group's members."}
         </Text>
         {answer.isError && (
           <Text size="sm" c="red">
@@ -167,11 +199,18 @@ function GroupCard({ group }: { group: GroupSummary }) {
       <Stack gap={4}>
         <Group justify="space-between" wrap="nowrap">
           <Text fw={600}>{group.name}</Text>
-          {group.my_role !== 'member' && (
-            <Badge size="sm" variant="light">
-              {ROLE_LABELS[group.my_role]}
-            </Badge>
-          )}
+          <Group gap={4} wrap="nowrap">
+            {group.kind === 'rpg' && (
+              <Badge size="sm" variant="light" color="grape">
+                RPG
+              </Badge>
+            )}
+            {group.my_role !== 'member' && (
+              <Badge size="sm" variant="light">
+                {ROLE_LABELS[group.my_role]}
+              </Badge>
+            )}
+          </Group>
         </Group>
         <Text size="sm" c="dimmed">
           {plural(group.member_count, 'member')}
