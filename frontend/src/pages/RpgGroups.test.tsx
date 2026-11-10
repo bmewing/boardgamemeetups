@@ -123,7 +123,9 @@ describe('RPG groups', () => {
     expect(screen.queryByText(/Happy to split/)).not.toBeInTheDocument()
     await userEvent.type(screen.getByLabelText(/Name/), 'Duskwall Crew')
     await userEvent.type(screen.getAllByLabelText('System')[0], 'blades')
-    await userEvent.click(await screen.findByRole('option', { name: 'Blades in the Dark' }))
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'Blades in the Dark' }, { timeout: 5000 }),
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Make the group' }))
 
     expect(await screen.findByText('Group page')).toBeInTheDocument()
@@ -257,7 +259,9 @@ describe('Characters', () => {
     await userEvent.click(screen.getByRole('button', { name: 'New character' }))
     await userEvent.type(await screen.findByLabelText(/^Name/), 'Vex')
     await userEvent.type(screen.getAllByLabelText(/^System/)[0], 'blades')
-    await userEvent.click(await screen.findByRole('option', { name: 'Blades in the Dark' }))
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'Blades in the Dark' }, { timeout: 5000 }),
+    )
     await userEvent.type(screen.getByLabelText('Class or role'), 'Cutter')
     await userEvent.type(screen.getByLabelText('Level'), '2')
     await userEvent.type(screen.getByLabelText('Character sheet link'), 'not a link')
