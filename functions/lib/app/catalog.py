@@ -113,6 +113,27 @@ def _is_stale(game: Game, now: datetime) -> bool:
     return now - game.details_fetched_at > timedelta(days=get_settings().game_refresh_days)
 
 
+async def refresh_collection_games(session: AsyncSession, bgg: BggClient, limit: int) -> int:
+    """Bring a batch of the games in people's collections up to date from BGG: ones never
+    fetched first, then the longest since fetched, skipping any fetched within
+    `game_refresh_days`. How many were due and asked for."""
+    cutoff = datetime.now(UTC) - timedelta(days=get_settings().game_refresh_days)
+    games = list(
+        await session.scalars(
+            select(Game)
+            .where(
+                Game.id > 0,
+                Game.id.in_(select(UserGame.game_id)),
+                or_(Game.details_fetched_at.is_(None), Game.details_fetched_at < cutoff),
+            )
+            .order_by(Game.details_fetched_at.asc().nulls_first(), Game.id)
+            .limit(limit)
+        )
+    )
+    await refresh_details(session, bgg, games)
+    return len(games)
+
+
 async def refresh_details(
     session: AsyncSession, bgg: BggClient, games: Sequence[Game], *, only_missing: bool = False
 ) -> None:

@@ -241,8 +241,8 @@ async def test_reminders_go_out_the_day_before_and_only_once(
     first = await client.post("/api/notifications/run")
     second = await client.post("/api/notifications/run")
 
-    assert first.json() == {"reminded_dates": 1, "announced_dates": 0}
-    assert second.json() == {"reminded_dates": 0, "announced_dates": 0}
+    assert first.json() == {"reminded_dates": 1, "announced_dates": 0, "refreshed_games": 0}
+    assert second.json() == {"reminded_dates": 0, "announced_dates": 0, "refreshed_games": 0}
     assert {e.to for e in outbox.sent} == {ben.email, dee.email}
     assert "you said maybe" in outbox.to(ben.email)[0].text
     assert "you haven't said whether you're coming" in outbox.to(dee.email)[0].text

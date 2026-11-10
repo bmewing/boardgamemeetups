@@ -62,6 +62,16 @@ then from `backend/`:
 uv run python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
 ```
 
+How the catalog stays current:
+
+- **Games in people's collections:** the hourly run (`/api/notifications/run`) asks BGG for up
+  to `COLLECTION_REFRESH_BATCH` (40) of them each time, games with no details first, then any
+  fetched more than `GAME_REFRESH_DAYS` (30) ago.
+- **Everything else:** refreshed when someone opens the game, if its details are that old.
+- **New games, names and rankings:** re-import a fresh ranks CSV now and then (BGG updates it
+  daily; downloading it needs a BGG sign-in, so it's done by hand). It's safe to re-run: it
+  adds new games and updates names, years and rankings, and keeps details already fetched.
+
 RPG systems come from RPGGeek, which shares BGG's API and token. Its search finds books rather
 than systems, so a system nobody has looked up before costs three throttled requests to find.
 Preload about 60 popular systems (one run takes under a minute) from `backend/`:

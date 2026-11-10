@@ -1303,7 +1303,8 @@ export interface paths {
          * Run Scheduled
          * @description Called every hour by a GitHub Actions workflow. Open to anyone: it only does what's
          *     due (tops up each group's dates, fills in unlogged plays, sends reminders, posts Discord
-         *     cards a week ahead), and never sends a reminder or posts a card twice.
+         *     cards a week ahead, refreshes a batch of collection games from BGG), and never sends a
+         *     reminder or posts a card twice.
          */
         post: operations["run_scheduled_api_notifications_run_post"];
         delete?: never;
@@ -3018,6 +3019,8 @@ export interface components {
             reminded_dates: number;
             /** Announced Dates */
             announced_dates: number;
+            /** Refreshed Games */
+            refreshed_games: number;
         };
         /** SharedGameRead */
         SharedGameRead: {

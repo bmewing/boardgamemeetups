@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     bgg_min_interval_seconds: float = 5.0
     # Cached game details older than this are re-fetched when next viewed.
     game_refresh_days: int = 30
+    # Games in people's collections refreshed from BGG by each hourly run (two BGG requests
+    # at 20 a time), missing details first, then the stalest. Only collection games: the
+    # rest of the catalog comes from BGG's ranks file and is refreshed when viewed.
+    collection_refresh_batch: int = 40
 
     # Where the web app lives, for links back to it from calendar events. Blank: no links.
     app_url: str = ""
