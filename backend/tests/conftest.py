@@ -10,7 +10,9 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+from app.api.games import get_bgg_client
 from app.auth import get_jwks_client
+from app.bgg import BggError
 from app.config import get_settings
 from app.db import get_session
 from app.discord.client import Edit, Message, get_discord
@@ -115,6 +117,22 @@ class Outbox:
 
     def to(self, address: str) -> list[Email]:
         return [email for email in self.sent if email.to == address]
+
+
+class OfflineBgg:
+    """Stands in for BGG where a test doesn't bring its own fake: every request fails, as
+    when BGG is down. Tests that need answers use `tests.test_games_api.bgg`."""
+
+    async def _down(self, *_args: object, **_kwargs: object) -> list[object]:
+        raise BggError("offline in tests")
+
+    search = things = collection = _down
+
+
+@pytest.fixture(autouse=True)
+def offline_bgg() -> None:
+    """No test ever talks to BGG."""
+    app.dependency_overrides[get_bgg_client] = lambda: OfflineBgg()
 
 
 @pytest.fixture(autouse=True)
