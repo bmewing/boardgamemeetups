@@ -17,22 +17,32 @@ from app.api.friends import PersonPick, PersonRead, SharedAnswers, find_person
 from app.api.games import GameSummary
 from app.api.me import TimeZone
 from app.api.rollups import RollupRead
+from app.api.rpg_systems import RpgSystemSummary
 from app.auth import CurrentUser
 from app.db import SessionDep
 from app.email import MailerDep
 from app.friends import has_blocked
-from app.groups import membership, player_range, require_owner, require_runner
+from app.groups import (
+    membership,
+    player_range,
+    require_board_games,
+    require_owner,
+    require_runner,
+)
 from app.models import (
     BringAssignment,
+    Character,
     Game,
     Group,
     GroupInvite,
+    GroupKind,
     GroupMember,
     GroupRole,
     Meetup,
     MeetupRsvp,
     MeetupStatus,
     Ownership,
+    RpgSystem,
     RsvpResponse,
     User,
     UserBlock,
@@ -94,6 +104,7 @@ class GroupSummary(BaseModel):
     id: uuid.UUID
     name: str
     description: str | None
+    kind: GroupKind
     my_role: GroupRole
     member_count: int
     next_meetup: MeetupBrief | None
@@ -104,6 +115,7 @@ class GroupInviteForMe(BaseModel):
     group_id: uuid.UUID
     group_name: str
     group_description: str | None
+    group_kind: GroupKind
     member_count: int
     invited_by: PersonRead | None
     created_at: datetime
@@ -117,6 +129,7 @@ class GroupsRead(BaseModel):
 class MemberRead(BaseModel):
     person: PersonRead
     role: GroupRole
+    is_gm: bool  # RPG groups: runs the game
     joined_at: datetime
 
 
@@ -135,6 +148,8 @@ class GroupRead(BaseModel):
     id: uuid.UUID
     name: str
     description: str | None
+    kind: GroupKind
+    rpg_system: RpgSystemSummary | None  # RPG groups: what they're playing now
     time_zone: str
     willing_to_split: bool
     schedule: Schedule | None
@@ -152,6 +167,9 @@ class GroupRead(BaseModel):
 class GroupCreate(BaseModel):
     name: GroupName
     description: Description | None = None
+    # Fixed once the group is made.
+    kind: GroupKind = GroupKind.BOARD_GAMES
+    rpg_system_id: int | None = None  # RPG groups only
     willing_to_split: bool = False
     # Left out: the creator's own time zone.
     time_zone: TimeZone | None = None
@@ -171,6 +189,8 @@ class GroupUpdate(BaseModel):
     location: Location | None = None
     # Lowering it trims guests already on upcoming dates down to the new limit.
     plus_one_limit: PlusOneLimit | None = None
+    # RPG groups only; null clears it.
+    rpg_system_id: int | None = None
 
 
 class InviteResult(BaseModel):
@@ -180,9 +200,11 @@ class InviteResult(BaseModel):
 
 
 class MemberUpdate(BaseModel):
-    """`owner` hands the group over; the current owner becomes an admin."""
+    """`owner` hands the group over; the current owner becomes an admin. Only the owner
+    changes roles; the owner and admins mark GMs in RPG groups."""
 
-    role: GroupRole
+    role: GroupRole | None = None
+    is_gm: bool | None = None
 
 
 class MemberAnswers(SharedAnswers):
@@ -284,6 +306,12 @@ async def _trim_guests(session: AsyncSession, group: Group) -> None:
     )
 
 
+async def _check_system(session: AsyncSession, system_id: int) -> None:
+    """Systems come from searching, which saves them, so an unknown id is a mistake."""
+    if await session.get(RpgSystem, system_id) is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "System not found")
+
+
 def _invites_for(user: User) -> ColumnElement[bool]:
     """Invites to the user's email, leaving out ones from people they've blocked."""
     blocked_inviter = exists().where(
@@ -325,6 +353,7 @@ async def list_groups(user: CurrentUser, session: SessionDep) -> GroupsRead:
                 id=group.id,
                 name=group.name,
                 description=group.description,
+                kind=group.kind,
                 my_role=role,
                 member_count=count,
                 next_meetup=briefs[0] if briefs else None,
@@ -347,6 +376,7 @@ async def list_groups(user: CurrentUser, session: SessionDep) -> GroupsRead:
                     group_id=group.id,
                     group_name=group.name,
                     group_description=group.description,
+                    group_kind=group.kind,
                     member_count=count,
                     invited_by=PersonRead.of(inviter) if inviter else None,
                     created_at=invite.created_at,
@@ -357,10 +387,20 @@ async def list_groups(user: CurrentUser, session: SessionDep) -> GroupsRead:
 
 @router.post("/groups", status_code=status.HTTP_201_CREATED)
 async def create_group(body: GroupCreate, user: CurrentUser, session: SessionDep) -> GroupRead:
+    rpg = body.kind == GroupKind.RPG
+    if body.rpg_system_id is not None:
+        if not rpg:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, "Only RPG groups play a system."
+            )
+        await _check_system(session, body.rpg_system_id)
     group = Group(
         name=body.name,
         description=body.description or None,
-        willing_to_split=body.willing_to_split,
+        kind=body.kind,
+        rpg_system_id=body.rpg_system_id,
+        # Splitting into tables is about board games.
+        willing_to_split=body.willing_to_split and not rpg,
         time_zone=body.time_zone or user.time_zone,
         plus_one_limit=body.plus_one_limit,
     )
@@ -409,10 +449,13 @@ async def read_group(group_id: uuid.UUID, user: CurrentUser, session: SessionDep
             .limit(RECENT_DATES)
         )
     )
+    system = await session.get(RpgSystem, group.rpg_system_id) if group.rpg_system_id else None
     return GroupRead(
         id=group.id,
         name=group.name,
         description=group.description,
+        kind=group.kind,
+        rpg_system=RpgSystemSummary.of(system) if system else None,
         time_zone=group.time_zone,
         willing_to_split=group.willing_to_split,
         schedule=SCHEDULE.validate_python(group.schedule) if group.schedule else None,
@@ -422,7 +465,12 @@ async def read_group(group_id: uuid.UUID, user: CurrentUser, session: SessionDep
         plus_one_limit=group.plus_one_limit,
         my_role=me.role,
         members=[
-            MemberRead(person=PersonRead.of(person), role=member.role, joined_at=member.joined_at)
+            MemberRead(
+                person=PersonRead.of(person),
+                role=member.role,
+                is_gm=member.is_gm,
+                joined_at=member.joined_at,
+            )
             for member, person in members
         ],
         invites=invites,
@@ -452,6 +500,8 @@ async def update_group(
         value = getattr(changes, field)
         if field in sent and value is not None:
             setattr(group, field, value)
+    if group.kind == GroupKind.RPG:
+        group.willing_to_split = False  # splitting into tables is about board games
     if "description" in sent:
         group.description = changes.description or None
     if "location" in sent:
@@ -465,6 +515,14 @@ async def update_group(
     if "plus_one_limit" in sent and changes.plus_one_limit is not None:
         group.plus_one_limit = changes.plus_one_limit
         await _trim_guests(session, group)
+    if "rpg_system_id" in sent:
+        if group.kind != GroupKind.RPG:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, "Only RPG groups play a system."
+            )
+        if changes.rpg_system_id is not None:
+            await _check_system(session, changes.rpg_system_id)
+        group.rpg_system_id = changes.rpg_system_id
     await session.commit()
     if not moves_dates:
         return await read_group(group.id, user, session)
@@ -609,18 +667,25 @@ async def change_member_role(
     user: CurrentUser,
     session: SessionDep,
 ) -> GroupRead:
-    """Only the owner makes admins, turns them back into members, or hands the group over."""
+    """Only the owner makes admins, turns them back into members, or hands the group over.
+    In RPG groups, the owner and admins mark who GMs, themselves included."""
     group, me = await membership(session, group_id, user)
-    require_owner(me)
     target = await _member(session, group.id, user_id)
-    if target.user_id == user.id:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Hand the group to someone else to change your role."
-        )
-    if body.role == GroupRole.OWNER:
-        me.role = GroupRole.ADMIN
-        await session.flush()  # one owner at a time
-    target.role = body.role
+    if body.is_gm is not None:
+        require_runner(me)
+        if group.kind != GroupKind.RPG:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Only RPG groups have GMs.")
+        target.is_gm = body.is_gm
+    if body.role is not None:
+        require_owner(me)
+        if target.user_id == user.id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Hand the group to someone else to change your role."
+            )
+        if body.role == GroupRole.OWNER:
+            me.role = GroupRole.ADMIN
+            await session.flush()  # one owner at a time
+        target.role = body.role
     await session.commit()
     return await read_group(group.id, user, session)
 
@@ -656,6 +721,12 @@ async def remove_member(
             BringAssignment.user_id == target.user_id, BringAssignment.meetup_id.in_(upcoming)
         )
     )
+    # Their characters leave the party with them.
+    await session.execute(
+        update(Character)
+        .where(Character.group_id == group.id, Character.user_id == target.user_id)
+        .values(group_id=None)
+    )
     await session.delete(target)
     await session.commit()
 
@@ -671,6 +742,7 @@ async def list_group_games(
     player range.
     """
     group, _me = await membership(session, group_id, user)
+    require_board_games(group)
     members = list(
         await session.scalars(
             select(User)

@@ -55,6 +55,7 @@ import { MeetupForm } from '../components/MeetupForm'
 import { VotePanel } from '../components/VotePanel'
 import { useNominate, useVote } from '../api/votes'
 import { PlayLogPanel } from '../components/PlayLogPanel'
+import { RecapPanel } from '../components/rpg/RecapPanel'
 import { ReasonChips } from '../components/Rollup'
 import { lengthLabel, minutesTonight } from '../components/rollupFormat'
 import { plural } from '../components/userGameFields'
@@ -189,7 +190,8 @@ function Answer({ meetup, onGoing }: { meetup: Meetup; onGoing?: () => void }) {
           }))}
         />
       )}
-      {mightCome && moods.data && (
+      {/* Moods are about which games to play, so RPG groups skip them. */}
+      {mightCome && moods.data && meetup.group.kind === 'board_games' && (
         <Stack gap={4}>
           <Text size="sm" fw={500}>
             What are you in the mood for?
@@ -507,6 +509,7 @@ function Organize({ meetup }: { meetup: Meetup }) {
           </Text>
         )}
         <MeetupForm
+          allowOnline={meetup.group.kind === 'board_games' || meetup.is_online}
           initial={{
             local_date: meetup.local_date,
             local_time: toInputTime(meetup.local_time),
@@ -589,6 +592,7 @@ export function MeetupPage() {
   const m = meetup.data
   const by = (response: RsvpResponse) => m.rsvps.filter((r) => r.response === response)
   const elsewhere = m.group.time_zone !== browserTimeZone
+  const rpg = m.group.kind === 'rpg'
   return (
     <Stack>
       <Anchor component={Link} to={`/groups/${m.group.id}`} size="sm">
@@ -657,11 +661,17 @@ export function MeetupPage() {
         <People title="Maybe" people={by('maybe')} />
         <People title="Can't go" people={by('no')} />
         <People title="Haven't said" people={m.no_answer.map((person) => ({ person }))} />
-        <MoodSummary rsvps={m.rsvps} />
+        {!rpg && <MoodSummary rsvps={m.rsvps} />}
       </Stack>
-      <PlayLogPanel meetup={m} members={[...m.rsvps.map((r) => r.person), ...m.no_answer]} />
-      <VotePanel meetup={m} onLocked={cheer} />
-      <FittingGames meetup={m} />
+      {rpg ? (
+        <RecapPanel meetup={m} />
+      ) : (
+        <>
+          <PlayLogPanel meetup={m} members={[...m.rsvps.map((r) => r.person), ...m.no_answer]} />
+          <VotePanel meetup={m} onLocked={cheer} />
+          <FittingGames meetup={m} />
+        </>
+      )}
     </Stack>
   )
 }

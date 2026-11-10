@@ -62,6 +62,14 @@ then from `backend/`:
 uv run python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
 ```
 
+RPG systems come from RPGGeek, which shares BGG's API and token. Its search finds books rather
+than systems, so a system nobody has looked up before costs three throttled requests to find.
+Preload about 60 popular systems (one run takes under a minute) from `backend/`:
+
+```bash
+uv run python -m app.import_rpg_systems
+```
+
 ## Admins
 
 Admins get an **Admin** item in the account menu, leading to `/admin`: site-wide stats, and
@@ -139,6 +147,7 @@ tests are the same as in local development.
   ```bash
   uv run --env-file .env.production alembic upgrade head
   uv run --env-file .env.production python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
+  uv run --env-file .env.production python -m app.import_rpg_systems
   ```
 
 - Board Game Arena's game list is loaded by hand, since BGA has no API and its terms don't

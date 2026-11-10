@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Game, Group, GroupMember, GroupRole, User
+from app.models import Game, Group, GroupKind, GroupMember, GroupRole, User
 
 GROUP_NOT_FOUND = HTTPException(status.HTTP_404_NOT_FOUND, "Group not found")
 RUNS_GROUP = (GroupRole.OWNER, GroupRole.ADMIN)
@@ -35,6 +35,18 @@ def require_runner(member: GroupMember) -> None:
     """Owners and admins run the group: its details, schedule, dates and invites."""
     if member.role not in RUNS_GROUP:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the owner and admins can do that.")
+
+
+def require_board_games(group: Group) -> None:
+    """Game picks, recommendations and the play log are for board-game groups only."""
+    if group.kind != GroupKind.BOARD_GAMES:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This is an RPG group.")
+
+
+def require_rpg(group: Group) -> None:
+    """Parties and session recaps are for RPG groups only."""
+    if group.kind != GroupKind.RPG:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This is a board game group.")
 
 
 def require_owner(member: GroupMember) -> None:

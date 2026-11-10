@@ -260,7 +260,18 @@ The Discord application people sign in with also runs a bot. No always-on proces
 - [ ] Phase 3: reminders in Discord, invites, Discord scheduled events
 - **Done when:** in a real server, someone links, an admin connects a channel, the next date's card appears, and clicking Going shows up in the app (and the other way round)
 
-### Phase 15 — Online play on Board Game Arena
+### Phase 15 — RPG groups
+A group is made as either a board-game group or an RPG group, and stays that way. RPG groups keep everything that isn't about games (dates, RSVPs, invites, members, calendar, reminders, Discord cards) and swap game picks, recommendations, bringing and the play log for a system, GMs, a party and session recaps.
+- [x] `groups.kind` (`board_games` / `rpg`, existing groups are board games); game endpoints (group games, meetup games, votes, bring, play log) answer 409 for RPG groups, and RPG RSVPs carry no moods
+- [x] RPG systems catalog (`rpg_systems`) next to `games`: RPGGeek's "RPG" families through the same BGG API and token, found by searching books (`rpgitem`) and following their links (books linked to more than 3 systems are compilations and skipped); custom systems count down from -1 like custom games and are found through whoever uses them. `app.import_rpg_systems` preloads ~60 popular ones so most searches stay local
+- [x] My systems (`user_rpg_systems`): know it / can GM it / want to play, plus private notes; shared with groups
+- [x] Characters: name, system, class or role, level, ancestry, pronouns, status (active/retired/dead), notes, portrait and sheet links (http(s) only). Private until put in an RPG group's party (one group at a time); leaving the group takes them out
+- [x] RPG groups: a current system (changeable), GMs marked by the owner and admins, a Party tab (characters, and who knows / GMs / wants to play the system), session recaps any member can write once a date has started, and the last session's recap shown on the next date
+- [x] Attendance for RPG dates: the first recap records the yes answers as there; a week on, an unrecapped date does the same (feeds the night-count achievements)
+- [ ] Later: RPG achievements, Discord commands for characters, uploading portraits, RPG-aware email and Discord wording
+- **Done when:** someone makes an RPG group playing a system, marks a GM, two members add characters to the party, a date gets RSVPs and a recap, and a board-game group looks exactly as before
+
+### Phase 16 — Online play on Board Game Arena
 A date can be online, on Board Game Arena (BGA), instead of at a place. BGA's games live in `bga_games`, each linked to the catalog game (its BGG id), so nothing about a game is stored twice.
 - [x] BGA's game list loaded by hand (`app.import_bga`) from a saved copy of its `/gamelist` page into the committed snapshot `backend/data/bga_games.json`: name, Premium, BGA's player counts, links. Linked by the BGG id BGA gives, else by an unambiguous name; the rest are listed to fix in the snapshot
 - [x] Online dates: a switch instead of the place, an optional table link; calendars, emails and Discord say "Board Game Arena" with the link

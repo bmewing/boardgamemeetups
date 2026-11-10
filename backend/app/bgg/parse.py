@@ -1,6 +1,7 @@
 """Turn BGG XML API2 responses into plain data."""
 
 from dataclasses import dataclass, field
+from html import unescape
 from xml.etree.ElementTree import Element
 
 from defusedxml.ElementTree import fromstring
@@ -283,3 +284,75 @@ def parse_collection(xml: bytes) -> list[CollectionEntry]:
         else:
             entries[entry.id] = entry
     return list(entries.values())
+
+
+# RPGGeek shares BGG's database and API. Its search finds books ("rpgitem"), not the game
+# lines they belong to ("rpg" families), so systems are found through the books' links.
+
+
+@dataclass(frozen=True)
+class RpgSystemStub:
+    """A system named by a book's link: enough to list it, not to show its page."""
+
+    id: int
+    name: str
+
+
+@dataclass
+class RpgSystemDetails:
+    id: int
+    name: str
+    description: str | None = None
+    thumbnail_url: str | None = None
+    image_url: str | None = None
+
+
+# A book linked to more systems than this is a magazine, a compilation or a book about RPGs
+# (one links 29), not a book for a system, so its links say nothing about what was searched.
+MAX_SYSTEMS_PER_BOOK = 3
+
+
+def parse_rpg_item_systems(xml: bytes) -> list[RpgSystemStub]:
+    """The systems the books in a `thing` response belong to, in order, without repeats."""
+    systems: dict[int, RpgSystemStub] = {}
+    for item in fromstring(xml).iterfind("item"):
+        links: list[RpgSystemStub] = []
+        for link in item.iterfind("link"):
+            if link.get("type") != "rpg" or link.get("inbound") == "true":
+                continue
+            system_id = _int(link.get("id"))
+            name = (link.get("value") or "").strip()
+            if system_id is not None and name:
+                links.append(RpgSystemStub(system_id, name))
+        if len(links) > MAX_SYSTEMS_PER_BOOK:
+            continue
+        for stub in links:
+            systems.setdefault(stub.id, stub)
+    return list(systems.values())
+
+
+def _description(item: Element) -> str | None:
+    text = (item.findtext("description") or "").strip()
+    # BGG escapes the entities twice ("&amp;mdash;"), so one more pass is needed.
+    return unescape(text) or None
+
+
+def parse_rpg_families(xml: bytes) -> list[RpgSystemDetails]:
+    systems: list[RpgSystemDetails] = []
+    for item in fromstring(xml).iterfind("item"):
+        if item.get("type") != "rpg":
+            continue
+        system_id = _int(item.get("id"))
+        name = _primary_name(item)
+        if system_id is None or name is None:
+            continue
+        systems.append(
+            RpgSystemDetails(
+                id=system_id,
+                name=name,
+                description=_description(item),
+                thumbnail_url=(item.findtext("thumbnail") or "").strip() or None,
+                image_url=(item.findtext("image") or "").strip() or None,
+            )
+        )
+    return systems

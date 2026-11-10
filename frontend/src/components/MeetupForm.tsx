@@ -28,12 +28,14 @@ export function MeetupForm({
   busy,
   error,
   onSubmit,
+  allowOnline = true,
 }: {
   initial: MeetupFields
   submitLabel: string
   busy: boolean
   error?: string | null
   onSubmit: (fields: MeetupFields) => void
+  allowOnline?: boolean // RPG groups don't meet on Board Game Arena
 }) {
   const [fields, setFields] = useState(initial)
   const set = <K extends keyof MeetupFields>(key: K, value: MeetupFields[K]) =>
@@ -71,12 +73,14 @@ export function MeetupForm({
           value={fields.duration_minutes}
           onChange={(v) => set('duration_minutes', typeof v === 'number' ? v : 180)}
         />
-        <Switch
-          label="Online on Board Game Arena"
-          description="Games come from BGA instead of what people bring."
-          checked={fields.is_online}
-          onChange={(e) => set('is_online', e.currentTarget.checked)}
-        />
+        {allowOnline && (
+          <Switch
+            label="Online on Board Game Arena"
+            description="Games come from BGA instead of what people bring."
+            checked={fields.is_online}
+            onChange={(e) => set('is_online', e.currentTarget.checked)}
+          />
+        )}
         {fields.is_online ? (
           <TextInput
             label="Table link"

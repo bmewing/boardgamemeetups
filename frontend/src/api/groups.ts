@@ -22,10 +22,11 @@ export type RsvpIn = components['schemas']['RsvpIn']
 export type Rsvp = components['schemas']['RsvpRead']
 export type MeetupGames = components['schemas']['MeetupGames']
 export type GroupGame = components['schemas']['GroupGameRead']
+export type GroupKind = components['schemas']['GroupKind']
 export type Schedule = NonNullable<Group['schedule']>
 
-const GROUPS_KEY = ['groups'] as const
-const groupKey = (id: string) => ['groups', id] as const
+export const GROUPS_KEY = ['groups'] as const
+export const groupKey = (id: string) => ['groups', id] as const
 const meetupKey = (id: string) => ['meetups', id] as const
 
 export const runsGroup = (role: GroupRole) => role === 'owner' || role === 'admin'
@@ -176,6 +177,18 @@ export function useChangeRole(groupId: string) {
   )
 }
 
+/** RPG groups: the owner and admins mark who GMs, themselves included. */
+export function useSetGm(groupId: string) {
+  return useGroupMutation(groupId, async ({ userId, isGm }: { userId: string; isGm: boolean }) => {
+    const { data, error } = await api.PATCH('/api/groups/{group_id}/members/{user_id}', {
+      params: { path: { group_id: groupId, user_id: userId } },
+      body: { is_gm: isGm },
+    })
+    if (error) throw new Error(detailOf(error, 'Could not change who GMs'))
+    return data
+  })
+}
+
 /** Remove someone, or leave (your own id). */
 export function useRemoveMember(groupId: string) {
   return useGroupMutation(groupId, async (userId: string) => {
@@ -284,6 +297,18 @@ export async function downloadMeetupCalendar(meetupId: string) {
   link.download = name
   link.click()
   URL.revokeObjectURL(url)
+}
+
+/** RPG groups: what happened at a session. Blank clears it. */
+export function useSaveRecap(meetupId: string) {
+  return useMeetupMutation(meetupId, async (recap: string) => {
+    const { data, error } = await api.PUT('/api/meetups/{meetup_id}/recap', {
+      params: { path: { meetup_id: meetupId } },
+      body: { recap: recap.trim() || null },
+    })
+    if (error) throw new Error(detailOf(error, 'Could not save the recap'))
+    return data
+  })
 }
 
 export function useUpdateMeetup(meetupId: string) {

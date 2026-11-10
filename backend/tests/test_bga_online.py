@@ -13,8 +13,9 @@ from tests.test_games_api import FakeBgg, bgg
 from tests.test_groups_api import BASE, Crew, crew, games, own
 from tests.test_meetup_cycle_api import by_game, nominate, vote_state
 from tests.test_meetup_rsvps import answer
+from tests.test_rpg_groups_api import Party, party, systems
 
-__all__ = ["bgg", "crew", "games"]  # fixtures used here
+__all__ = ["bgg", "crew", "games", "party", "systems"]  # fixtures used here
 
 # Catalog games: one on BGA for 2 or 4 (never 3), a Premium one, and one not on BGA.
 PAIRS, PREMIUM, OFFLINE, TWIN = range(990_500_001, 990_500_005)
@@ -255,3 +256,19 @@ async def test_in_person_dates_still_need_someone_to_own_it(
 
     assert (await nominate(client, meetup, ann, PREMIUM)).status_code == 422
     assert (await fitting(client, meetup, ann))["online"] is False
+
+
+async def test_rpg_groups_cant_meet_on_bga(client: AsyncClient, party: Party) -> None:
+    group, (ann, *_rest) = party
+    day = (date.today() + timedelta(days=3)).isoformat()
+    url = f"/api/groups/{group['id']}/meetups"
+
+    refused = await client.post(
+        url, headers=ann.headers, json={"local_date": day, "is_online": True}
+    )
+    assert refused.status_code == 422
+    meetup = (await client.post(url, headers=ann.headers, json={"local_date": day})).json()
+    moved = await client.patch(
+        f"/api/meetups/{meetup['id']}", headers=ann.headers, json={"is_online": True}
+    )
+    assert moved.status_code == 422

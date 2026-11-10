@@ -32,6 +32,7 @@ const group = (over: Partial<GroupSummary> = {}): GroupSummary => ({
   id: 'g1',
   name: 'Sunday Save the World',
   description: null,
+  kind: 'board_games',
   my_role: 'owner',
   member_count: 2,
   next_meetup: brief(),

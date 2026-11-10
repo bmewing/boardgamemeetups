@@ -1,7 +1,7 @@
 """let groups meet online on board game arena
 
 Revision ID: 8a2cd9ed36fb
-Revises: 61e2d4fc1f32
+Revises: 4aab4dccdbdd
 Create Date: 2026-11-10 13:12:54.514154
 
 """
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "8a2cd9ed36fb"
-down_revision: str | Sequence[str] | None = "61e2d4fc1f32"
+down_revision: str | Sequence[str] | None = "4aab4dccdbdd"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

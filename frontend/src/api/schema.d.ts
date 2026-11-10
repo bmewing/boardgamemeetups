@@ -767,6 +767,7 @@ export interface paths {
         /**
          * Change Member Role
          * @description Only the owner makes admins, turns them back into members, or hands the group over.
+         *     In RPG groups, the owner and admins mark who GMs, themselves included.
          */
         patch: operations["change_member_role_api_groups__group_id__members__user_id__patch"];
         trace?: never;
@@ -850,6 +851,27 @@ export interface paths {
         get?: never;
         /** Rsvp */
         put: operations["rsvp_api_meetups__meetup_id__rsvp_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetups/{meetup_id}/recap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save Recap
+         * @description Write (or clear) what happened at an RPG session. Any member can, once it has started.
+         *     The first recap also records who came: the members who said yes.
+         */
+        put: operations["save_recap_api_meetups__meetup_id__recap_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1111,6 +1133,156 @@ export interface paths {
          *     by one; correcting a log takes the old one's plays back off first.
          */
         put: operations["save_play_log_api_meetups__meetup_id__log_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rpg-systems/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Systems */
+        get: operations["search_systems_api_rpg_systems_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rpg-systems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Custom System
+         * @description Add a system that isn't on RPGGeek. It goes in your systems as one you know.
+         */
+        post: operations["add_custom_system_api_rpg_systems_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rpg-systems/{system_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read System */
+        get: operations["read_system_api_rpg_systems__system_id__get"];
+        /**
+         * Update Custom System
+         * @description Change a system you added. RPGGeek's systems come from RPGGeek.
+         */
+        put: operations["update_custom_system_api_rpg_systems__system_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/rpg-systems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Systems */
+        get: operations["list_my_systems_api_me_rpg_systems_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/rpg-systems/{system_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update My System
+         * @description Add a system to your list or change what you've said about it.
+         */
+        put: operations["update_my_system_api_me_rpg_systems__system_id__put"];
+        post?: never;
+        /** Remove My System */
+        delete: operations["remove_my_system_api_me_rpg_systems__system_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/characters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List My Characters */
+        get: operations["list_my_characters_api_me_characters_get"];
+        put?: never;
+        /** Create Character */
+        post: operations["create_character_api_me_characters_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/characters/{character_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Character */
+        get: operations["read_character_api_characters__character_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Character */
+        delete: operations["delete_character_api_characters__character_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Character */
+        patch: operations["update_character_api_characters__character_id__patch"];
+        trace?: never;
+    };
+    "/api/groups/{group_id}/party": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Party */
+        get: operations["read_party_api_groups__group_id__party_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1486,6 +1658,100 @@ export interface components {
          * @enum {string}
          */
         ChangeKind: "fill" | "overwrite" | "not_on_source";
+        /** CharacterCreate */
+        CharacterCreate: {
+            /** Class Role */
+            class_role?: string | null;
+            /** Level */
+            level?: number | null;
+            /** Ancestry */
+            ancestry?: string | null;
+            /** Pronouns */
+            pronouns?: string | null;
+            status?: components["schemas"]["CharacterStatus"] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Portrait Url */
+            portrait_url?: string | null;
+            /** Sheet Url */
+            sheet_url?: string | null;
+            /** Name */
+            name: string;
+            /** System Id */
+            system_id: number;
+            /** Group Id */
+            group_id?: string | null;
+        };
+        /** CharacterRead */
+        CharacterRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            owner: components["schemas"]["PersonRead"];
+            system: components["schemas"]["RpgSystemSummary"];
+            /** Name */
+            name: string;
+            /** Class Role */
+            class_role: string | null;
+            /** Level */
+            level: number | null;
+            /** Ancestry */
+            ancestry: string | null;
+            /** Pronouns */
+            pronouns: string | null;
+            status: components["schemas"]["CharacterStatus"];
+            /** Notes */
+            notes: string | null;
+            /** Portrait Url */
+            portrait_url: string | null;
+            /** Sheet Url */
+            sheet_url: string | null;
+            group: components["schemas"]["app__api__characters__GroupBrief"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CharacterStatus
+         * @enum {string}
+         */
+        CharacterStatus: "active" | "retired" | "dead";
+        /**
+         * CharacterUpdate
+         * @description Fields to change; anything left out keeps its value. A null group leaves the party.
+         */
+        CharacterUpdate: {
+            /** Class Role */
+            class_role?: string | null;
+            /** Level */
+            level?: number | null;
+            /** Ancestry */
+            ancestry?: string | null;
+            /** Pronouns */
+            pronouns?: string | null;
+            status?: components["schemas"]["CharacterStatus"] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Portrait Url */
+            portrait_url?: string | null;
+            /** Sheet Url */
+            sheet_url?: string | null;
+            /** Name */
+            name?: string | null;
+            /** System Id */
+            system_id?: number | null;
+            /** Group Id */
+            group_id?: string | null;
+        };
         /**
          * CollectionVisibility
          * @enum {string}
@@ -1517,6 +1783,16 @@ export interface components {
             max_playtime?: number | null;
             /** Min Age */
             min_age?: number | null;
+        };
+        /**
+         * CustomSystemIn
+         * @description A system that isn't on RPGGeek: a homebrew, or one RPGGeek just doesn't list.
+         */
+        CustomSystemIn: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
         };
         /**
          * DayOfMonth
@@ -1819,28 +2095,16 @@ export interface components {
             /** Is Custom */
             is_custom: boolean;
         };
-        /** GroupBrief */
-        GroupBrief: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Name */
-            name: string;
-            /** Time Zone */
-            time_zone: string;
-            /** Willing To Split */
-            willing_to_split: boolean;
-            /** Plus One Limit */
-            plus_one_limit: number;
-        };
         /** GroupCreate */
         GroupCreate: {
             /** Name */
             name: string;
             /** Description */
             description?: string | null;
+            /** @default board_games */
+            kind: components["schemas"]["GroupKind"];
+            /** Rpg System Id */
+            rpg_system_id?: number | null;
             /**
              * Willing To Split
              * @default false
@@ -1885,6 +2149,7 @@ export interface components {
             group_name: string;
             /** Group Description */
             group_description: string | null;
+            group_kind: components["schemas"]["GroupKind"];
             /** Member Count */
             member_count: number;
             invited_by: components["schemas"]["PersonRead"] | null;
@@ -1915,6 +2180,12 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * GroupKind
+         * @description What a group plays. Chosen when the group is made and fixed after that.
+         * @enum {string}
+         */
+        GroupKind: "board_games" | "rpg";
         /** GroupRead */
         GroupRead: {
             /**
@@ -1926,6 +2197,8 @@ export interface components {
             name: string;
             /** Description */
             description: string | null;
+            kind: components["schemas"]["GroupKind"];
+            rpg_system: components["schemas"]["RpgSystemSummary"] | null;
             /** Time Zone */
             time_zone: string;
             /** Willing To Split */
@@ -1969,6 +2242,7 @@ export interface components {
             name: string;
             /** Description */
             description: string | null;
+            kind: components["schemas"]["GroupKind"];
             my_role: components["schemas"]["GroupRole"];
             /** Member Count */
             member_count: number;
@@ -1997,6 +2271,8 @@ export interface components {
             location?: string | null;
             /** Plus One Limit */
             plus_one_limit?: number | null;
+            /** Rpg System Id */
+            rpg_system_id?: number | null;
         };
         /** GroupsRead */
         GroupsRead: {
@@ -2284,7 +2560,13 @@ export interface components {
             my_response: components["schemas"]["RsvpResponse"] | null;
             /** Notes */
             notes: string | null;
-            group: components["schemas"]["GroupBrief"];
+            /** Recap */
+            recap: string | null;
+            /** Recap Updated At */
+            recap_updated_at: string | null;
+            /** Previous Recap */
+            previous_recap: string | null;
+            group: components["schemas"]["app__api__meetups__GroupBrief"];
             my_role: components["schemas"]["GroupRole"];
             /** Rsvps */
             rsvps: components["schemas"]["RsvpRead"][];
@@ -2348,6 +2630,8 @@ export interface components {
         MemberRead: {
             person: components["schemas"]["PersonRead"];
             role: components["schemas"]["GroupRole"];
+            /** Is Gm */
+            is_gm: boolean;
             /**
              * Joined At
              * Format: date-time
@@ -2356,10 +2640,13 @@ export interface components {
         };
         /**
          * MemberUpdate
-         * @description `owner` hands the group over; the current owner becomes an admin.
+         * @description `owner` hands the group over; the current owner becomes an admin. Only the owner
+         *     changes roles; the owner and admins mark GMs in RPG groups.
          */
         MemberUpdate: {
-            role: components["schemas"]["GroupRole"];
+            role?: components["schemas"]["GroupRole"] | null;
+            /** Is Gm */
+            is_gm?: boolean | null;
         };
         /** MissingBaseGamesRead */
         MissingBaseGamesRead: {
@@ -2389,6 +2676,37 @@ export interface components {
             mood: string;
             /** People */
             people: components["schemas"]["PersonRead"][];
+        };
+        /** MySystemRead */
+        MySystemRead: {
+            /** Knows */
+            knows: boolean;
+            /** Can Gm */
+            can_gm: boolean;
+            /** Want To Play */
+            want_to_play: boolean;
+            system: components["schemas"]["RpgSystemSummary"];
+            /** Notes */
+            notes: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * MySystemUpdate
+         * @description Fields to change; anything left out keeps its value.
+         */
+        MySystemUpdate: {
+            /** Knows */
+            knows?: boolean | null;
+            /** Can Gm */
+            can_gm?: boolean | null;
+            /** Want To Play */
+            want_to_play?: boolean | null;
+            /** Notes */
+            notes?: string | null;
         };
         /** NominationIn */
         NominationIn: {
@@ -2451,6 +2769,21 @@ export interface components {
          * @enum {string}
          */
         Ownership: "owned" | "preordered" | "previously_owned";
+        /** PartyMember */
+        PartyMember: {
+            person: components["schemas"]["PersonRead"];
+            /** Is Gm */
+            is_gm: boolean;
+            answers: components["schemas"]["SystemAnswers"] | null;
+        };
+        /** PartyRead */
+        PartyRead: {
+            system: components["schemas"]["RpgSystemSummary"] | null;
+            /** Characters */
+            characters: components["schemas"]["CharacterRead"][];
+            /** Members */
+            members: components["schemas"]["PartyMember"][];
+        };
         /** PersonMatch */
         PersonMatch: {
             person: components["schemas"]["PersonRead"];
@@ -2567,6 +2900,11 @@ export interface components {
              */
             tone: "good" | "bad" | "info";
         };
+        /** RecapIn */
+        RecapIn: {
+            /** Recap */
+            recap: string | null;
+        };
         /**
          * Relation
          * @description How another user stands with you.
@@ -2608,6 +2946,36 @@ export interface components {
             want_to_play: components["schemas"]["PersonRead"][];
             /** Wishlist */
             wishlist: components["schemas"]["PersonRead"][];
+        };
+        /** RpgSystemDetail */
+        RpgSystemDetail: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Thumbnail Url */
+            thumbnail_url: string | null;
+            /** Is Custom */
+            is_custom: boolean;
+            /** Description */
+            description: string | null;
+            /** Image Url */
+            image_url: string | null;
+            /** Rpggeek Url */
+            rpggeek_url: string | null;
+            /** Created By Id */
+            created_by_id: string | null;
+        };
+        /** RpgSystemSummary */
+        RpgSystemSummary: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Thumbnail Url */
+            thumbnail_url: string | null;
+            /** Is Custom */
+            is_custom: boolean;
         };
         /**
          * RsvpIn
@@ -2704,6 +3072,18 @@ export interface components {
             game: components["schemas"]["GameSummary"];
             /** Coop */
             coop: boolean;
+        };
+        /**
+         * SystemAnswers
+         * @description What someone says about a system. Shared with their groups.
+         */
+        SystemAnswers: {
+            /** Knows */
+            knows: boolean;
+            /** Can Gm */
+            can_gm: boolean;
+            /** Want To Play */
+            want_to_play: boolean;
         };
         /** UserGameRead */
         UserGameRead: {
@@ -2896,6 +3276,16 @@ export interface components {
          * @enum {string}
          */
         WholeFile: "owned" | "wishlist" | "neither";
+        /** GroupBrief */
+        app__api__characters__GroupBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** PlayerCountVote */
         app__api__games__PlayerCountVote: {
             /** Players */
@@ -2906,6 +3296,23 @@ export interface components {
             recommended: number;
             /** Not Recommended */
             not_recommended: number;
+        };
+        /** GroupBrief */
+        app__api__meetups__GroupBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            kind: components["schemas"]["GroupKind"];
+            /** Time Zone */
+            time_zone: string;
+            /** Willing To Split */
+            willing_to_split: boolean;
+            /** Plus One Limit */
+            plus_one_limit: number;
         };
         /**
          * PlayerCountVote
@@ -4481,6 +4888,41 @@ export interface operations {
             };
         };
     };
+    save_recap_api_meetups__meetup_id__recap_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meetup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecapIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetupRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     meetup_calendar_file_api_meetups__meetup_id__calendar_ics_get: {
         parameters: {
             query?: never;
@@ -4983,6 +5425,400 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LogRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_systems_api_rpg_systems_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSystemSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_custom_system_api_rpg_systems_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomSystemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSystemDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_system_api_rpg_systems__system_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                system_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSystemDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_custom_system_api_rpg_systems__system_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                system_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomSystemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSystemDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_systems_api_me_rpg_systems_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySystemRead"][];
+                };
+            };
+        };
+    };
+    update_my_system_api_me_rpg_systems__system_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                system_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MySystemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySystemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_my_system_api_me_rpg_systems__system_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                system_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_characters_api_me_characters_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CharacterRead"][];
+                };
+            };
+        };
+    };
+    create_character_api_me_characters_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CharacterCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CharacterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_character_api_characters__character_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                character_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CharacterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_character_api_characters__character_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                character_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_character_api_characters__character_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                character_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CharacterUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CharacterRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_party_api_groups__group_id__party_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartyRead"];
                 };
             };
             /** @description Validation Error */

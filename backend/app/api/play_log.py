@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import achievements
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
-from app.api.meetups import _meetup
+from app.api.meetups import game_meetup
 from app.auth import CurrentUser
 from app.db import SessionDep
 from app.groups import RUNS_GROUP, require_runner
@@ -169,7 +169,7 @@ async def _read(session: AsyncSession, meetup: Meetup, me: GroupMember) -> LogRe
 
 @router.get("/meetups/{meetup_id}/log")
 async def read_log(meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> LogRead:
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     await fill_unlogged(session, group)
     return await _read(session, meetup, me)
 
@@ -180,7 +180,7 @@ async def save_play_log(
 ) -> LogRead:
     """Record (or correct) what was played. Each player's play count for each game goes up
     by one; correcting a log takes the old one's plays back off first."""
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     require_runner(me)
     if meetup.status == MeetupStatus.CANCELLED:
         raise HTTPException(status.HTTP_409_CONFLICT, "This date was cancelled.")

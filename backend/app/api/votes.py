@@ -23,7 +23,7 @@ from app import achievements, notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
-from app.api.meetups import _meetup
+from app.api.meetups import game_meetup
 from app.auth import CurrentUser
 from app.bga import BgaLink, bga_games_for, counts_fit
 from app.db import SessionDep
@@ -319,7 +319,7 @@ async def _nomination(
 
 @router.get("/meetups/{meetup_id}/vote")
 async def read_vote(meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> VoteRead:
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     return await vote_state(session, meetup, group, me, user)
 
 
@@ -329,7 +329,7 @@ async def nominate(
 ) -> VoteRead:
     """Put forward a game someone going owns, or at an online date any game on BGA. You vote
     for what you nominate; nominating a game that's already up just adds your vote."""
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     _open(meetup)
     await _require_going(session, meetup, user)
     if meetup.is_online:
@@ -369,7 +369,7 @@ async def withdraw_nomination(
     meetup_id: uuid.UUID, nomination_id: uuid.UUID, user: CurrentUser, session: SessionDep
 ) -> VoteRead:
     """Take a game off the ballot: whoever nominated it, or the owner or an admin."""
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     _open(meetup)
     nomination = await _nomination(session, meetup, nomination_id)
     if nomination.nominated_by_id != user.id:
@@ -383,7 +383,7 @@ async def withdraw_nomination(
 async def vote(
     meetup_id: uuid.UUID, nomination_id: uuid.UUID, user: CurrentUser, session: SessionDep
 ) -> VoteRead:
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     _open(meetup)
     await _require_going(session, meetup, user)
     nomination = await _nomination(session, meetup, nomination_id)
@@ -401,7 +401,7 @@ async def vote(
 async def unvote(
     meetup_id: uuid.UUID, nomination_id: uuid.UUID, user: CurrentUser, session: SessionDep
 ) -> VoteRead:
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     _open(meetup)
     nomination = await _nomination(session, meetup, nomination_id)
     await session.execute(
@@ -424,7 +424,7 @@ async def lock_pick(
     """Choose the game or games to play, and stop the voting. A picked game with exactly one
     owner going is tagged as theirs to bring (not at an online date, where nobody brings
     anything). Members who said yes or maybe are emailed the pick."""
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     require_runner(me)
     _open(meetup)
     chosen = list(
@@ -469,7 +469,7 @@ async def lock_pick(
 @router.post("/meetups/{meetup_id}/unlock")
 async def unlock_pick(meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep) -> VoteRead:
     """Open the voting again. The pick and who was bringing it are cleared."""
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     require_runner(me)
     if meetup.logged_at is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "What was played is already logged.")
@@ -506,7 +506,7 @@ async def bring_game(
 ) -> VoteRead:
     """Claim a picked game to bring, or (owner or admin) hand it to another owner going,
     who is emailed about it."""
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     if meetup.is_online:
         raise ONLINE_NOTHING_TO_BRING
     await _picked(session, meetup, game_id)
@@ -547,7 +547,7 @@ async def stop_bringing(
     meetup_id: uuid.UUID, game_id: int, user: CurrentUser, session: SessionDep
 ) -> VoteRead:
     """No longer bringing it (yourself, or anyone for the owner or an admin)."""
-    meetup, group, me = await _meetup(session, meetup_id, user)
+    meetup, group, me = await game_meetup(session, meetup_id, user)
     assignment = await session.get(BringAssignment, (meetup.id, game_id))
     if assignment is not None:
         if assignment.user_id != user.id:
