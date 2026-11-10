@@ -1,9 +1,10 @@
 """A group's dates: adding and editing them, who's coming and in what mood, the games that
-fit (ranked for the people coming), and a date as a calendar file."""
+fit (ranked for the people coming), session recaps for RPG groups, and a date as a calendar
+file."""
 
 import uuid
 from collections import defaultdict
-from datetime import date, time
+from datetime import UTC, date, datetime, time
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
@@ -23,10 +24,19 @@ from app.db import SessionDep
 from app.discord.cards import posted_cards, refresh_cards, remove_cards
 from app.discord.client import DiscordDep
 from app.email import MailerDep
-from app.groups import TableFit, membership, player_range, require_runner, table_fit
+from app.groups import (
+    TableFit,
+    membership,
+    player_range,
+    require_board_games,
+    require_rpg,
+    require_runner,
+    table_fit,
+)
 from app.models import (
     Game,
     Group,
+    GroupKind,
     GroupMember,
     GroupRole,
     Meetup,
@@ -40,7 +50,7 @@ from app.models import (
     UserGame,
 )
 from app.pieces import Achievement
-from app.plays import fill_unlogged, recently_played
+from app.plays import fill_unlogged, going, recently_played, save_log
 from app.recommend import Answer, Person, rollup, score
 from app.rsvp import save_answer
 from app.schedule import instant
@@ -81,6 +91,7 @@ class MeetupUpdate(BaseModel):
 class GroupBrief(BaseModel):
     id: uuid.UUID
     name: str
+    kind: GroupKind
     time_zone: str
     willing_to_split: bool
     plus_one_limit: int
@@ -95,6 +106,10 @@ class RsvpRead(BaseModel):
 
 class MeetupRead(MeetupBrief):
     notes: str | None
+    # RPG groups: what happened, once the date has started, and the last session's recap.
+    recap: str | None
+    recap_updated_at: datetime | None
+    previous_recap: str | None
     group: GroupBrief
     my_role: GroupRole
     rsvps: list[RsvpRead]
@@ -148,6 +163,15 @@ async def _meetup(
     return meetup, group, me
 
 
+async def game_meetup(
+    session: AsyncSession, meetup_id: uuid.UUID, user: User
+) -> tuple[Meetup, Group, GroupMember]:
+    """A date of a board-game group: picks, recommendations and play logs need one."""
+    meetup, group, me = await _meetup(session, meetup_id, user)
+    require_board_games(group)
+    return meetup, group, me
+
+
 async def _read(
     session: AsyncSession, meetup: Meetup, group: Group, me: GroupMember, user: User
 ) -> MeetupRead:
@@ -187,12 +211,28 @@ async def _read(
         )
         if person.id == user.id:
             my_guests = answer.guests
+    previous_recap = None
+    if group.kind == GroupKind.RPG:
+        previous_recap = await session.scalar(
+            select(Meetup.recap)
+            .where(
+                Meetup.group_id == group.id,
+                Meetup.starts_at < meetup.starts_at,
+                Meetup.recap.is_not(None),
+            )
+            .order_by(Meetup.starts_at.desc())
+            .limit(1)
+        )
     return MeetupRead(
         **brief.model_dump(),
         notes=meetup.notes,
+        recap=meetup.recap,
+        recap_updated_at=meetup.recap_updated_at,
+        previous_recap=previous_recap,
         group=GroupBrief(
             id=group.id,
             name=group.name,
+            kind=group.kind,
             time_zone=group.time_zone,
             willing_to_split=group.willing_to_split,
             plus_one_limit=group.plus_one_limit,
@@ -306,10 +346,44 @@ async def rsvp(
     discord: DiscordDep,
 ) -> MeetupRead:
     meetup, group, me = await _meetup(session, meetup_id, user)
-    await save_answer(session, meetup, group, user, body.response, body.guests, body.moods)
+    # Moods describe the games people are after, so RPG groups don't use them.
+    moods = body.moods if group.kind == GroupKind.BOARD_GAMES else []
+    await save_answer(session, meetup, group, user, body.response, body.guests, moods)
     result = await _read(session, meetup, group, me, user)
     await refresh_cards(session, discord, meetup.id)
     return result
+
+
+class RecapIn(BaseModel):
+    recap: Annotated[str, StringConstraints(strip_whitespace=True, max_length=10_000)] | None
+
+
+@router.put("/meetups/{meetup_id}/recap")
+async def save_recap(
+    meetup_id: uuid.UUID, body: RecapIn, user: CurrentUser, session: SessionDep
+) -> MeetupRead:
+    """Write (or clear) what happened at an RPG session. Any member can, once it has started.
+    The first recap also records who came: the members who said yes."""
+    meetup, group, me = await _meetup(session, meetup_id, user)
+    require_rpg(group)
+    if meetup.status == MeetupStatus.CANCELLED:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This date was cancelled.")
+    if meetup.starts_at > datetime.now(UTC):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This date hasn't happened yet.")
+    meetup.recap = body.recap or None
+    meetup.recap_updated_at = datetime.now(UTC)
+    if meetup.logged_at is None:
+        await record_rpg_attendance(session, meetup, group)
+    await session.commit()
+    return await _read(session, meetup, group, me, user)
+
+
+async def record_rpg_attendance(session: AsyncSession, meetup: Meetup, group: Group) -> None:
+    members = set(
+        await session.scalars(select(GroupMember.user_id).where(GroupMember.group_id == group.id))
+    )
+    yes = [u for u in (await going(session, meetup.id))[0] if u in members]
+    await save_log(session, meetup, yes, [])
 
 
 @router.get("/meetups/{meetup_id}/calendar.ics", response_class=Response, responses=CALENDAR_FILE)
@@ -343,7 +417,7 @@ async def list_meetup_games(
     instead of the headcount, and the maybes are taken to be part of it. It's only for the
     person asking; nothing is saved.
     """
-    meetup, group, _me = await _meetup(session, meetup_id, user)
+    meetup, group, _me = await game_meetup(session, meetup_id, user)
     await fill_unlogged(session, group)
     played_lately = await recently_played(session, meetup)
     answered = await session.execute(

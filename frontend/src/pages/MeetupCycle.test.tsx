@@ -63,7 +63,17 @@ function meetupAt(startsAt: string, role: Meetup['my_role'] = 'owner'): Meetup {
     going: [],
     my_response: 'yes',
     notes: null,
-    group: { id: 'g1', name: 'Crew', time_zone: 'UTC', willing_to_split: false, plus_one_limit: 0 },
+    recap: null,
+    recap_updated_at: null,
+    previous_recap: null,
+    group: {
+      id: 'g1',
+      name: 'Crew',
+      kind: 'board_games',
+      time_zone: 'UTC',
+      willing_to_split: false,
+      plus_one_limit: 0,
+    },
     my_role: role,
     rsvps: [
       { person: ben, response: 'yes', guests: 0, moods: [] },

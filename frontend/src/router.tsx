@@ -4,6 +4,8 @@ import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { AdminPage } from './pages/AdminPage'
 import { BggPullPage } from './pages/BggPullPage'
+import { CharacterPage } from './pages/CharacterPage'
+import { CharactersPage } from './pages/CharactersPage'
 import { CollectionPage } from './pages/CollectionPage'
 import { DiscordLinkPage } from './pages/DiscordLinkPage'
 import { FileImportPage } from './pages/FileImportPage'
@@ -19,6 +21,8 @@ import { MeetupPage } from './pages/MeetupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PersonPage } from './pages/PersonPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { RpgSystemPage } from './pages/RpgSystemPage'
+import { RpgSystemsPage } from './pages/RpgSystemsPage'
 import { UnsubscribePage } from './pages/UnsubscribePage'
 
 export const router = createBrowserRouter([
@@ -128,6 +132,38 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <GamePage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'rpg-systems',
+        element: (
+          <RequireAuth>
+            <RpgSystemsPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'rpg-systems/:systemId',
+        element: (
+          <RequireAuth>
+            <RpgSystemPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'characters',
+        element: (
+          <RequireAuth>
+            <CharactersPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'characters/:characterId',
+        element: (
+          <RequireAuth>
+            <CharacterPage />
           </RequireAuth>
         ),
       },

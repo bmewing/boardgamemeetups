@@ -15,6 +15,7 @@ from app.models import (
     BringAssignment,
     Game,
     Group,
+    GroupKind,
     GroupMember,
     Meetup,
     MeetupAttendee,
@@ -155,15 +156,18 @@ async def _earn_from_log(
 
 async def fill_unlogged(session: AsyncSession, group: Group) -> None:
     """A week after a date with a locked pick, if nobody has logged it, take it as played as
-    picked by the members who said yes, with no result. Safe to run on every page view."""
+    picked by the members who said yes, with no result. RPG groups have no picks, so any of
+    their dates a week gone is taken as attended by the members who said yes (a recap
+    records that sooner). Safe to run on every page view."""
+    rpg = group.kind == GroupKind.RPG
     due = list(
         await session.scalars(
             select(Meetup).where(
                 Meetup.group_id == group.id,
                 Meetup.status == MeetupStatus.SCHEDULED,
-                Meetup.picks_locked_at.is_not(None),
                 Meetup.logged_at.is_(None),
                 Meetup.starts_at < datetime.now(UTC) - ASSUME_AFTER,
+                *([] if rpg else [Meetup.picks_locked_at.is_not(None)]),
             )
         )
     )
@@ -176,6 +180,9 @@ async def fill_unlogged(session: AsyncSession, group: Group) -> None:
             )
         )
         yes = [u for u in (await going(session, meetup.id))[0] if u in members]
+        if rpg:
+            await save_log(session, meetup, yes, [], assumed=True)
+            continue
         picked = await session.scalars(
             select(Game)
             .join(MeetupNomination, MeetupNomination.game_id == Game.id)

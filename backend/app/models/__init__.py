@@ -10,6 +10,7 @@ from app.models.game import CUSTOM_GAME_IDS, Game, PlayerCountVotes, is_custom_i
 from app.models.group import (
     Group,
     GroupInvite,
+    GroupKind,
     GroupMember,
     GroupRole,
     Meetup,
@@ -27,6 +28,13 @@ from app.models.play import (
     Play,
     PlayPlayer,
 )
+from app.models.rpg import (
+    CUSTOM_RPG_SYSTEM_IDS,
+    Character,
+    CharacterStatus,
+    RpgSystem,
+    UserRpgSystem,
+)
 from app.models.user import CollectionVisibility, User
 from app.models.user_game import (
     Ownership,
@@ -41,10 +49,13 @@ from app.models.user_game import (
 
 __all__ = [
     "CUSTOM_GAME_IDS",
+    "CUSTOM_RPG_SYSTEM_IDS",
     "Base",
     "BggThrottle",
     "BringAssignment",
     "CalendarFeed",
+    "Character",
+    "CharacterStatus",
     "CollectionVisibility",
     "DiscordCard",
     "DiscordChannel",
@@ -53,6 +64,7 @@ __all__ = [
     "Game",
     "Group",
     "GroupInvite",
+    "GroupKind",
     "GroupMember",
     "GroupRole",
     "InviteLink",
@@ -71,6 +83,7 @@ __all__ = [
     "PlayerCountVotes",
     "PlaytimeFeel",
     "RemovedGame",
+    "RpgSystem",
     "RsvpResponse",
     "Source",
     "User",
@@ -79,5 +92,6 @@ __all__ = [
     "UserGame",
     "UserGameMood",
     "UserGamePlayerCount",
+    "UserRpgSystem",
     "is_custom_id",
 ]

@@ -13,8 +13,12 @@ from app.bgg.parse import (
     BggResponseError,
     CollectionEntry,
     GameDetails,
+    RpgSystemDetails,
+    RpgSystemStub,
     SearchHit,
     parse_collection,
+    parse_rpg_families,
+    parse_rpg_item_systems,
     parse_search,
     parse_things,
 )
@@ -95,6 +99,33 @@ class BggClient:
             )
             details.extend(parse_things(xml))
         return details
+
+    async def search_rpg_items(self, query: str) -> list[SearchHit]:
+        """RPGGeek books matching the query. BGG lists them by name, not by relevance."""
+        xml = await self._get("/xmlapi2/search", {"query": query, "type": "rpgitem"})
+        return parse_search(xml)
+
+    async def rpg_item_systems(self, ids: Iterable[int]) -> list[RpgSystemStub]:
+        """The systems these RPGGeek books belong to (one request, up to 20 books)."""
+        batch = list(dict.fromkeys(ids))[:THING_BATCH_SIZE]
+        if not batch:
+            return []
+        xml = await self._get(
+            "/xmlapi2/thing", {"id": ",".join(map(str, batch)), "type": "rpgitem"}
+        )
+        return parse_rpg_item_systems(xml)
+
+    async def rpg_families(self, ids: Iterable[int]) -> list[RpgSystemDetails]:
+        """Name, description and pictures for RPGGeek systems."""
+        unique = list(dict.fromkeys(ids))
+        systems: list[RpgSystemDetails] = []
+        for start in range(0, len(unique), THING_BATCH_SIZE):
+            batch = unique[start : start + THING_BATCH_SIZE]
+            xml = await self._get(
+                "/xmlapi2/family", {"id": ",".join(map(str, batch)), "type": "rpg"}
+            )
+            systems.extend(parse_rpg_families(xml))
+        return systems
 
     async def collection(self, username: str) -> list[CollectionEntry]:
         """Everything in a user's BGG collection, base games and expansions alike."""

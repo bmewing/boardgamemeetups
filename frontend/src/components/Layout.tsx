@@ -94,6 +94,9 @@ export function Layout() {
                   <NavLink to="/games" className={classes.navLink}>
                     Search
                   </NavLink>
+                  <NavLink to="/rpg-systems" className={classes.navLink}>
+                    RPGs
+                  </NavLink>
                 </Group>
               )}
             </Group>
