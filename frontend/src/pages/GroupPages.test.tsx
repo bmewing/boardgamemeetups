@@ -35,6 +35,8 @@ const brief: MeetupBrief = {
   starts_at: '2026-11-06T01:00:00Z',
   duration_minutes: 180,
   location: "Sam's place",
+  is_online: false,
+  online_url: null,
   status: 'scheduled',
   scheduled: true,
   edited: false,
@@ -460,7 +462,16 @@ describe('MeetupPage', () => {
       plus_one_limit: 0,
     },
     my_role: 'member',
-    rsvps: [{ person: ben, response: 'yes', guests: 0, moods: ['chill'] }],
+    rsvps: [
+      {
+        person: ben,
+        response: 'yes',
+        guests: 0,
+        moods: ['chill'],
+        bga_username: null,
+        bga_premium: false,
+      },
+    ],
     no_answer: [ann],
     my_guests: 0,
     my_moods: [],
@@ -491,6 +502,8 @@ describe('MeetupPage', () => {
     maybes: 0,
     willing_to_split: true,
     unknown_player_count: 1,
+    online: false,
+    premium_host_going: false,
     games: [
       {
         game: {
@@ -537,7 +550,17 @@ describe('MeetupPage', () => {
           ...meetup,
           yes: 2,
           my_response: 'yes',
-          rsvps: [...meetup.rsvps, { person: ann, response: 'yes', guests: 0, moods: [] }],
+          rsvps: [
+            ...meetup.rsvps,
+            {
+              person: ann,
+              response: 'yes',
+              guests: 0,
+              moods: [],
+              bga_username: null,
+              bga_premium: false,
+            },
+          ],
           no_answer: [],
         })
       },
@@ -649,7 +672,17 @@ describe('MeetupPage', () => {
       ...meetup,
       group: { ...meetup.group, plus_one_limit: 2 },
       my_response: 'yes',
-      rsvps: [...meetup.rsvps, { person: ann, response: 'yes', guests: 0, moods: [] }],
+      rsvps: [
+        ...meetup.rsvps,
+        {
+          person: ann,
+          response: 'yes',
+          guests: 0,
+          moods: [],
+          bga_username: null,
+          bga_premium: false,
+        },
+      ],
       no_answer: [],
     }
     mockApi({
@@ -665,7 +698,14 @@ describe('MeetupPage', () => {
           my_moods: body.moods,
           rsvps: [
             meetup.rsvps[0],
-            { person: ann, response: 'yes', guests: body.guests, moods: body.moods },
+            {
+              person: ann,
+              response: 'yes',
+              guests: body.guests,
+              moods: body.moods,
+              bga_username: null,
+              bga_premium: false,
+            },
           ],
         }
         return Response.json(current)

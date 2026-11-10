@@ -15,9 +15,17 @@ from app import achievements, ics, notify
 from app.api.collection import GameBrief
 from app.api.friends import PersonRead
 from app.api.games import GameSummary
-from app.api.groups import Duration, Location, MeetupBrief, PlusOneLimit, meetup_briefs
+from app.api.groups import (
+    Duration,
+    Location,
+    MeetupBrief,
+    OnlineUrl,
+    PlusOneLimit,
+    meetup_briefs,
+)
 from app.api.rollups import ReasonRead, RollupRead
 from app.auth import CurrentUser
+from app.bga import BgaLink, bga_games_for, biggest_table, counts_fit
 from app.calendar import file_name, meetup_event
 from app.db import SessionDep
 from app.discord.cards import posted_cards, refresh_cards, remove_cards
@@ -25,11 +33,13 @@ from app.discord.client import DiscordDep
 from app.email import MailerDep
 from app.groups import TableFit, membership, player_range, require_runner, table_fit
 from app.models import (
+    BgaGame,
     Game,
     Group,
     GroupMember,
     GroupRole,
     Meetup,
+    MeetupNomination,
     MeetupRsvp,
     MeetupRsvpMood,
     MeetupStatus,
@@ -56,16 +66,31 @@ CALENDAR_FILE: dict[int | str, dict[str, Any]] = {
 }
 MEETUP_NOT_FOUND = HTTPException(status.HTTP_404_NOT_FOUND, "Meetup not found")
 # Changing any of these makes a scheduled date "edited", so the schedule leaves it alone.
-SCHEDULE_FIELDS = {"local_date", "local_time", "duration_minutes", "location", "status"}
+SCHEDULE_FIELDS = {
+    "local_date",
+    "local_time",
+    "duration_minutes",
+    "location",
+    "is_online",
+    "online_url",
+    "status",
+}
+PICK_LOCKED_ONLINE = HTTPException(
+    status.HTTP_409_CONFLICT,
+    "The games are already picked. Unlock the pick to move this date on or off BGA.",
+)
 
 
 class MeetupCreate(BaseModel):
-    """A date of its own. Time, length and place default to the group's."""
+    """A date of its own. Time, length and place default to the group's. An online date
+    is played on Board Game Arena and has no place; `online_url` is the table link."""
 
     local_date: date
     local_time: time | None = None
     duration_minutes: Duration | None = None
     location: Location | None = None
+    is_online: bool = False
+    online_url: OnlineUrl = None
     notes: Notes | None = None
 
 
@@ -74,6 +99,8 @@ class MeetupUpdate(BaseModel):
     local_time: time | None = None
     duration_minutes: Duration | None = None
     location: Location | None = None
+    is_online: bool | None = None
+    online_url: OnlineUrl = None
     notes: Notes | None = None
     status: MeetupStatus | None = None
 
@@ -91,6 +118,9 @@ class RsvpRead(BaseModel):
     response: RsvpResponse
     guests: int
     moods: list[str]
+    # For finding each other on BGA at an online date; null otherwise.
+    bga_username: str | None = None
+    bga_premium: bool = False
 
 
 class MeetupRead(MeetupBrief):
@@ -113,7 +143,8 @@ class RsvpIn(BaseModel):
 
 class FittingGame(BaseModel):
     game: GameSummary
-    bringers: list[PersonRead]  # people coming who own it and will bring it
+    bringers: list[PersonRead]  # people coming who own it and will bring it (never online)
+    bga: BgaLink | None = None  # at an online date, how to play it on BGA
     # One table of everyone, or a table of some of them while the rest play something else.
     fit: TableFit
     # The player range with the expansions people are bringing (which can widen it).
@@ -133,6 +164,9 @@ class MeetupGames(BaseModel):
     willing_to_split: bool
     games: list[FittingGame]
     unknown_player_count: int  # games left out because BGG hasn't said how many they seat
+    online: bool  # the games are BGA's, fitted to BGA's player counts
+    # Someone who said yes has BGA Premium, so they can start a table of a Premium game.
+    premium_host_going: bool
 
 
 async def _meetup(
@@ -183,6 +217,8 @@ async def _read(
                 response=answer.response,
                 guests=answer.guests,
                 moods=moods[person.id],
+                bga_username=person.bga_username if meetup.is_online else None,
+                bga_premium=person.bga_premium if meetup.is_online else False,
             )
         )
         if person.id == user.id:
@@ -218,7 +254,9 @@ async def add_meetup(
         local_time=local_time,
         starts_at=instant(body.local_date, local_time, group.time_zone),
         duration_minutes=body.duration_minutes or group.duration_minutes,
-        location=body.location or group.location,
+        location=None if body.is_online else body.location or group.location,
+        is_online=body.is_online,
+        online_url=body.online_url if body.is_online else None,
         notes=body.notes or None,
         status=MeetupStatus.SCHEDULED,
     )
@@ -255,8 +293,21 @@ async def update_meetup(
         value = getattr(changes, field)
         if field in sent and value is not None:
             setattr(meetup, field, value)
+    if changes.is_online is not None and changes.is_online != meetup.is_online:
+        if meetup.picks_locked_at is not None:
+            raise PICK_LOCKED_ONLINE
+        meetup.is_online = changes.is_online
+        if not meetup.is_online and "location" not in sent:
+            meetup.location = group.location  # back in person: the group's usual place
     if "location" in sent:
         meetup.location = changes.location or None
+    if "online_url" in sent:
+        meetup.online_url = changes.online_url
+    # An online date has a link instead of a place, and a date in person no link.
+    if meetup.is_online:
+        meetup.location = None
+    else:
+        meetup.online_url = None
     if "notes" in sent:
         meetup.notes = changes.notes or None
     if sent & SCHEDULE_FIELDS and meetup.slot_date is not None:
@@ -371,31 +422,13 @@ async def list_meetup_games(
     people = {u.id: PersonRead.of(u) for u in coming}
     scope = [Person(u.id, u.display_name) for u in coming]
 
-    # Everything the people coming will bring: base games, and expansions for them.
-    owned = await session.execute(
-        select(UserGame.user_id, Game)
-        .join(Game, Game.id == UserGame.game_id)
-        .where(
-            UserGame.user_id.in_(coming_ids),
-            UserGame.ownership == Ownership.OWNED,
-            UserGame.will_bring.is_(True),
-        )
-        .order_by(Game.name)
-    )
-    bases: dict[int, Game] = {}
-    expansion_games: dict[int, Game] = {}
-    bringers: dict[int, list[PersonRead]] = defaultdict(list)
-    for owner_id, game in owned:
-        if game.is_expansion:
-            expansion_games[game.id] = game
-        else:
-            bases[game.id] = game
-            bringers[game.id].append(people[owner_id])
-    expansions: dict[int, list[Game]] = defaultdict(list)
-    for expansion in expansion_games.values():
-        for base_id in expansion.base_game_ids:
-            if base_id in bases:
-                expansions[base_id].append(expansion)
+    if meetup.is_online:
+        bases, on_bga = await _on_bga(session, meetup, coming_ids)
+        bringers: dict[int, list[PersonRead]] = defaultdict(list)
+        expansions: dict[int, list[Game]] = defaultdict(list)
+    else:
+        bases, bringers, expansions = await _brought(session, coming_ids, people)
+        on_bga = {}
 
     answers: dict[int, dict[uuid.UUID, Answer]] = defaultdict(dict)
     if bases:
@@ -426,25 +459,37 @@ async def list_meetup_games(
     unknown = 0
     for game_id, game in bases.items():
         extras = expansions[game_id]
-        low, high = player_range(game, extras)
-        if high is None:
-            unknown += 1
-            continue
-        fit = table_fit(low, high, table_count, group.willing_to_split)
-        if fit is None:
-            continue
-        # A split game is played by a table of some of them; judge it at the biggest one.
-        table = table_count if fit == "together" else _biggest_table(low, high, table_count)
+        bga = on_bga.get(game_id)
+        maybes_fit: TableFit | None = None
+        low: int | None
+        high: int | None
+        if bga is not None:
+            # Online, BGA's player counts are what decide it, gaps and all.
+            counts = sorted(bga.player_counts)
+            low, high = counts[0], counts[-1]
+            fit = counts_fit(counts, table_count, group.willing_to_split)
+            if fit is None:
+                continue
+            table = table_count if fit == "together" else biggest_table(counts, table_count)
+            if trying is None and maybes > 0:
+                maybes_fit = counts_fit(counts, confirmed + maybes, group.willing_to_split)
+        else:
+            low, high = player_range(game, extras)
+            if high is None:
+                unknown += 1
+                continue
+            fit = table_fit(low, high, table_count, group.willing_to_split)
+            if fit is None:
+                continue
+            # A split game is played by a table of some of them; judge it at the biggest one.
+            table = table_count if fit == "together" else _biggest_table(low, high, table_count)
+            if trying is None and maybes > 0:
+                maybes_fit = table_fit(low, high, confirmed + maybes, group.willing_to_split)
         roll = rollup(game, scope, answers[game_id], table)
-        fits_maybes = (
-            trying is None
-            and maybes > 0
-            and table_fit(low, high, confirmed + maybes, group.willing_to_split) is not None
-        )
         points, reasons = score(
             roll,
             players=table,
-            fits_maybes=fits_maybes,
+            fits_maybes=maybes_fit is not None,
             tonight_moods=tonight,
             mood_names=mood_names,
             recently_played=game_id in played_lately,
@@ -453,6 +498,7 @@ async def list_meetup_games(
             FittingGame(
                 game=GameSummary.from_game(game),
                 bringers=bringers[game_id],
+                bga=BgaLink.of(bga) if bga is not None else None,
                 fit=fit,
                 min_players=low,
                 max_players=high,
@@ -471,7 +517,65 @@ async def list_meetup_games(
         willing_to_split=group.willing_to_split,
         games=fitting,
         unknown_player_count=unknown,
+        online=meetup.is_online,
+        premium_host_going=meetup.is_online and any(u.bga_premium for u in coming),
     )
+
+
+async def _brought(
+    session: AsyncSession, coming_ids: list[uuid.UUID], people: dict[uuid.UUID, PersonRead]
+) -> tuple[dict[int, Game], dict[int, list[PersonRead]], dict[int, list[Game]]]:
+    """Everything the people coming will bring: base games, who's bringing each, and the
+    expansions for them."""
+    owned = await session.execute(
+        select(UserGame.user_id, Game)
+        .join(Game, Game.id == UserGame.game_id)
+        .where(
+            UserGame.user_id.in_(coming_ids),
+            UserGame.ownership == Ownership.OWNED,
+            UserGame.will_bring.is_(True),
+        )
+        .order_by(Game.name)
+    )
+    bases: dict[int, Game] = {}
+    expansion_games: dict[int, Game] = {}
+    bringers: dict[int, list[PersonRead]] = defaultdict(list)
+    for owner_id, game in owned:
+        if game.is_expansion:
+            expansion_games[game.id] = game
+        else:
+            bases[game.id] = game
+            bringers[game.id].append(people[owner_id])
+    expansions: dict[int, list[Game]] = defaultdict(list)
+    for expansion in expansion_games.values():
+        for base_id in expansion.base_game_ids:
+            if base_id in bases:
+                expansions[base_id].append(expansion)
+    return bases, bringers, expansions
+
+
+async def _on_bga(
+    session: AsyncSession, meetup: Meetup, coming_ids: list[uuid.UUID]
+) -> tuple[dict[int, Game], dict[int, BgaGame]]:
+    """For an online date: the games on BGA that someone coming has among their games
+    (owned, wanted, rated, any of it), and any already nominated. Nobody brings anything,
+    and every BGA game plays on its own, expansions included."""
+    known = set(
+        await session.scalars(select(UserGame.game_id).where(UserGame.user_id.in_(coming_ids)))
+    )
+    known |= set(
+        await session.scalars(
+            select(MeetupNomination.game_id).where(MeetupNomination.meetup_id == meetup.id)
+        )
+    )
+    on_bga = await bga_games_for(session, known)
+    games = {
+        game.id: game
+        for game in await session.scalars(
+            select(Game).where(Game.id.in_(list(on_bga))).order_by(Game.name)
+        )
+    }
+    return games, on_bga
 
 
 def _biggest_table(low: int | None, high: int, players: int) -> int:

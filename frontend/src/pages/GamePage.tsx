@@ -16,6 +16,7 @@ import { Link, useParams } from 'react-router'
 
 import { type GameDetail, useGame, useUpdateCustomGame } from '../api/games'
 import { useMe } from '../api/me'
+import { BgaInfo } from '../components/BgaInfo'
 import { ErrorNote, LoadingNote } from '../components/mascot/MascotNote'
 import { CustomGameForm } from '../components/CustomGameForm'
 import { bestWithLabel, playersLabel, playtimeLabel, weightLabel } from '../components/gameFacts'
@@ -177,6 +178,14 @@ export function GamePage() {
                 Added by someone here, so it has no BGG ratings or player-count votes.
               </Text>
             </Group>
+          )}
+          {g.bga && (
+            <Stack gap={4}>
+              <Anchor href={g.bga.game_url} target="_blank" size="sm">
+                Play on Board Game Arena
+              </Anchor>
+              <BgaInfo bga={g.bga} showLobby />
+            </Stack>
           )}
           {g.is_custom && me.data && g.created_by_id === me.data.id && <EditCustomGame game={g} />}
         </Stack>

@@ -141,6 +141,18 @@ tests are the same as in local development.
   uv run --env-file .env.production python -m app.import_bgg_ranks path/to/boardgames_ranks.zip
   ```
 
+- Board Game Arena's game list is loaded by hand, since BGA has no API and its terms don't
+  allow automated fetching. To refresh it, open https://boardgamearena.com/gamelist in a
+  browser, save the page (HTML only), then from `backend/`:
+
+  ```bash
+  uv run python -m app.import_bga path/to/gamelist.html --write-snapshot data/bga_games.json
+  uv run --env-file .env.production python -m app.import_bga data/bga_games.json
+  ```
+
+  Commit the updated snapshot. The import lists games it couldn't link to a BGG game; set
+  their `bgg_id` in the snapshot and load it again.
+
 - A staging database (a second Supabase project, `boardgamemeetups-staging`) is there to try
   migrations on first. Its settings are in the gitignored `backend/.env.staging`, laid out like
   `.env.production` (including `SERVERLESS=true`, which the pooler needs):

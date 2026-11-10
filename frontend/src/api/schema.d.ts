@@ -118,6 +118,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bga/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Bga Games
+         * @description Games on Board Game Arena by name, for nominating at an online date. Only games
+         *     linked to the catalog are listed, since a nomination is of a catalog game. `players`
+         *     keeps the ones BGA seats that many at. A game BGA lists twice is shown once.
+         */
+        get: operations["search_bga_games_api_bga_games_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/moods": {
         parameters: {
             query?: never;
@@ -959,8 +981,8 @@ export interface paths {
         put?: never;
         /**
          * Nominate
-         * @description Put forward a game someone going owns. You vote for what you nominate; nominating a
-         *     game that's already up just adds your vote.
+         * @description Put forward a game someone going owns, or at an online date any game on BGA. You vote
+         *     for what you nominate; nominating a game that's already up just adds your vote.
          */
         post: operations["nominate_api_meetups__meetup_id__nominations_post"];
         delete?: never;
@@ -1019,8 +1041,8 @@ export interface paths {
         /**
          * Lock Pick
          * @description Choose the game or games to play, and stop the voting. A picked game with exactly one
-         *     owner going is tagged as theirs to bring. Members who said yes or maybe are emailed the
-         *     pick.
+         *     owner going is tagged as theirs to bring (not at an online date, where nobody brings
+         *     anything). Members who said yes or maybe are emailed the pick.
          */
         post: operations["lock_pick_api_meetups__meetup_id__lock_post"];
         delete?: never;
@@ -1373,6 +1395,48 @@ export interface components {
             /** On Wishlist */
             on_wishlist: boolean;
         };
+        /** BgaGameRead */
+        BgaGameRead: {
+            /** Id */
+            id: number;
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Premium */
+            premium: boolean;
+            /** Player Counts */
+            player_counts: number[];
+            /** Status */
+            status: string;
+            /** Game Url */
+            game_url: string;
+            /** Lobby Url */
+            lobby_url: string;
+            game: components["schemas"]["GameSummary"];
+        };
+        /**
+         * BgaLink
+         * @description A catalog game as BGA offers it.
+         */
+        BgaLink: {
+            /** Id */
+            id: number;
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Premium */
+            premium: boolean;
+            /** Player Counts */
+            player_counts: number[];
+            /** Status */
+            status: string;
+            /** Game Url */
+            game_url: string;
+            /** Lobby Url */
+            lobby_url: string;
+        };
         /**
          * BringIn
          * @description Who brings it: yourself when left out. Someone else takes the owner or an admin.
@@ -1607,6 +1671,7 @@ export interface components {
             game: components["schemas"]["GameSummary"];
             /** Bringers */
             bringers: components["schemas"]["PersonRead"][];
+            bga?: components["schemas"]["BgaLink"] | null;
             /**
              * Fit
              * @enum {string}
@@ -1707,6 +1772,7 @@ export interface components {
             bgg_url: string | null;
             /** Created By Id */
             created_by_id: string | null;
+            bga?: components["schemas"]["BgaLink"] | null;
         };
         /** GameDiffRead */
         GameDiffRead: {
@@ -2101,6 +2167,10 @@ export interface components {
             duration_minutes: number;
             /** Location */
             location: string | null;
+            /** Is Online */
+            is_online: boolean;
+            /** Online Url */
+            online_url: string | null;
             status: components["schemas"]["MeetupStatus"];
             /** Scheduled */
             scheduled: boolean;
@@ -2120,7 +2190,8 @@ export interface components {
         };
         /**
          * MeetupCreate
-         * @description A date of its own. Time, length and place default to the group's.
+         * @description A date of its own. Time, length and place default to the group's. An online date
+         *     is played on Board Game Arena and has no place; `online_url` is the table link.
          */
         MeetupCreate: {
             /**
@@ -2134,6 +2205,13 @@ export interface components {
             duration_minutes?: number | null;
             /** Location */
             location?: string | null;
+            /**
+             * Is Online
+             * @default false
+             */
+            is_online: boolean;
+            /** Online Url */
+            online_url?: string | null;
             /** Notes */
             notes?: string | null;
         };
@@ -2153,6 +2231,10 @@ export interface components {
             games: components["schemas"]["FittingGame"][];
             /** Unknown Player Count */
             unknown_player_count: number;
+            /** Online */
+            online: boolean;
+            /** Premium Host Going */
+            premium_host_going: boolean;
         };
         /** MeetupRead */
         MeetupRead: {
@@ -2180,6 +2262,10 @@ export interface components {
             duration_minutes: number;
             /** Location */
             location: string | null;
+            /** Is Online */
+            is_online: boolean;
+            /** Online Url */
+            online_url: string | null;
             status: components["schemas"]["MeetupStatus"];
             /** Scheduled */
             scheduled: boolean;
@@ -2224,6 +2310,10 @@ export interface components {
             duration_minutes?: number | null;
             /** Location */
             location?: string | null;
+            /** Is Online */
+            is_online?: boolean | null;
+            /** Online Url */
+            online_url?: string | null;
             /** Notes */
             notes?: string | null;
             status?: components["schemas"]["MeetupStatus"] | null;
@@ -2329,6 +2419,7 @@ export interface components {
             /** Max Players */
             max_players: number | null;
             bring: components["schemas"]["BringRead"] | null;
+            bga: components["schemas"]["BgaLink"] | null;
             /** Can Remove */
             can_remove: boolean;
         };
@@ -2540,6 +2631,13 @@ export interface components {
             guests: number;
             /** Moods */
             moods: string[];
+            /** Bga Username */
+            bga_username?: string | null;
+            /**
+             * Bga Premium
+             * @default false
+             */
+            bga_premium: boolean;
         };
         /**
          * RsvpResponse
@@ -2697,6 +2795,10 @@ export interface components {
             bgg_username: string | null;
             /** Bgg Pulled At */
             bgg_pulled_at: string | null;
+            /** Bga Username */
+            bga_username: string | null;
+            /** Bga Premium */
+            bga_premium: boolean;
             collection_visibility: components["schemas"]["CollectionVisibility"];
             /** Email Opt Outs */
             email_opt_outs: components["schemas"]["EmailKind"][];
@@ -2734,6 +2836,10 @@ export interface components {
             time_zone?: string | null;
             /** Bgg Username */
             bgg_username?: string | null;
+            /** Bga Username */
+            bga_username?: string | null;
+            /** Bga Premium */
+            bga_premium?: boolean | null;
             collection_visibility?: components["schemas"]["CollectionVisibility"] | null;
             /** Email Opt Outs */
             email_opt_outs?: components["schemas"]["EmailKind"][] | null;
@@ -2769,6 +2875,10 @@ export interface components {
             nominations: components["schemas"]["NominationRead"][];
             /** Nominatable */
             nominatable: components["schemas"]["GameBrief"][];
+            /** Online */
+            online: boolean;
+            /** Premium Host Going */
+            premium_host_going: boolean;
         };
         /** WeekCount */
         WeekCount: {
@@ -3042,6 +3152,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GameSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_bga_games_api_bga_games_get: {
+        parameters: {
+            query: {
+                q: string;
+                players?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BgaGameRead"][];
                 };
             };
             /** @description Validation Error */

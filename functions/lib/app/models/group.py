@@ -149,6 +149,10 @@ class Meetup(Base):
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     duration_minutes: Mapped[int] = mapped_column(Integer)
     location: Mapped[str | None] = mapped_column(String(200))
+    # Played on Board Game Arena instead of at a place: games come from BGA, not from what
+    # people bring. `online_url` is the table (or call) link, once someone has made one.
+    is_online: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    online_url: Mapped[str | None] = mapped_column(String(2048))
     notes: Mapped[str | None] = mapped_column(Text)
     status: Mapped[MeetupStatus] = mapped_column(
         _string_enum(MeetupStatus), default=MeetupStatus.SCHEDULED

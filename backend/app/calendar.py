@@ -4,6 +4,7 @@ import re
 from datetime import timedelta
 
 from app import ics
+from app.bga import place_of
 from app.config import get_settings
 from app.models import Group, Meetup, MeetupStatus, RsvpResponse
 
@@ -37,7 +38,7 @@ def meetup_event(
         updated_at=meetup.updated_at,
         # Seconds since it was made: goes up whenever the date changes.
         sequence=max(0, int((meetup.updated_at - meetup.created_at).total_seconds())),
-        location=meetup.location,
+        location=place_of(meetup),
         description="\n\n".join(notes) or None,
         url=url,
         cancelled=cancelled,

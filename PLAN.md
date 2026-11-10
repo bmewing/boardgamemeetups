@@ -260,6 +260,17 @@ The Discord application people sign in with also runs a bot. No always-on proces
 - [ ] Phase 3: reminders in Discord, invites, Discord scheduled events
 - **Done when:** in a real server, someone links, an admin connects a channel, the next date's card appears, and clicking Going shows up in the app (and the other way round)
 
+### Phase 15 — Online play on Board Game Arena
+A date can be online, on Board Game Arena (BGA), instead of at a place. BGA's games live in `bga_games`, each linked to the catalog game (its BGG id), so nothing about a game is stored twice.
+- [x] BGA's game list loaded by hand (`app.import_bga`) from a saved copy of its `/gamelist` page into the committed snapshot `backend/data/bga_games.json`: name, Premium, BGA's player counts, links. Linked by the BGG id BGA gives, else by an unambiguous name; the rest are listed to fix in the snapshot
+- [x] Online dates: a switch instead of the place, an optional table link; calendars, emails and Discord say "Board Game Arena" with the link
+- [x] Games that fit, online: BGA games the people going have among their games (owned, wanted, rated), fitted to BGA's player counts (gaps and all); any BGA game can be nominated from a search; no bringing
+- [x] BGA username and Premium on the profile, shown at online dates; a Premium game nobody going can start is flagged
+- [ ] A group setting to make every scheduled date online
+- **Done when:** an organizer adds an online date, people going nominate and vote on a game none of them own, the pick shows "Open on BGA" / "Start a table" and nothing to bring, and the calendar file says Board Game Arena with the table link
+- 2026-11-10: BGA has no API and its terms forbid automated access, so the list is refreshed by hand now and then, never by the hourly run
+- 2026-11-10: at online dates BGA's player counts decide what fits, not the box's (BGA sometimes allows only some counts, e.g. 2 or 4)
+
 ---
 
 ## Verification

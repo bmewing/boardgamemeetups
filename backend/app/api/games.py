@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from app import achievements, catalog
 from app.auth import CurrentUser
+from app.bga import BgaLink, links_for
 from app.bgg import BggClient, BggError
 from app.db import SessionDep
 from app.models import CUSTOM_GAME_IDS, Game, Ownership, Source, UserGame
@@ -88,6 +89,7 @@ class GameDetail(GameSummary):
     player_count_votes: list[PlayerCountVote]
     bgg_url: str | None  # null for a game that isn't on BGG
     created_by_id: uuid.UUID | None  # who added a custom game, and can edit it
+    bga: BgaLink | None = None  # how to play it on Board Game Arena, if it's there
 
     @classmethod
     def from_game(cls, game: Game) -> Self:
@@ -215,4 +217,6 @@ async def read_game(
         ) from exc
     if game is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Game not found")
-    return GameDetail.from_game(game)
+    detail = GameDetail.from_game(game)
+    detail.bga = (await links_for(session, [game.id])).get(game.id)
+    return detail

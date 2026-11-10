@@ -33,14 +33,16 @@ const VISIBILITY_OPTIONS = [
 
 type ProfileFormValues = Pick<
   UserProfile,
-  'display_name' | 'time_zone' | 'collection_visibility'
-> & { bgg_username: string }
+  'display_name' | 'time_zone' | 'collection_visibility' | 'bga_premium'
+> & { bgg_username: string; bga_username: string }
 
 function toFormValues(profile: UserProfile): ProfileFormValues {
   return {
     display_name: profile.display_name,
     time_zone: profile.time_zone,
     bgg_username: profile.bgg_username ?? '',
+    bga_username: profile.bga_username ?? '',
+    bga_premium: profile.bga_premium,
     collection_visibility: profile.collection_visibility,
   }
 }
@@ -83,6 +85,17 @@ function ProfileForm({ profile }: { profile: UserProfile }) {
           description="Optional. Used later to import your collection."
           maxLength={64}
           {...form.getInputProps('bgg_username')}
+        />
+        <TextInput
+          label="Board Game Arena username"
+          description="Optional. Shown to the people at online dates, so they can find you on BGA."
+          maxLength={64}
+          {...form.getInputProps('bga_username')}
+        />
+        <Switch
+          label="I have BGA Premium"
+          description="Only a Premium member can start a table of a Premium game (anyone can join one)."
+          {...form.getInputProps('bga_premium', { type: 'checkbox' })}
         />
         <Input.Wrapper
           label="Who can see your collection"

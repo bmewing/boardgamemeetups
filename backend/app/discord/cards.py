@@ -16,6 +16,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bga import place_of
 from app.config import get_settings
 from app.discord.client import Discord, Edit, Message
 from app.models import (
@@ -81,8 +82,8 @@ def render(
     over = meetup.starts_at + timedelta(minutes=meetup.duration_minutes) <= now
     starts = int(meetup.starts_at.timestamp())
     lines = [f"<t:{starts}:F> (<t:{starts}:R>)"]
-    if meetup.location:
-        lines.append(f"At {meetup.location}")
+    if place := place_of(meetup):
+        lines.append(f"At {place}")
     if meetup.notes:
         lines.append("")
         lines.append(clip(meetup.notes, NOTES_SHOWN))

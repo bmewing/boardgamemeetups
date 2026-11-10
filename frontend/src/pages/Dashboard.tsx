@@ -15,6 +15,7 @@ import {
   formatShortDate,
   formatTime,
   ROLE_LABELS,
+  placeLabel,
 } from '../components/meetupFormat'
 import { plural } from '../components/userGameFields'
 import classes from './Dashboard.module.css'
@@ -115,7 +116,7 @@ function NextUp({ next }: { next: Upcoming }) {
         <span className={classes.ticketGroup}>{group.name}</span>
         <span className={classes.ticketMeta}>
           {formatTime(meetup.local_time)} – {endTime(meetup.local_time, meetup.duration_minutes)}
-          {meetup.location ? ` · ${meetup.location}` : ''}
+          {placeLabel(meetup) ? ` · ${placeLabel(meetup)}` : ''}
         </span>
         <Seats meetup={meetup} />
         <Group gap="xs" mt={4}>

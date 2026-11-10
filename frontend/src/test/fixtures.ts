@@ -116,6 +116,8 @@ export const profile: UserProfile = {
   discord_username: null,
   bgg_username: null,
   bgg_pulled_at: null,
+  bga_username: null,
+  bga_premium: false,
   collection_visibility: 'friends',
   email_opt_outs: [],
   is_admin: false,

@@ -53,6 +53,7 @@ import {
   scheduleLabel,
   todayIso,
   toInputTime,
+  placeLabel,
 } from '../components/meetupFormat'
 import { AddFriendButton } from '../components/AddFriendButton'
 import { MeetupForm } from '../components/MeetupForm'
@@ -78,7 +79,7 @@ function MeetupRow({ meetup }: { meetup: MeetupBrief }) {
           <Text size="sm" c="dimmed" lineClamp={1}>
             {cancelled
               ? 'Cancelled'
-              : `${meetup.headcount} going${meetup.maybe ? ` · ${meetup.maybe} maybe` : ''}${meetup.location ? ` · ${meetup.location}` : ''}`}
+              : `${meetup.headcount} going${meetup.maybe ? ` · ${meetup.maybe} maybe` : ''}${placeLabel(meetup) ? ` · ${placeLabel(meetup)}` : ''}`}
           </Text>
         </Stack>
         <Group gap={4} wrap="nowrap">
@@ -131,6 +132,8 @@ function DatesTab({ group }: { group: GroupData }) {
             local_time: toInputTime(group.start_time),
             duration_minutes: group.duration_minutes,
             location: group.location ?? '',
+            is_online: false,
+            online_url: '',
             notes: '',
           }}
           submitLabel="Add"
@@ -143,6 +146,8 @@ function DatesTab({ group }: { group: GroupData }) {
                 local_time: fromInputTime(f.local_time),
                 duration_minutes: f.duration_minutes,
                 location: f.location || null,
+                is_online: f.is_online,
+                online_url: f.is_online ? f.online_url || null : null,
                 notes: f.notes || null,
               },
               { onSuccess: close },

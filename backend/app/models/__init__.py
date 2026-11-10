@@ -2,6 +2,7 @@
 
 from app.db import Base
 from app.models.achievement import UserAchievement
+from app.models.bga import BGA_URL, BgaGame
 from app.models.bgg_throttle import BggThrottle
 from app.models.calendar import CalendarFeed
 from app.models.discord import DiscordCard, DiscordChannel
@@ -40,8 +41,10 @@ from app.models.user_game import (
 )
 
 __all__ = [
+    "BGA_URL",
     "CUSTOM_GAME_IDS",
     "Base",
+    "BgaGame",
     "BggThrottle",
     "BringAssignment",
     "CalendarFeed",

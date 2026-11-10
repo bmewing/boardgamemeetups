@@ -47,6 +47,10 @@ class User(Base):
     discord_id: Mapped[str | None] = mapped_column(String(20), unique=True)
     discord_username: Mapped[str | None] = mapped_column(String(100))
     bgg_username: Mapped[str | None] = mapped_column(String(64))
+    # Shown to the people at an online date, so they can find each other on BGA. Premium
+    # matters because only a Premium member can start a table of a Premium game.
+    bga_username: Mapped[str | None] = mapped_column(String(64))
+    bga_premium: Mapped[bool] = mapped_column(default=False, server_default=text("false"))
     # When this user last applied a pull from BGG (not just previewed one).
     bgg_pulled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     collection_visibility: Mapped[CollectionVisibility] = mapped_column(

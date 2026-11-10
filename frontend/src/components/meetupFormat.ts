@@ -1,4 +1,9 @@
-import type { Schedule } from '../api/groups'
+import type { MeetupBrief, Schedule } from '../api/groups'
+
+/** Where a date happens, for one-line summaries: the place, or BGA for an online date. */
+export function placeLabel(meetup: Pick<MeetupBrief, 'is_online' | 'location'>) {
+  return meetup.is_online ? 'Online on BGA' : meetup.location
+}
 
 export const WEEKDAY_NAMES = [
   'Monday',
