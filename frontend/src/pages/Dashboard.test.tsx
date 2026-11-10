@@ -14,6 +14,8 @@ const brief = (over: Partial<MeetupBrief> = {}): MeetupBrief => ({
   starts_at: '2026-11-08T20:00:00Z',
   duration_minutes: 180,
   location: "Mark and Ames' place",
+  is_online: false,
+  online_url: null,
   status: 'scheduled',
   scheduled: true,
   edited: false,

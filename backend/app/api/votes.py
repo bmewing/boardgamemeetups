@@ -4,6 +4,9 @@ each picked game.
 Members who said yes nominate and vote. The owner and admins lock the pick (one game or
 several), which stops voting and nominating; answers stay open. A picked game with one
 owner going is theirs to bring; with several, the first to claim it brings it.
+
+At an online date the games are Board Game Arena's: any game on BGA can be nominated, it's
+fitted to BGA's player counts, and nobody brings anything.
 """
 
 import uuid
@@ -22,6 +25,7 @@ from app.api.friends import PersonRead
 from app.api.games import GameSummary
 from app.api.meetups import game_meetup
 from app.auth import CurrentUser
+from app.bga import BgaLink, bga_games_for, counts_fit
 from app.db import SessionDep
 from app.email import MailerDep
 from app.groups import RUNS_GROUP, TableFit, player_range, require_runner, table_fit
@@ -44,6 +48,9 @@ from app.plays import going
 router = APIRouter(tags=["votes"])
 
 NOMINATION_NOT_FOUND = HTTPException(status.HTTP_404_NOT_FOUND, "Nomination not found")
+ONLINE_NOTHING_TO_BRING = HTTPException(
+    status.HTTP_409_CONFLICT, "This date is on Board Game Arena; there's nothing to bring."
+)
 
 
 class BringRead(BaseModel):
@@ -63,7 +70,8 @@ class NominationRead(BaseModel):
     # The game's player range, widened by expansions people going are bringing.
     min_players: int | None
     max_players: int | None
-    bring: BringRead | None  # for picked games
+    bring: BringRead | None  # for picked games (never at an online date)
+    bga: BgaLink | None  # at an online date, how to play it on BGA
     can_remove: bool
 
 
@@ -74,7 +82,12 @@ class VoteRead(BaseModel):
     can_lock: bool  # you're the owner or an admin
     headcount: int
     nominations: list[NominationRead]  # picked first, then most votes
-    nominatable: list[GameBrief]  # games someone going owns that aren't nominated yet
+    # Games someone going owns that aren't nominated yet; online, the games on BGA that
+    # someone going has among their games (any other BGA game can be searched for).
+    nominatable: list[GameBrief]
+    online: bool
+    # Someone going has BGA Premium, so they can start a table of a Premium game.
+    premium_host_going: bool
 
 
 class NominationIn(BaseModel):
@@ -149,6 +162,7 @@ async def vote_state(
     }
 
     game_ids = [g.id for _, g in rows]
+    on_bga = await bga_games_for(session, game_ids) if meetup.is_online else {}
     owners = await _owners_going(session, coming, game_ids)
     bringers = {
         a.game_id: a.user_id
@@ -163,10 +177,18 @@ async def vote_state(
 
     nominations: list[NominationRead] = []
     for nomination, game in rows:
-        low, high = player_range(game, [e for e in expansions if game.id in e.base_game_ids])
-        fit = table_fit(low, high, headcount, group.willing_to_split)
+        bga = on_bga.get(game.id)
+        low: int | None
+        high: int | None
+        if bga is not None:
+            counts = sorted(bga.player_counts)
+            low, high = counts[0], counts[-1]
+            fit = counts_fit(counts, headcount, group.willing_to_split)
+        else:
+            low, high = player_range(game, [e for e in expansions if game.id in e.base_game_ids])
+            fit = table_fit(low, high, headcount, group.willing_to_split)
         bring = None
-        if nomination.picked:
+        if nomination.picked and not meetup.is_online:
             who = bringers.get(game.id)
             bring = BringRead(
                 person=PersonRead.of(bringer_users[who]) if who in bringer_users else None,
@@ -187,13 +209,31 @@ async def vote_state(
                 min_players=low,
                 max_players=high,
                 bring=bring,
+                bga=BgaLink.of(bga) if bga is not None else None,
                 can_remove=not locked and (runs or nomination.nominated_by_id == user.id),
             )
         )
     nominations.sort(key=lambda n: (not n.picked, -len(n.votes), n.game.name.lower()))
 
     nominatable: list[GameBrief] = []
-    if coming and not locked:
+    if coming and not locked and meetup.is_online:
+        theirs = set(
+            await session.scalars(select(UserGame.game_id).where(UserGame.user_id.in_(coming)))
+        )
+        known = await bga_games_for(session, theirs - set(game_ids))
+        nominatable = [
+            GameBrief(
+                id=g.id,
+                name=g.name,
+                year_published=g.year_published,
+                thumbnail_url=g.thumbnail_url,
+                is_expansion=g.is_expansion,
+            )
+            for g in await session.scalars(
+                select(Game).where(Game.id.in_(list(known))).order_by(Game.name)
+            )
+        ]
+    elif coming and not locked:
         owned = await session.scalars(
             select(Game)
             .join(UserGame, UserGame.game_id == Game.id)
@@ -224,7 +264,18 @@ async def vote_state(
         headcount=headcount,
         nominations=nominations,
         nominatable=nominatable,
+        online=meetup.is_online,
+        premium_host_going=meetup.is_online and await _premium_going(session, coming),
     )
+
+
+async def _premium_going(session: AsyncSession, coming: list[uuid.UUID]) -> bool:
+    if not coming:
+        return False
+    found = await session.scalar(
+        select(User.id).where(User.id.in_(coming), User.bga_premium.is_(True)).limit(1)
+    )
+    return found is not None
 
 
 async def _expansions_going(session: AsyncSession, coming: list[uuid.UUID]) -> list[Game]:
@@ -276,14 +327,22 @@ async def read_vote(meetup_id: uuid.UUID, user: CurrentUser, session: SessionDep
 async def nominate(
     meetup_id: uuid.UUID, body: NominationIn, user: CurrentUser, session: SessionDep
 ) -> VoteRead:
-    """Put forward a game someone going owns. You vote for what you nominate; nominating a
-    game that's already up just adds your vote."""
+    """Put forward a game someone going owns, or at an online date any game on BGA. You vote
+    for what you nominate; nominating a game that's already up just adds your vote."""
     meetup, group, me = await game_meetup(session, meetup_id, user)
     _open(meetup)
     await _require_going(session, meetup, user)
-    coming = (await going(session, meetup.id))[0]
-    if not (await _owners_going(session, coming, [body.game_id]))[body.game_id]:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Nobody going owns that game.")
+    if meetup.is_online:
+        if body.game_id not in await bga_games_for(session, [body.game_id]):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, "That game isn't on Board Game Arena."
+            )
+    else:
+        coming = (await going(session, meetup.id))[0]
+        if not (await _owners_going(session, coming, [body.game_id]))[body.game_id]:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, "Nobody going owns that game."
+            )
     await session.execute(
         insert(MeetupNomination)
         .values(id=uuid.uuid4(), meetup_id=meetup.id, game_id=body.game_id, nominated_by_id=user.id)
@@ -363,8 +422,8 @@ async def lock_pick(
     mailer: MailerDep,
 ) -> VoteRead:
     """Choose the game or games to play, and stop the voting. A picked game with exactly one
-    owner going is tagged as theirs to bring. Members who said yes or maybe are emailed the
-    pick."""
+    owner going is tagged as theirs to bring (not at an online date, where nobody brings
+    anything). Members who said yes or maybe are emailed the pick."""
     meetup, group, me = await game_meetup(session, meetup_id, user)
     require_runner(me)
     _open(meetup)
@@ -390,7 +449,7 @@ async def lock_pick(
     coming = (await going(session, meetup.id))[0]
     owners = await _owners_going(session, coming, [n.game_id for n in chosen])
     for nomination in chosen:
-        if len(owners[nomination.game_id]) == 1:
+        if len(owners[nomination.game_id]) == 1 and not meetup.is_online:
             session.add(
                 BringAssignment(
                     meetup_id=meetup.id,
@@ -448,6 +507,8 @@ async def bring_game(
     """Claim a picked game to bring, or (owner or admin) hand it to another owner going,
     who is emailed about it."""
     meetup, group, me = await game_meetup(session, meetup_id, user)
+    if meetup.is_online:
+        raise ONLINE_NOTHING_TO_BRING
     await _picked(session, meetup, game_id)
     bringer = body.user_id or user.id
     if bringer != user.id:

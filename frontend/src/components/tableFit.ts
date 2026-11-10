@@ -37,9 +37,14 @@ export function capacityNote(
   maxPlayers: number | null,
   fit: TableFit | null,
   headcount: number,
+  // BGA's player counts at an online date, which can skip numbers.
+  counts?: number[] | null,
 ): CapacityNote | null {
   if (fit === 'together' || headcount < 1) return null
   if (maxPlayers === null) return { text: 'Player count unknown', color: 'gray' }
+  if (counts && fit === null && (minPlayers ?? 1) <= headcount && headcount <= maxPlayers) {
+    return { text: `BGA seats ${counts.join(', ')}, not ${headcount}`, color: 'red' }
+  }
   if (headcount > maxPlayers) {
     return fit === 'split'
       ? {

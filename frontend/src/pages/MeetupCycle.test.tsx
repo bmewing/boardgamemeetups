@@ -53,6 +53,8 @@ function meetupAt(startsAt: string, role: Meetup['my_role'] = 'owner'): Meetup {
     starts_at: startsAt,
     duration_minutes: 180,
     location: null,
+    is_online: false,
+    online_url: null,
     status: 'scheduled',
     scheduled: false,
     edited: false,
@@ -76,8 +78,22 @@ function meetupAt(startsAt: string, role: Meetup['my_role'] = 'owner'): Meetup {
     },
     my_role: role,
     rsvps: [
-      { person: ben, response: 'yes', guests: 0, moods: [] },
-      { person: sam, response: 'yes', guests: 0, moods: [] },
+      {
+        person: ben,
+        response: 'yes',
+        guests: 0,
+        moods: [],
+        bga_username: null,
+        bga_premium: false,
+      },
+      {
+        person: sam,
+        response: 'yes',
+        guests: 0,
+        moods: [],
+        bga_username: null,
+        bga_premium: false,
+      },
     ],
     no_answer: [],
     my_guests: 0,
@@ -93,6 +109,8 @@ const noGames: MeetupGames = {
   willing_to_split: false,
   games: [],
   unknown_player_count: 0,
+  online: false,
+  premium_host_going: false,
 }
 
 const nomination = {
@@ -107,6 +125,7 @@ const nomination = {
   min_players: 2,
   max_players: 4,
   bring: null,
+  bga: null,
   can_remove: false,
 }
 
@@ -118,6 +137,8 @@ const openVote: VoteState = {
   headcount: 2,
   nominations: [nomination],
   nominatable: [],
+  online: false,
+  premium_host_going: false,
 }
 
 function renderMeetup(meetup: Meetup, routes: Parameters<typeof mockApi>[0]) {
@@ -315,5 +336,81 @@ describe('Logging what was played', () => {
     await waitFor(() => expect(sent?.plays.map((p) => p.game_id)).toEqual([2, 1, 2]))
     expect(await screen.findByText('3. Coup · round 2')).toBeInTheDocument()
     expect(screen.getByText('2. Azul')).toBeInTheDocument()
+  })
+})
+
+describe('Voting on an online date', () => {
+  beforeEach(() => signIn())
+
+  const grand = {
+    id: 990,
+    slug: 'azul',
+    name: 'Azul',
+    premium: true,
+    player_counts: [2, 4],
+    status: 'public',
+    game_url: 'https://boardgamearena.com/gamepanel?game=azul',
+    lobby_url: 'https://boardgamearena.com/lobby?game=990',
+  }
+  const online = (): Meetup => ({
+    ...meetupAt('2099-01-01T19:00:00Z'),
+    location: null,
+    is_online: true,
+    online_url: 'https://boardgamearena.com/table?table=7',
+  })
+  const onlineVote: VoteState = {
+    ...openVote,
+    online: true,
+    premium_host_going: false,
+    nominations: [{ ...nomination, bga: grand }],
+  }
+
+  it('nominates any game on BGA and flags a Premium game nobody can start', async () => {
+    const nominated: number[] = []
+    renderMeetup(online(), {
+      [`GET /api/meetups/${MEETUP_ID}/vote`]: () => Response.json(onlineVote),
+      'GET /api/bga/games': () =>
+        Response.json([
+          { ...grand, id: 991, slug: 'carcassonne', name: 'Carcassonne', game: { ...azul, id: 2 } },
+        ]),
+      [`POST /api/meetups/${MEETUP_ID}/nominations`]: async (request) => {
+        nominated.push(((await request.json()) as { game_id: number }).game_id)
+        return Response.json(onlineVote)
+      },
+    })
+
+    expect(await screen.findByText('Online · Board Game Arena')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Join the table' })).toHaveAttribute(
+      'href',
+      'https://boardgamearena.com/table?table=7',
+    )
+    expect(await screen.findByText('Premium: nobody going has it')).toBeInTheDocument()
+    expect(screen.getByText('2, 4 players on BGA')).toBeInTheDocument()
+
+    const picker = screen.getByRole('combobox', { name: 'Nominate any game on Board Game Arena' })
+    await userEvent.type(picker, 'carc')
+    await userEvent.click(await screen.findByRole('option', { name: 'Carcassonne (Premium)' }))
+    await waitFor(() => expect(nominated).toEqual([2]))
+  })
+
+  it('shows where to play the pick, with nothing to bring', async () => {
+    const lockedVote: VoteState = {
+      ...onlineVote,
+      locked: true,
+      can_vote: false,
+      premium_host_going: true,
+      nominations: [{ ...nomination, bga: grand, picked: true }],
+    }
+    renderMeetup(online(), {
+      [`GET /api/meetups/${MEETUP_ID}/vote`]: () => Response.json(lockedVote),
+    })
+
+    expect(await screen.findByText('The pick')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Start a table' })).toHaveAttribute(
+      'href',
+      'https://boardgamearena.com/lobby?game=990',
+    )
+    expect(screen.getByText('Premium')).toBeInTheDocument()
+    expect(screen.queryByText('Nobody’s bringing it yet')).not.toBeInTheDocument()
   })
 })

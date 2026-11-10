@@ -36,6 +36,7 @@ import {
   useRsvp,
   useUpdateMeetup,
 } from '../api/groups'
+import { BgaInfo } from '../components/BgaInfo'
 import { GameCard } from '../components/GameCard'
 import { Grouper } from '../components/mascot/Grouper'
 import { ErrorNote, LoadingNote, MascotNote } from '../components/mascot/MascotNote'
@@ -63,7 +64,13 @@ import { UnlockHint } from '../components/achievements/UnlockHint'
 
 const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
-type Attendee = { person: Person; guests?: number; moods?: string[] }
+type Attendee = {
+  person: Person
+  guests?: number
+  moods?: string[]
+  bga_username?: string | null // at an online date
+  bga_premium?: boolean
+}
 
 function useMoodNames() {
   const moods = useMoods()
@@ -80,7 +87,7 @@ function People({ title, people }: { title: string; people: Attendee[] }) {
         {withGuests(title, people.length, guests)}
       </Text>
       <Group gap="xs" align="flex-start">
-        {people.map(({ person: p, guests: brings = 0, moods = [] }) => (
+        {people.map(({ person: p, guests: brings = 0, moods = [], bga_username, bga_premium }) => (
           <Anchor key={p.id} component={Link} to={`/people/${p.id}`} c="inherit">
             <Group gap={6} wrap="nowrap" align="flex-start">
               <PlayerPiece person={p} size={26} label="" />
@@ -92,6 +99,12 @@ function People({ title, people }: { title: string; people: Attendee[] }) {
                 {moods.length > 0 && (
                   <Text size="xs" c="dimmed">
                     {moods.map((m) => moodNames.get(m) ?? m).join(', ')}
+                  </Text>
+                )}
+                {bga_username && (
+                  <Text size="xs" c="dimmed">
+                    BGA: {bga_username}
+                    {bga_premium && ' (Premium)'}
                   </Text>
                 )}
               </Stack>
@@ -281,7 +294,14 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
   }
   if (games.isError) return <Alert color="red">{games.error.message}</Alert>
 
-  const { confirmed, guests, willing_to_split: split, unknown_player_count: unknown } = games.data
+  const {
+    confirmed,
+    guests,
+    willing_to_split: split,
+    unknown_player_count: unknown,
+    online,
+    premium_host_going: premiumHostGoing,
+  } = games.data
   const fittedTo = games.data.players
   const fitting = games.data.games
   const ranked =
@@ -303,12 +323,17 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
       <Title order={4}>Recommended games</Title>
       {confirmed === 0 ? (
         <Text size="sm" c="dimmed">
-          Once people say they're going, games they'll bring that fit the group show here.
+          {online
+            ? "Once people say they're going, games on Board Game Arena they know that fit the group show here."
+            : "Once people say they're going, games they'll bring that fit the group show here."}
         </Text>
       ) : (
         <>
           <Text size="sm" c="dimmed">
-            Brought by the members going, for {plural(fittedTo, 'player')}
+            {online
+              ? 'On Board Game Arena, from the games the members going have, for '
+              : 'Brought by the members going, for '}
+            {plural(fittedTo, 'player')}
             {fittedTo !== confirmed
               ? ` (${confirmed} going)`
               : guests > 0 && ` (${plural(guests, 'guest')} included)`}
@@ -319,6 +344,7 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
             . Ranked by what the people going think of them.
             {unknown > 0 &&
               ` ${plural(unknown, 'game')} left out because BGG hasn't said how many it seats.`}
+            {online && ' Any other game on BGA can be nominated from the vote.'}
           </Text>
           <Group align="flex-end" gap="sm">
             <NumberInput
@@ -361,7 +387,10 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
           )}
           {ranked.length === 0 && (
             <Text size="sm">
-              Nothing anyone's bringing fits {plural(fittedTo, 'player')}
+              {online
+                ? 'Nothing on BGA the people going have fits '
+                : "Nothing anyone's bringing fits "}
+              {plural(fittedTo, 'player')}
               {maxMinutes !== null && ` in ${maxMinutes} min`}.
             </Text>
           )}
@@ -390,9 +419,13 @@ function FittingGames({ meetup }: { meetup: Meetup }) {
                 }
               >
                 <Group gap="xs">
-                  <Text size="sm">
-                    Brought by {g.bringers.map((p) => p.display_name).join(', ')}
-                  </Text>
+                  {g.bga ? (
+                    <BgaInfo bga={g.bga} premiumHostGoing={premiumHostGoing} />
+                  ) : (
+                    <Text size="sm">
+                      Brought by {g.bringers.map((p) => p.display_name).join(', ')}
+                    </Text>
+                  )}
                   {g.fit === 'split' && (
                     <Badge size="xs" variant="light" color="meeple">
                       One of several tables
@@ -476,11 +509,14 @@ function Organize({ meetup }: { meetup: Meetup }) {
           </Text>
         )}
         <MeetupForm
+          allowOnline={meetup.group.kind === 'board_games' || meetup.is_online}
           initial={{
             local_date: meetup.local_date,
             local_time: toInputTime(meetup.local_time),
             duration_minutes: meetup.duration_minutes,
             location: meetup.location ?? '',
+            is_online: meetup.is_online,
+            online_url: meetup.online_url ?? '',
             notes: meetup.notes ?? '',
           }}
           submitLabel="Save"
@@ -494,7 +530,11 @@ function Organize({ meetup }: { meetup: Meetup }) {
               changes.local_time = fromInputTime(f.local_time)
             if (f.duration_minutes !== meetup.duration_minutes)
               changes.duration_minutes = f.duration_minutes
-            if (f.location !== (meetup.location ?? '')) changes.location = f.location
+            if (f.is_online !== meetup.is_online) changes.is_online = f.is_online
+            if (!f.is_online && f.location !== (meetup.location ?? ''))
+              changes.location = f.location
+            if (f.is_online && f.online_url !== (meetup.online_url ?? ''))
+              changes.online_url = f.online_url
             if (f.notes !== (meetup.notes ?? '')) changes.notes = f.notes
             update.mutate(changes, { onSuccess: close })
           }}
@@ -578,7 +618,30 @@ export function MeetupPage() {
                 </Text>
               )}
             </Text>
-            {m.location && <Text c="dimmed">{m.location}</Text>}
+            {m.is_online ? (
+              <Group gap="xs">
+                <Badge variant="light" color="meeple" tt="none">
+                  Online · Board Game Arena
+                </Badge>
+                {m.online_url ? (
+                  <Button
+                    component="a"
+                    href={m.online_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    size="compact-sm"
+                  >
+                    Join the table
+                  </Button>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    No table link yet
+                  </Text>
+                )}
+              </Group>
+            ) : (
+              m.location && <Text c="dimmed">{m.location}</Text>
+            )}
           </Stack>
         </Group>
         {runsGroup(m.my_role) && <Organize meetup={m} />}

@@ -6,7 +6,7 @@ from datetime import date, datetime, time
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import AfterValidator, BaseModel, Field, StringConstraints
 from sqlalchemy import ColumnElement, and_, delete, exists, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,6 +58,21 @@ router = APIRouter(tags=["groups"])
 GroupName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
 Description = Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
 Location = Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)]
+
+
+def _web_link(value: str | None) -> str | None:
+    """A link people can open: blank means none, and it has to be a web address."""
+    if not value:
+        return None
+    if not value.lower().startswith(("https://", "http://")) or " " in value:
+        raise ValueError("Enter a web address starting with https://")
+    return value
+
+
+# The link for an online date: the BGA table, or wherever people gather.
+OnlineUrl = Annotated[
+    str | None, StringConstraints(strip_whitespace=True, max_length=2048), AfterValidator(_web_link)
+]
 Duration = Annotated[int, Field(ge=15, le=24 * 60)]
 PlusOneLimit = Annotated[int, Field(ge=0, le=10)]
 RECENT_DATES = 3
@@ -71,7 +86,9 @@ class MeetupBrief(BaseModel):
     local_time: time
     starts_at: datetime
     duration_minutes: int
-    location: str | None
+    location: str | None  # always null for an online date
+    is_online: bool  # played on Board Game Arena
+    online_url: str | None  # the table link, once someone has made the table
     status: MeetupStatus
     scheduled: bool  # came from the group's schedule
     edited: bool  # changed by hand, so schedule changes leave it alone
@@ -260,6 +277,8 @@ async def meetup_briefs(
             starts_at=m.starts_at,
             duration_minutes=m.duration_minutes,
             location=m.location,
+            is_online=m.is_online,
+            online_url=m.online_url,
             status=m.status,
             scheduled=m.slot_date is not None,
             edited=m.is_overridden,

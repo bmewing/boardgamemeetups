@@ -15,6 +15,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bga import bga_games_for, place_of
 from app.config import get_settings
 from app.email import Email, EmailKind, Mailer, Message, to_address, to_user, wants
 from app.friends import has_blocked
@@ -101,7 +102,7 @@ class DateSnapshot:
 
     @classmethod
     def of(cls, meetup: Meetup) -> "DateSnapshot":
-        return cls(meetup.local_date, meetup.local_time, meetup.location, meetup.status)
+        return cls(meetup.local_date, meetup.local_time, place_of(meetup), meetup.status)
 
     def when(self, group: Group, reader: User) -> str:
         return when(self.local_date, self.local_time, group, reader)
@@ -330,7 +331,7 @@ async def pick_locked(
     session: AsyncSession, mailer: Mailer, meetup: Meetup, group: Group, locker: User
 ) -> None:
     """The games picked for a date, to members who said yes or maybe. Anyone bringing one
-    hears it here too."""
+    hears it here too. For an online date, each game comes with its BGA link instead."""
     games = list(
         await session.scalars(
             select(Game)
@@ -349,6 +350,7 @@ async def pick_locked(
             )
         )
     }
+    on_bga = await bga_games_for(session, [g.id for g in games]) if meetup.is_online else {}
     members = await _members(session, group.id, meetup.id)
     names = {member.id: member.display_name for member, _ in members}
 
@@ -364,13 +366,18 @@ async def pick_locked(
         items = []
         for game in games:
             bringer = bringers.get(game.id)
-            if bringer == member.id:
+            if meetup.is_online:
+                bga = on_bga.get(game.id)
+                items.append(f"{game.name}: {bga.game_url}" if bga else game.name)
+            elif bringer == member.id:
                 items.append(f"{game.name}: you're bringing it")
             elif bringer in names:
                 items.append(f"{game.name}: {names[bringer]} is bringing it")
             else:
                 items.append(f"{game.name}: nobody has said they'll bring it yet")
         after = []
+        if meetup.is_online:
+            after.append(f"It's on {place_of(meetup)}.")
         if mine:
             after.append(
                 f"You're bringing {_names(mine)}. If you can't, say so on the date's page so "
@@ -482,8 +489,8 @@ async def _remind(session: AsyncSession, mailer: Mailer, meetup_id: uuid.UUID) -
             else f"{group.name} meets {at}, and you haven't said whether you're coming."
         )
         details = [f"{yes} {'person has' if yes == 1 else 'people have'} said yes so far."]
-        if meetup.location:
-            details.insert(0, f"At {meetup.location}.")
+        if place := place_of(meetup):
+            details.insert(0, f"At {place}.")
         message = Message(
             subject=f"Coming to {group.name} on {day(meetup.local_date)}?",
             paragraphs=[first, " ".join(details)],

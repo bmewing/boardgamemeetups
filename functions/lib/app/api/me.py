@@ -40,6 +40,7 @@ DisplayName = Annotated[
     AfterValidator(single_spaces),
 ]
 TimeZone = Annotated[str, AfterValidator(known_time_zone)]
+# BGG's and BGA's usernames alike.
 BggUsername = Annotated[
     str | None,
     StringConstraints(strip_whitespace=True, max_length=64),
@@ -78,6 +79,8 @@ class UserRead(BaseModel):
     discord_username: str | None  # the Discord account linked through the bot
     bgg_username: str | None
     bgg_pulled_at: datetime | None
+    bga_username: str | None  # shown to the people at online dates
+    bga_premium: bool
     collection_visibility: CollectionVisibility
     email_opt_outs: list[EmailKind]  # kinds of email turned off
     is_admin: bool  # can open the admin portal
@@ -100,6 +103,8 @@ class UserRead(BaseModel):
             discord_username=user.discord_username,
             bgg_username=user.bgg_username,
             bgg_pulled_at=user.bgg_pulled_at,
+            bga_username=user.bga_username,
+            bga_premium=user.bga_premium,
             collection_visibility=user.collection_visibility,
             email_opt_outs=[EmailKind(kind) for kind in user.email_opt_outs],
             is_admin=user.is_admin,
@@ -136,6 +141,8 @@ class UserUpdate(BaseModel):
     display_name: DisplayName | None = None
     time_zone: TimeZone | None = None
     bgg_username: BggUsername = None
+    bga_username: BggUsername = None
+    bga_premium: bool | None = None
     collection_visibility: CollectionVisibility | None = None
     email_opt_outs: list[EmailKind] | None = None
     piece: Piece | None = None
@@ -143,7 +150,7 @@ class UserUpdate(BaseModel):
 
 
 # Fields that may be cleared by sending null; the rest are required on the user.
-CLEARABLE = {"bgg_username", "piece", "piece_color"}
+CLEARABLE = {"bgg_username", "bga_username", "piece", "piece_color"}
 
 
 @router.get("")

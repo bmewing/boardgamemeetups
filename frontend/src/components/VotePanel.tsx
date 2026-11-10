@@ -18,6 +18,8 @@ import { Link } from 'react-router'
 
 import type { Meetup } from '../api/groups'
 import { useMe } from '../api/me'
+import { BgaInfo } from './BgaInfo'
+import { BgaSearchSelect } from './BgaSearchSelect'
 import {
   type Nomination,
   useBring,
@@ -35,7 +37,7 @@ import { plural } from './userGameFields'
 const names = (people: { display_name: string }[]) => people.map((p) => p.display_name).join(', ')
 
 const noteFor = (n: Nomination, headcount: number) =>
-  capacityNote(n.min_players, n.max_players, n.fit, headcount)
+  capacityNote(n.min_players, n.max_players, n.fit, headcount, n.bga?.player_counts)
 
 /** A flag on a nominated game that can't seat everyone going at one table. */
 function CapacityBadge({ nomination, headcount }: { nomination: Nomination; headcount: number }) {
@@ -57,9 +59,11 @@ function Ballot({ meetup, state }: { meetup: Meetup; state: VoteState }) {
   return (
     <Stack gap="xs">
       <Text size="sm" c="dimmed">
-        {state.can_vote
-          ? 'Vote for every game you’d be happy to play. Nominate from the recommendations below, or any game someone going owns.'
-          : 'People who said they’re going nominate and vote.'}
+        {!state.can_vote
+          ? 'People who said they’re going nominate and vote.'
+          : state.online
+            ? 'Vote for every game you’d be happy to play. Nominate from the recommendations below, or any game on Board Game Arena.'
+            : 'Vote for every game you’d be happy to play. Nominate from the recommendations below, or any game someone going owns.'}
       </Text>
       {state.nominations.length === 0 && <Text size="sm">Nothing nominated yet.</Text>}
       {state.nominations.map((n) => (
@@ -77,6 +81,7 @@ function Ballot({ meetup, state }: { meetup: Meetup; state: VoteState }) {
                   ? `${plural(n.votes.length, 'vote')}: ${names(n.votes)}`
                   : 'No votes yet'}
               </Text>
+              {n.bga && <BgaInfo bga={n.bga} premiumHostGoing={state.premium_host_going} />}
             </Stack>
             <Group gap={4} wrap="nowrap">
               {state.can_vote && (
@@ -106,11 +111,21 @@ function Ballot({ meetup, state }: { meetup: Meetup; state: VoteState }) {
       {state.can_vote && state.nominatable.length > 0 && (
         <Select
           aria-label="Nominate another game"
-          placeholder="Nominate another game someone going owns…"
+          placeholder={
+            state.online
+              ? 'Nominate a game on BGA someone going has…'
+              : 'Nominate another game someone going owns…'
+          }
           searchable
           value={null}
           data={state.nominatable.map((g) => ({ value: String(g.id), label: g.name }))}
           onChange={(value) => value && nominate.mutate(Number(value))}
+        />
+      )}
+      {state.can_vote && state.online && (
+        <BgaSearchSelect
+          ariaLabel="Nominate any game on Board Game Arena"
+          onPick={(gameId) => nominate.mutate(gameId)}
         />
       )}
       {error && (
@@ -191,6 +206,49 @@ function LockButton({
   )
 }
 
+/** A game picked for an online date: nothing to bring, just where to play it. */
+function OnlinePick({
+  meetup,
+  pick,
+  state,
+}: {
+  meetup: Meetup
+  pick: Nomination
+  state: VoteState
+}) {
+  const bga = pick.bga
+  return (
+    <Card withBorder padding="sm">
+      <Stack gap={6}>
+        <Group gap="xs">
+          <Anchor component={Link} to={`/games/${pick.game.id}`} fw={600} c="inherit">
+            {pick.game.name}
+          </Anchor>
+          <CapacityBadge nomination={pick} headcount={state.headcount} />
+        </Group>
+        {bga ? (
+          <BgaInfo bga={bga} premiumHostGoing={state.premium_host_going} showLobby />
+        ) : (
+          <Text size="xs" c="dimmed">
+            No longer on Board Game Arena.
+          </Text>
+        )}
+        {bga?.premium && !state.premium_host_going && (
+          <Text size="xs" c="orange">
+            Only a BGA Premium member can start this table, and nobody going has said they have
+            Premium. Anyone can join once it’s started.
+          </Text>
+        )}
+        {!meetup.online_url && (
+          <Text size="xs" c="dimmed">
+            Whoever starts the table: paste its link into this date so everyone can join.
+          </Text>
+        )}
+      </Stack>
+    </Card>
+  )
+}
+
 function Pick({
   meetup,
   pick,
@@ -267,7 +325,8 @@ function Pick({
   )
 }
 
-/** Nominating and voting on what to play, then the pick and who's bringing it. */
+/** Nominating and voting on what to play, then the pick and who's bringing it (or, at an
+ * online date, where to play it on BGA). */
 export function VotePanel({ meetup, onLocked }: { meetup: Meetup; onLocked?: () => void }) {
   const vote = useVote(meetup.id)
   const unlock = useUnlockPick(meetup.id)
@@ -290,7 +349,13 @@ export function VotePanel({ meetup, onLocked }: { meetup: Meetup; onLocked?: () 
               variant="subtle"
               loading={unlock.isPending}
               onClick={() => {
-                if (window.confirm('Unlock the vote? The pick and who’s bringing it are cleared.'))
+                if (
+                  window.confirm(
+                    state.online
+                      ? 'Unlock the vote? The pick is cleared.'
+                      : 'Unlock the vote? The pick and who’s bringing it are cleared.',
+                  )
+                )
                   unlock.mutate()
               }}
             >
@@ -302,15 +367,19 @@ export function VotePanel({ meetup, onLocked }: { meetup: Meetup; onLocked?: () 
       </Group>
       {state.locked ? (
         <>
-          {picks.map((p) => (
-            <Pick
-              key={p.id}
-              meetup={meetup}
-              pick={p}
-              headcount={state.headcount}
-              meId={me.data?.id}
-            />
-          ))}
+          {picks.map((p) =>
+            state.online ? (
+              <OnlinePick key={p.id} meetup={meetup} pick={p} state={state} />
+            ) : (
+              <Pick
+                key={p.id}
+                meetup={meetup}
+                pick={p}
+                headcount={state.headcount}
+                meId={me.data?.id}
+              />
+            ),
+          )}
           {others.length > 0 && (
             <Text size="xs" c="dimmed">
               Also nominated: {others.map((n) => n.game.name).join(', ')}

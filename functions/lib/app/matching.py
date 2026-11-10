@@ -184,6 +184,13 @@ def _decide(row: FileRow, candidates: list[Candidate]) -> RowMatch:
     return RowMatch(row, MatchStatus.REVIEW, best.score, best.game, candidates)
 
 
+async def match_name(session: AsyncSession, name: str) -> Game | None:
+    """The catalog game a bare name means, only when it's sure enough to use unasked."""
+    row = FileRow(line=0, name=name)
+    match = _decide(row, await _candidates(session, name, None))
+    return match.game if match.status == MatchStatus.MATCHED else None
+
+
 async def match_rows(
     session: AsyncSession, bgg: BggClient, rows: Sequence[FileRow]
 ) -> list[RowMatch]:
