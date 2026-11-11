@@ -23,6 +23,7 @@ import {
   useInvalidateMyGames,
   useMyGames,
 } from '../api/collection'
+import { AddGameSearch } from '../components/AddGameSearch'
 import { GameCard } from '../components/GameCard'
 import { playerRange, widenedLabel } from '../components/gameFacts'
 import { GameAnswersEditor } from '../components/GameAnswersEditor'
@@ -227,6 +228,14 @@ export function CollectionPage() {
     maxMinutes: null,
     weight: null,
   })
+  // Lifted here so a name filter that finds nothing can hand its text to the BGG search.
+  const [addQuery, setAddQuery] = useState('')
+  const addInput = useRef<HTMLInputElement>(null)
+  const searchToAdd = (name: string) => {
+    setAddQuery(name)
+    addInput.current?.focus()
+    addInput.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((current) => ({ ...current, [key]: value }))
 
@@ -238,21 +247,21 @@ export function CollectionPage() {
   )
 
   const header = (
-    <Group justify="space-between">
-      <Title order={2}>My games</Title>
-      <Group gap="xs">
-        <Button component={Link} to="/games" variant="default">
-          Add a game
-        </Button>
-        <FindMissingBaseGames />
-        <Button component={Link} to="/collection/import" variant="default">
-          Import a file
-        </Button>
-        <Button component={Link} to="/collection/pull">
-          Pull from BGG
-        </Button>
+    <>
+      <Group justify="space-between">
+        <Title order={2}>My games</Title>
+        <Group gap="xs">
+          <FindMissingBaseGames />
+          <Button component={Link} to="/collection/import" variant="default">
+            Import a file
+          </Button>
+          <Button component={Link} to="/collection/pull">
+            Pull from BGG
+          </Button>
+        </Group>
       </Group>
-    </Group>
+      <AddGameSearch query={addQuery} onQueryChange={setAddQuery} inputRef={addInput} />
+    </>
   )
 
   if (games.isPending) {
@@ -277,8 +286,8 @@ export function CollectionPage() {
         {header}
         <MascotNote pose="twirl" size={160} title="Your shelf is empty">
           <Text c="dimmed" maw={460}>
-            No games yet. Pull your collection from BoardGameGeek, import a spreadsheet, or search
-            for a game to add it.
+            No games yet. Search for a game above to add it, pull your collection from
+            BoardGameGeek, or import a spreadsheet.
           </Text>
         </MascotNote>
       </Stack>
@@ -343,7 +352,14 @@ export function CollectionPage() {
       </Group>
       {shown.length === 0 && (
         <MascotNote pose="think" size={112}>
-          <Text c="dimmed">No games match these filters.</Text>
+          <Stack gap="xs" align="flex-start">
+            <Text c="dimmed">No games match these filters.</Text>
+            {filters.name.trim().length >= 2 && (
+              <Button variant="light" size="xs" onClick={() => searchToAdd(filters.name.trim())}>
+                Search BoardGameGeek for “{filters.name.trim()}”
+              </Button>
+            )}
+          </Stack>
         </MascotNote>
       )}
       {view === 'list' ? (

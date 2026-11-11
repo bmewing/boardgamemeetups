@@ -2,8 +2,9 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import type { UserGame } from '../api/collection'
+import type { UserGame, UserGameUpdate } from '../api/collection'
 import type { GameSummary } from '../api/games'
+import { blankUserGame } from '../components/userGameFields'
 import { mockApi, signIn } from '../test/mocks'
 import { renderWithProviders } from '../test/render'
 import { CollectionPage } from './CollectionPage'
@@ -212,5 +213,80 @@ describe('CollectionPage', () => {
       'href',
       '/collection/pull',
     )
+  })
+
+  it('searches BGG and adds a game without leaving the page', async () => {
+    const wingspan = game(266192, 'Wingspan')
+    let mine: UserGame[] = [rows[0]]
+    let searched: string | null = null
+    const saved: UserGameUpdate[] = []
+    mockApi({
+      'GET /api/me/games': () => Response.json(mine),
+      'POST /api/me/games/fill-details': () => Response.json({ filled: 0, remaining: 0 }),
+      'GET /api/games/search': (request) => {
+        searched = new URL(request.url).searchParams.get('q')
+        return Response.json([wingspan])
+      },
+      'PUT /api/me/games/266192': async (request) => {
+        const body = (await request.json()) as UserGameUpdate
+        saved.push(body)
+        const added = { ...blankUserGame(wingspan), ...body } as UserGame
+        mine = [...mine, added]
+        return Response.json(added)
+      },
+    })
+    renderWithProviders(<CollectionPage />)
+
+    expect(await screen.findByText('1 of 1 games')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText(/Add a game/), 'wingspan')
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'I own it' }))
+
+    await waitFor(() => expect(saved).toEqual([{ ownership: 'owned' }]))
+    expect(searched).toBe('wingspan')
+    // In the results and, straight away, in your list.
+    expect(await screen.findByText('2 of 2 games')).toBeInTheDocument()
+    expect(screen.getAllByText('Wingspan')).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }))
+    expect(screen.getByLabelText(/Add a game/)).toHaveValue('')
+    expect(screen.queryByRole('checkbox', { name: 'I own it' })).not.toBeInTheDocument()
+  })
+
+  it('shows a few results at first, and the rest on request', async () => {
+    const found = Array.from({ length: 7 }, (_, i) => game(100 + i, `Ticket ${i + 1}`))
+    mockApi({
+      'GET /api/me/games': () => Response.json([]),
+      'GET /api/games/search': () => Response.json(found),
+    })
+    renderWithProviders(<CollectionPage />)
+
+    await userEvent.type(await screen.findByLabelText(/Add a game/), 'ticket')
+
+    expect(await screen.findByText('Ticket 5')).toBeInTheDocument()
+    expect(screen.queryByText('Ticket 6')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Show all 7 results' }))
+    expect(screen.getByText('Ticket 7')).toBeInTheDocument()
+  })
+
+  it('offers to search BGG when the name filter finds nothing you have', async () => {
+    let searched: string | null = null
+    mockApi({
+      'GET /api/me/games': () => Response.json(rows),
+      'POST /api/me/games/fill-details': () => Response.json({ filled: 0, remaining: 0 }),
+      'GET /api/games/search': (request) => {
+        searched = new URL(request.url).searchParams.get('q')
+        return Response.json([game(266192, 'Wingspan')])
+      },
+    })
+    renderWithProviders(<CollectionPage />)
+
+    await userEvent.type(await screen.findByLabelText('Name'), 'Wingspan')
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Search BoardGameGeek for “Wingspan”' }),
+    )
+
+    expect(screen.getByLabelText(/Add a game/)).toHaveValue('Wingspan')
+    expect(await screen.findByRole('checkbox', { name: 'I own it' })).toBeInTheDocument()
+    expect(searched).toBe('Wingspan')
   })
 })
