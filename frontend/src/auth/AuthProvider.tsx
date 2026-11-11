@@ -1,12 +1,23 @@
 import { KindeProvider, useKindeAuth } from '@kinde-oss/kinde-auth-react'
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 
 import { setAccessTokenGetter } from '../api/client'
+import { freshTokenGetter } from './freshToken'
 
 export function TokenBridge({ children }: { children: ReactNode }) {
-  const { getAccessToken } = useKindeAuth()
+  const { getAccessToken, refreshToken } = useKindeAuth()
+  const getter = useMemo(
+    () =>
+      freshTokenGetter(getAccessToken, () =>
+        refreshToken({
+          domain: import.meta.env.VITE_KINDE_DOMAIN,
+          clientId: import.meta.env.VITE_KINDE_CLIENT_ID,
+        }),
+      ),
+    [getAccessToken, refreshToken],
+  )
   // Set during render so it is in place before any child query fires.
-  setAccessTokenGetter(getAccessToken)
+  setAccessTokenGetter(getter)
   return children
 }
 
