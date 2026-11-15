@@ -29,6 +29,8 @@ from app.models import (
     MeetupRsvp,
     MeetupStatus,
     RsvpResponse,
+    TimePoll,
+    TimePollResponse,
     User,
 )
 from app.schedule import today_in
@@ -202,6 +204,102 @@ async def group_invite(
             ),
         )
     await _deliver(session, mailer, [email])
+
+
+def _poll_days(poll: TimePoll) -> str:
+    first, last = date.fromisoformat(poll.dates[0]), date.fromisoformat(poll.dates[-1])
+    if first == last:
+        return day(first)
+    return f"{day(first)} to {day(last)}"
+
+
+async def _poll_emails(
+    session: AsyncSession,
+    group: Group,
+    poll: TimePoll,
+    sender: User,
+    subject: str,
+    intro: str,
+    waiting_only: bool,
+) -> list[Email]:
+    answered = set(
+        await session.scalars(
+            select(TimePollResponse.user_id).where(TimePollResponse.poll_id == poll.id)
+        )
+    )
+    emails = []
+    for member, _ in await _members(session, group.id):
+        if member.id == sender.id or not wants(member, EmailKind.TIME_POLL):
+            continue
+        if waiting_only and member.id in answered:
+            continue
+        message = Message(
+            subject=subject,
+            paragraphs=[
+                intro,
+                "Tap every half hour you could make it. It takes a minute, and you can "
+                "change your answer until the poll closes.",
+            ],
+            items=[f"Days: {_poll_days(poll)}", f"Times are in {poll.time_zone.replace('_', ' ')}"],
+            link=("Mark when you're free", _link(f"/polls/{poll.id}")),
+        )
+        emails.append(to_user(member, EmailKind.TIME_POLL, message))
+    return emails
+
+
+@quietly
+async def time_poll_opened(
+    session: AsyncSession, mailer: Mailer, group: Group, poll: TimePoll, sender: User
+) -> None:
+    """Everyone in the group but whoever made it is asked when they're free."""
+    emails = await _poll_emails(
+        session,
+        group,
+        poll,
+        sender,
+        f"When can {group.name} meet? {poll.title}",
+        f"{sender.display_name} is trying to find a time for {group.name}: {poll.title}.",
+        waiting_only=False,
+    )
+    await _deliver(session, mailer, emails)
+
+
+@quietly
+async def time_poll_reminder(
+    session: AsyncSession, mailer: Mailer, group: Group, poll: TimePoll, sender: User
+) -> None:
+    """A nudge to the members who haven't answered yet."""
+    emails = await _poll_emails(
+        session,
+        group,
+        poll,
+        sender,
+        f"Still looking for a time: {poll.title}",
+        f"{group.name} is still waiting to hear when you're free for {poll.title}.",
+        waiting_only=True,
+    )
+    await _deliver(session, mailer, emails)
+
+
+@quietly
+async def time_poll_scheduled(
+    session: AsyncSession, mailer: Mailer, group: Group, meetup: Meetup, sender: User
+) -> None:
+    """The time that won, to the whole group but whoever picked it."""
+    emails = []
+    for member, _ in await _members(session, group.id):
+        if member.id == sender.id or not wants(member, EmailKind.TIME_POLL):
+            continue
+        message = Message(
+            subject=f"It's set: {group.name} on {day(meetup.local_date)}",
+            paragraphs=[
+                f"{sender.display_name} picked a time for {group.name}: "
+                f"{when(meetup.local_date, meetup.local_time, group, member)}."
+            ],
+            link=("Open the date", _link(f"/meetups/{meetup.id}")),
+        )
+        emails.append(to_user(member, EmailKind.TIME_POLL, message))
+    await _deliver(session, mailer, emails)
 
 
 async def might_come(session: AsyncSession, group: Group, meetup: Meetup) -> list[User]:

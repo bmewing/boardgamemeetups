@@ -27,6 +27,12 @@ export const EMAIL_KINDS: {
     about: 'dates that change or are cancelled',
   },
   {
+    kind: 'time_poll',
+    label: 'Finding a time',
+    description: 'When an organizer asks when you are free, nudges you, or picks a time.',
+    about: 'finding a time to meet',
+  },
+  {
     kind: 'pick_locked',
     label: 'Games picked',
     description: 'When the games are locked in for a date you said yes or maybe to.',

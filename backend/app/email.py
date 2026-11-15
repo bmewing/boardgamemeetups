@@ -34,6 +34,7 @@ class EmailKind(StrEnum):
     PICK_LOCKED = "pick_locked"
     BRINGING = "bringing"
     DATE_CHANGED = "date_changed"
+    TIME_POLL = "time_poll"
 
 
 # What each kind is, as a phrase that follows "emails about".
@@ -44,6 +45,7 @@ KIND_NAMES = {
     EmailKind.PICK_LOCKED: "the games picked for a date",
     EmailKind.BRINGING: "games you're bringing",
     EmailKind.DATE_CHANGED: "dates that change or are cancelled",
+    EmailKind.TIME_POLL: "finding a time to meet",
 }
 
 
