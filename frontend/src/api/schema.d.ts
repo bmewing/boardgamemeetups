@@ -928,6 +928,133 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/groups/{group_id}/polls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Polls */
+        get: operations["list_polls_api_groups__group_id__polls_get"];
+        put?: never;
+        /** Create Poll */
+        post: operations["create_poll_api_groups__group_id__polls_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/polls/{poll_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Poll */
+        get: operations["read_poll_api_polls__poll_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Poll */
+        delete: operations["delete_poll_api_polls__poll_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/polls/{poll_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Answer Poll */
+        put: operations["answer_poll_api_polls__poll_id__answer_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/polls/{poll_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Poll */
+        post: operations["close_poll_api_polls__poll_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/polls/{poll_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Poll */
+        post: operations["reopen_poll_api_polls__poll_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/polls/{poll_id}/remind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remind Poll
+         * @description Email the members who haven't answered yet.
+         */
+        post: operations["remind_poll_api_polls__poll_id__remind_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/polls/{poll_id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Schedule Poll
+         * @description Make a date at one of the poll's times, for the poll's length, and close the poll.
+         */
+        post: operations["schedule_poll_api_polls__poll_id__schedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/calendar-feed": {
         parameters: {
             query?: never;
@@ -1540,6 +1667,14 @@ export interface components {
             /** Groups */
             groups: number;
         };
+        /**
+         * AnswerIn
+         * @description The whole answer: every slot you're free, replacing any earlier one.
+         */
+        AnswerIn: {
+            /** Slots */
+            slots: string[];
+        };
         /** BanRequest */
         BanRequest: {
             /**
@@ -1567,6 +1702,22 @@ export interface components {
             ownership: components["schemas"]["Ownership"] | null;
             /** On Wishlist */
             on_wishlist: boolean;
+        };
+        /** BestTime */
+        BestTime: {
+            /** Start */
+            start: string;
+            /** End */
+            end: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Available */
+            available: components["schemas"]["PersonRead"][];
+            /** Missing */
+            missing: components["schemas"]["PersonRead"][];
         };
         /** BgaGameRead */
         BgaGameRead: {
@@ -1813,6 +1964,16 @@ export interface components {
              */
             starts_on: string;
         };
+        /** DayRead */
+        DayRead: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Slots */
+            slots: string[];
+        };
         /** DetailsProgress */
         DetailsProgress: {
             /** Filled */
@@ -1835,7 +1996,7 @@ export interface components {
          * @description The kinds of email someone can turn off one by one.
          * @enum {string}
          */
-        EmailKind: "friend_request" | "group_invite" | "rsvp_reminder" | "pick_locked" | "bringing" | "date_changed";
+        EmailKind: "friend_request" | "group_invite" | "rsvp_reminder" | "pick_locked" | "bringing" | "date_changed" | "time_poll";
         /** EmailSettingsRead */
         EmailSettingsRead: {
             /** Email Opt Outs */
@@ -2891,6 +3052,109 @@ export interface components {
          * @enum {string}
          */
         PlaytimeFeel: "shorter" | "just_right" | "longer";
+        /** PollBrief */
+        PollBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            status: components["schemas"]["PollStatus"];
+            /**
+             * First Date
+             * Format: date
+             */
+            first_date: string;
+            /**
+             * Last Date
+             * Format: date
+             */
+            last_date: string;
+            /** Answered */
+            answered: number;
+            /** Members */
+            members: number;
+            /** I Answered */
+            i_answered: boolean;
+            /** Meetup Id */
+            meetup_id: string | null;
+        };
+        /**
+         * PollCreate
+         * @description `end_time` of "00:00" means midnight at the end of the day.
+         */
+        PollCreate: {
+            /** Title */
+            title: string;
+            /** Dates */
+            dates: string[];
+            /** Start Time */
+            start_time: string;
+            /** End Time */
+            end_time: string;
+            /** Time Zone */
+            time_zone: string;
+            /**
+             * Duration Minutes
+             * @default 120
+             */
+            duration_minutes: number;
+        };
+        /** PollRead */
+        PollRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Group Id
+             * Format: uuid
+             */
+            group_id: string;
+            /** Group Name */
+            group_name: string;
+            /** Title */
+            title: string;
+            status: components["schemas"]["PollStatus"];
+            /** Time Zone */
+            time_zone: string;
+            /**
+             * Slot Minutes
+             * @default 30
+             * @constant
+             */
+            slot_minutes: 30;
+            /** Duration Minutes */
+            duration_minutes: number;
+            /** Days */
+            days: components["schemas"]["DayRead"][];
+            /** Can Manage */
+            can_manage: boolean;
+            /** My Slots */
+            my_slots: string[] | null;
+            /** Respondents */
+            respondents: components["schemas"]["RespondentRead"][];
+            /** Waiting */
+            waiting: components["schemas"]["PersonRead"][];
+            /** Best */
+            best: components["schemas"]["BestTime"][];
+            /** Meetup Id */
+            meetup_id: string | null;
+            created_by: components["schemas"]["PersonRead"] | null;
+        };
+        /**
+         * PollStatus
+         * @enum {string}
+         */
+        PollStatus: "open" | "closed";
+        /** PollsRead */
+        PollsRead: {
+            /** Polls */
+            polls: components["schemas"]["PollBrief"][];
+        };
         /** ReasonRead */
         ReasonRead: {
             /** Text */
@@ -2916,6 +3180,12 @@ export interface components {
         RelationRead: {
             person: components["schemas"]["PersonRead"];
             relation: components["schemas"]["Relation"];
+        };
+        /** RespondentRead */
+        RespondentRead: {
+            person: components["schemas"]["PersonRead"];
+            /** Slots */
+            slots: string[];
         };
         /**
          * RollupRead
@@ -3021,6 +3291,11 @@ export interface components {
             announced_dates: number;
             /** Refreshed Games */
             refreshed_games: number;
+        };
+        /** ScheduleIn */
+        ScheduleIn: {
+            /** Start */
+            start: string;
         };
         /** SharedGameRead */
         SharedGameRead: {
@@ -4977,6 +5252,293 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeetupGames"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_polls_api_groups__group_id__polls_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollsRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_poll_api_groups__group_id__polls_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PollCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_poll_api_polls__poll_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                poll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_poll_api_polls__poll_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                poll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_poll_api_polls__poll_id__answer_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                poll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_poll_api_polls__poll_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                poll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_poll_api_polls__poll_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                poll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remind_poll_api_polls__poll_id__remind_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                poll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    schedule_poll_api_polls__poll_id__schedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                poll_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollRead"];
                 };
             };
             /** @description Validation Error */

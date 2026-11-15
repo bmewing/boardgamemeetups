@@ -41,6 +41,7 @@ import {
 } from '../api/groups'
 import { useFriends } from '../api/friends'
 import { useMe } from '../api/me'
+import { type PollBrief, useCreatePoll, useGroupPolls } from '../api/polls'
 import { useMoods } from '../api/collection'
 import type { RpgSystemSummary } from '../api/rpg'
 import { GameCard } from '../components/GameCard'
@@ -59,6 +60,8 @@ import {
 } from '../components/meetupFormat'
 import { AddFriendButton } from '../components/AddFriendButton'
 import { MeetupForm } from '../components/MeetupForm'
+import { PollForm } from '../components/polls/PollForm'
+import { dayLabel } from '../components/polls/pollFormat'
 import { PersonPicker } from '../components/PersonPicker'
 import { PersonRow } from '../components/PersonRow'
 import { PartyTab } from '../components/rpg/PartyTab'
@@ -108,9 +111,33 @@ function MeetupRow({ meetup }: { meetup: MeetupBrief }) {
   )
 }
 
+function PollRow({ poll }: { poll: PollBrief }) {
+  const waiting = poll.status === 'open' && !poll.i_answered
+  return (
+    <Card component={Link} to={`/polls/${poll.id}`} withBorder padding="sm">
+      <Group justify="space-between" wrap="nowrap" align="flex-start">
+        <Stack gap={2} style={{ minWidth: 0 }}>
+          <Text fw={600}>{poll.title}</Text>
+          <Text size="sm" c="dimmed">
+            {dayLabel(poll.first_date)}
+            {poll.last_date !== poll.first_date && ` to ${dayLabel(poll.last_date)}`} ·{' '}
+            {poll.answered} of {poll.members} answered
+          </Text>
+        </Stack>
+        {waiting && <Badge color="yellow">Your turn</Badge>}
+      </Group>
+    </Card>
+  )
+}
+
 function DatesTab({ group }: { group: GroupData }) {
   const [adding, { open, close }] = useDisclosure(false)
   const add = useAddMeetup(group.id)
+  const [finding, { open: openFinding, close: closeFinding }] = useDisclosure(false)
+  const createPoll = useCreatePoll(group.id)
+  const polls = useGroupPolls(group.id)
+  const openPolls = (polls.data ?? []).filter((p) => p.status === 'open')
+  const navigate = useNavigate()
   const runs = runsGroup(group.my_role)
 
   return (
@@ -124,11 +151,34 @@ function DatesTab({ group }: { group: GroupData }) {
           </Text>
         </div>
         {runs && (
-          <Button size="xs" variant="default" onClick={open}>
-            Add a date
-          </Button>
+          <Group gap="xs">
+            <Button size="xs" variant="default" onClick={openFinding}>
+              Find a time
+            </Button>
+            <Button size="xs" variant="default" onClick={open}>
+              Add a date
+            </Button>
+          </Group>
         )}
       </Group>
+      <Modal opened={finding} onClose={closeFinding} title="Find a time">
+        <PollForm
+          defaultTitle={group.kind === 'rpg' ? 'Next session' : 'Game night'}
+          busy={createPoll.isPending}
+          error={createPoll.isError ? createPoll.error.message : null}
+          onSubmit={(body) =>
+            createPoll.mutate(body, { onSuccess: (poll) => navigate(`/polls/${poll.id}`) })
+          }
+        />
+      </Modal>
+      {openPolls.length > 0 && (
+        <Stack gap="xs">
+          <Title order={5}>Finding a time</Title>
+          {openPolls.map((p) => (
+            <PollRow key={p.id} poll={p} />
+          ))}
+        </Stack>
+      )}
       <Modal opened={adding} onClose={close} title="Add a date">
         <MeetupForm
           allowOnline={group.kind === 'board_games'}

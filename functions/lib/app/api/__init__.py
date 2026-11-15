@@ -15,6 +15,7 @@ from app.api import (
     meetups,
     notifications,
     play_log,
+    polls,
     rpg_systems,
     votes,
 )
@@ -28,6 +29,7 @@ api_router.include_router(collection.router)
 api_router.include_router(friends.router)
 api_router.include_router(groups.router)
 api_router.include_router(meetups.router)
+api_router.include_router(polls.router)
 api_router.include_router(calendar.router)
 api_router.include_router(votes.router)
 api_router.include_router(play_log.router)

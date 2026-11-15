@@ -20,6 +20,7 @@ import { PrivacyPage, TermsPage } from './pages/LegalPages'
 import { MeetupPage } from './pages/MeetupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { PersonPage } from './pages/PersonPage'
+import { PollPage } from './pages/PollPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RpgSystemPage } from './pages/RpgSystemPage'
 import { RpgSystemsPage } from './pages/RpgSystemsPage'
@@ -99,6 +100,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <GroupPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'polls/:pollId',
+        element: (
+          <RequireAuth>
+            <PollPage />
           </RequireAuth>
         ),
       },

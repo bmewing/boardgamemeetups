@@ -1,0 +1,76 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 56px;
+  padding: 6px 4px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-default);
+  color: var(--mantine-color-text);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.slot:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.time {
+  font-weight: 700;
+  font-size: var(--mantine-font-size-sm);
+}
+
+.note {
+  font-size: var(--mantine-font-size-xs);
+  min-height: 1em;
+  opacity: 0.75;
+}
+
+.picked {
+  background: var(--mantine-primary-color-filled);
+  border-color: var(--mantine-primary-color-filled);
+  color: #fff;
+}
+
+.picked .note {
+  opacity: 1;
+}
+
+.heat {
+  background: color-mix(
+    in srgb,
+    var(--mantine-primary-color-filled) calc(var(--heat) * 85%),
+    var(--mantine-color-default)
+  );
+}
+
+.full {
+  background: var(--mantine-primary-color-filled);
+  border-color: var(--mantine-primary-color-filled);
+  color: #1b1b1b;
+}
+
+.focused {
+  outline: 3px solid var(--mantine-color-text);
+  outline-offset: 1px;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--mantine-color-body);
+  padding: 8px 0;
+}

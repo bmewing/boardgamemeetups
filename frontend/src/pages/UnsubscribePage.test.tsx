@@ -48,6 +48,7 @@ describe('UnsubscribePage', () => {
       'pick_locked',
       'bringing',
       'date_changed',
+      'time_poll',
     ]
     let posted: string | null = null
     mockApi({

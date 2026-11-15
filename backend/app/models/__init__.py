@@ -29,6 +29,7 @@ from app.models.play import (
     Play,
     PlayPlayer,
 )
+from app.models.poll import PollStatus, TimePoll, TimePollResponse
 from app.models.rpg import (
     CUSTOM_RPG_SYSTEM_IDS,
     Character,
@@ -85,10 +86,13 @@ __all__ = [
     "PlayerCountVote",
     "PlayerCountVotes",
     "PlaytimeFeel",
+    "PollStatus",
     "RemovedGame",
     "RpgSystem",
     "RsvpResponse",
     "Source",
+    "TimePoll",
+    "TimePollResponse",
     "User",
     "UserAchievement",
     "UserBlock",
